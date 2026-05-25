@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-21 05:51:16.995404",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_date",
+  "custom_intervention_reference",
+  "custom_technician",
+  "column_break_rion",
+  "custom_hours",
+  "custom_status",
+  "custom_technician_count",
+  "custom_billable_hours",
+  "section_break_kpfb",
+  "custom_work_progress"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_date",
+   "fieldtype": "Datetime",
+   "label": "Date"
+  },
+  {
+   "fieldname": "custom_intervention_reference",
+   "fieldtype": "Link",
+   "label": "Intervention Reference",
+   "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Data",
+   "label": "Technician"
+  },
+  {
+   "fieldname": "custom_work_progress",
+   "fieldtype": "Small Text",
+   "label": "Work Summary"
+  },
+  {
+   "fieldname": "custom_hours",
+   "fieldtype": "Float",
+   "label": "Hours"
+  },
+  {
+   "fieldname": "column_break_rion",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "In Progress\nCompleted\nWaiting Parts\nWaiting Client"
+  },
+  {
+   "fieldname": "section_break_kpfb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_technician_count",
+   "fieldtype": "Int",
+   "label": "Technician Count"
+  },
+  {
+   "fieldname": "custom_billable_hours",
+   "fieldtype": "Float",
+   "label": "Billable Hours"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-06 18:42:03.318042",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Mission Intervention Log",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

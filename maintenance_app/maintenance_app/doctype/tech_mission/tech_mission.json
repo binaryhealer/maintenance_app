@@ -1,0 +1,271 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "custom_naming_series",
+ "creation": "2026-04-05 15:23:32.230949",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_naming_series",
+  "custom_parent_customer",
+  "custom_branch",
+  "custom_asset",
+  "custom_planned_team",
+  "custom_requires_parts",
+  "custom_mission_status",
+  "column_break_atlh",
+  "custom_project",
+  "custom_analytic_number",
+  "custom_count_each_technician",
+  "custom_subject",
+  "section_break_lkej",
+  "custom_intervention_table",
+  "tab_2_tab",
+  "custom_planned_starttime",
+  "custom_planned_endtime",
+  "custom_service_type",
+  "column_break_vwer",
+  "custom_work_type",
+  "custom_vehicle",
+  "custom_reference",
+  "custom_service_ticket",
+  "custom_tech_planning",
+  "custom_ticket_type",
+  "column_break_wpxe",
+  "custom_total_hours",
+  "custom_total_actual_hours",
+  "custom_total_billable_hours",
+  "section_break_fyvt",
+  "custom_request_description"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "MISSION-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "custom_analytic_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Analytic Number"
+  },
+  {
+   "fieldname": "custom_project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "fieldname": "custom_total_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Total Mission Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_atlh",
+   "fieldtype": "Column Break",
+   "label": "Branch Name"
+  },
+  {
+   "fieldname": "section_break_lkej",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Client Branch",
+   "options": "Client Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_asset",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Target Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tab_2_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "custom_planned_starttime",
+   "fieldtype": "Datetime",
+   "label": "Planned Start Time"
+  },
+  {
+   "fieldname": "custom_planned_endtime",
+   "fieldtype": "Datetime",
+   "label": "Planned End Time"
+  },
+  {
+   "fieldname": "custom_parent_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "custom_planning_ref.custom_service_type",
+   "fieldname": "custom_service_type",
+   "fieldtype": "Select",
+   "label": "Service Type",
+   "options": "Warranty\nAMC\nBillable\nInternal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_intervention_table",
+   "fieldtype": "Table",
+   "label": "Daily Work Logs",
+   "options": "Mission Intervention Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Service Ticket",
+   "options": "Service Ticket",
+   "unique": 1
+  },
+  {
+   "fieldname": "custom_mission_status",
+   "fieldtype": "Select",
+   "label": "Mission Status",
+   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_tech_planning",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Tech Planning",
+   "options": "Tech Planning"
+  },
+  {
+   "fieldname": "custom_reference",
+   "fieldtype": "Tab Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "custom_planned_team",
+   "fieldtype": "Table",
+   "label": "Planned Team",
+   "options": "Planned Technicians",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vwer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_work_type",
+   "fieldtype": "Select",
+   "label": "Work Type",
+   "options": "Quick Intervention\nTech Mission"
+  },
+  {
+   "fieldname": "custom_vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle / Van",
+   "options": "Vehicle"
+  },
+  {
+   "fieldname": "column_break_wpxe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_fyvt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_request_description",
+   "fieldtype": "Small Text",
+   "label": "Request Description"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_count_each_technician",
+   "fieldtype": "Check",
+   "label": "Count Each Technician Separately"
+  },
+  {
+   "fieldname": "custom_total_actual_hours",
+   "fieldtype": "Float",
+   "label": "Total Actual Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_total_billable_hours",
+   "fieldtype": "Float",
+   "label": "Total Billable Hours"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_parts",
+   "fieldtype": "Check",
+   "label": "Requires Parts?"
+  },
+  {
+   "fieldname": "custom_ticket_type",
+   "fieldtype": "Select",
+   "label": "Ticket Type",
+   "options": "Service\nRepair\nPreventive Maintenance Installation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal"
+  },
+  {
+   "fieldname": "custom_subject",
+   "fieldtype": "Data",
+   "label": "Subject"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-25 21:52:30.952804",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Tech Mission",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:custom_branch_name",
+ "creation": "2026-03-23 13:07:03.196261",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_client_branch",
+  "custom_branch_name",
+  "custom_parent_customer",
+  "custom_require_cr_approval",
+  "column_break_juqt",
+  "custom_longitude",
+  "custom_latitude"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_client_branch",
+   "fieldtype": "Section Break",
+   "label": "  Client Branch"
+  },
+  {
+   "fieldname": "custom_branch_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Client Branch",
+   "unique": 1
+  },
+  {
+   "fieldname": "custom_parent_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "options": "Customer"
+  },
+  {
+   "description": " \"Enter decimal latitude for geofencing.\"",
+   "fieldname": "custom_latitude",
+   "fieldtype": "Float",
+   "label": "GPS Latitude"
+  },
+  {
+   "description": "\"Enter decimal longitude for geofencing.\"\n",
+   "fieldname": "custom_longitude",
+   "fieldtype": "Float",
+   "label": "GPS Longitude"
+  },
+  {
+   "default": "0",
+   "description": "\"Toggles mandatory manager approval for site changes.\"",
+   "fieldname": "custom_require_cr_approval",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Require Change Approval"
+  },
+  {
+   "fieldname": "column_break_juqt",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-25 23:30:35.992698",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Client Branch",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-21 06:36:57.788862",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_asset_id",
+  "custom_serial_number",
+  "custom_model",
+  "custom_make",
+  "custom_category",
+  "custom_status",
+  "custom_branch_display"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_asset_id",
+   "fieldtype": "Link",
+   "label": "Asset ID",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "custom_make",
+   "fieldtype": "Data",
+   "label": "Make"
+  },
+  {
+   "fieldname": "custom_serial_number",
+   "fieldtype": "Data",
+   "label": "Serial Number"
+  },
+  {
+   "fieldname": "custom_category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "custom_branch_display",
+   "fieldtype": "Data",
+   "label": "Branch"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-05 12:28:05.895522",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Branch Asset List",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

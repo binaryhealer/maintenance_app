@@ -1,0 +1,167 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "SITE-ASSET-.#####",
+ "creation": "2026-03-23 13:24:46.192912",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_maintenance_app_asset_registry",
+  "custom_site_id",
+  "custom_location_type",
+  "custom_customer",
+  "custom_branch",
+  "custom_asset_status",
+  "column_break_afnw",
+  "custom_ownership",
+  "custom_asset_id",
+  "custom_maint_frequency",
+  "custom_next_maintenance",
+  "custom_lifecycle_history_table",
+  "column_break_klhx",
+  "custom_lifecycle_history",
+  "custom_config_history_table",
+  "custom_config_history",
+  "custom_service_history_table",
+  "custom_service_history"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_maintenance_app_asset_registry",
+   "fieldtype": "Section Break",
+   "label": "Maintenance App Asset Registry"
+  },
+  {
+   "description": " \"Identifier for the equipment position (e.g., POS-01)",
+   "fieldname": "custom_site_id",
+   "fieldtype": "Data",
+   "label": "Slot ID"
+  },
+  {
+   "bold": 1,
+   "description": "\"The physical serial number currently installed at this site.\"",
+   "fieldname": "custom_asset_id",
+   "fieldtype": "Data",
+   "label": "Current On-Site Serial"
+  },
+  {
+   "fieldname": "custom_ownership",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Ownership Status",
+   "options": "Client Owned\nGotech Owned (Loan)\nSupplier Loan"
+  },
+  {
+   "description": "\n\n\n",
+   "fieldname": "custom_asset_status",
+   "fieldtype": "Select",
+   "label": "Operational Status",
+   "options": "In Use\nUnder Repair\nRetired"
+  },
+  {
+   "fieldname": "custom_maint_frequency",
+   "fieldtype": "Select",
+   "label": "Maintenance Interval",
+   "options": "Monthly\nQuarterly\nBi-Annual\nAnnual"
+  },
+  {
+   "description": " \"Date the next PM ticket is due.\"",
+   "fieldname": "custom_next_maintenance",
+   "fieldtype": "Date",
+   "label": "Next Scheduled Maintenance"
+  },
+  {
+   "fieldname": "column_break_afnw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_lifecycle_history_table",
+   "fieldtype": "Section Break",
+   "label": "Lifecycle History Table"
+  },
+  {
+   "fieldname": "column_break_klhx",
+   "fieldtype": "Column Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_lifecycle_history",
+   "fieldtype": "Table",
+   "label": "Lifecycle History",
+   "options": "Asset Lifecycle Log"
+  },
+  {
+   "fieldname": "custom_config_history_table",
+   "fieldtype": "Section Break",
+   "label": "Config_history"
+  },
+  {
+   "fieldname": "custom_config_history",
+   "fieldtype": "Table",
+   "label": "Config History",
+   "options": "Asset Config Log"
+  },
+  {
+   "fieldname": "custom_service_history_table",
+   "fieldtype": "Section Break",
+   "label": "Service History Table"
+  },
+  {
+   "fieldname": "custom_service_history",
+   "fieldtype": "Table",
+   "label": "Service History",
+   "options": "Asset Service Log"
+  },
+  {
+   "fieldname": "custom_location_type",
+   "fieldtype": "Select",
+   "label": "Location Type",
+   "options": "Branch\nCustomer"
+  },
+  {
+   "depends_on": "eval:doc.custom_location_type == 'Branch'",
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_list_view": 1,
+   "label": "Branch",
+   "mandatory_depends_on": "eval:doc.custom_location_type == 'Branch';",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-25 23:36:29.947781",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Maintenance App Asset Registry",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

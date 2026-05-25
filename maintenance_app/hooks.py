@@ -5,6 +5,10 @@ app_description = "Support and Maintenance App"
 app_email = "gerrard@gotechmu.com"
 app_license = "unlicense"
 
+website_route_rules = [
+    {"from_route": "/tech", "to_route": "tech"},
+]
+
 # Apps
 # ------------------
 
@@ -250,3 +254,16 @@ app_license = "unlicense"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+# ~/frappe-bench/apps/maintenance_app/maintenance_app/hooks.py
+
+#app_name = "maintenance_app"
+
+# Use the full asset path to bypass nesting confusion
+#doctype_js = {
+ #   "HD Ticket": "/assets/maintenance_app/js/hd_ticket.js"
+#}
+app_name = "maintenance_app"
+
+doctype_js = {
+    "HD Ticket": "public/js/hd_ticket.js"
+}

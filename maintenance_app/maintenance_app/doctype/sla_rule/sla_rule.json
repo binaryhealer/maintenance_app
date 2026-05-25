@@ -1,0 +1,109 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-05 12:58:23.105292",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_basic",
+  "custom_sla_name",
+  "custom_priority",
+  "custom_active",
+  "custom_timing",
+  "custom_response_time",
+  "custom_resolution_time",
+  "custom_behavior",
+  "custom_pause_client",
+  "custom_pause_parts",
+  "custom_escalation_user"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic"
+  },
+  {
+   "fieldname": "custom_sla_name",
+   "fieldtype": "Data",
+   "label": "SLA Name"
+  },
+  {
+   "fieldname": "custom_priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nNormal\nHigh\nUrgent"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "custom_timing",
+   "fieldtype": "Section Break",
+   "label": "Timing"
+  },
+  {
+   "fieldname": "custom_response_time",
+   "fieldtype": "Float",
+   "label": "Response Time (Hours)"
+  },
+  {
+   "fieldname": "custom_resolution_time",
+   "fieldtype": "Float",
+   "label": "Resolution Time (Hours)"
+  },
+  {
+   "fieldname": "custom_behavior",
+   "fieldtype": "Section Break",
+   "label": "Behavior"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_pause_client",
+   "fieldtype": "Check",
+   "label": "Pause on Waiting Client"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_pause_parts",
+   "fieldtype": "Check",
+   "label": "Pause on Waiting Parts"
+  },
+  {
+   "fieldname": "custom_escalation_user",
+   "fieldtype": "Link",
+   "label": "Escalation User",
+   "options": "User"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-05 14:41:02.950517",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "SLA Rule",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

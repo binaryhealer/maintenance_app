@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-23 12:41:53.004518",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_asset_lifecycle_log",
+  "custom_date",
+  "custom_event",
+  "custom_ref_doctype",
+  "column_break_fdgx",
+  "custom_location",
+  "custom_related_serial",
+  "custom_reference"
+ ],
+ "fields": [
+  {
+   "description": "\"The date this status change occurred.\"",
+   "fieldname": "custom_date",
+   "fieldtype": "Date",
+   "label": "Date of Event"
+  },
+  {
+   "fieldname": "custom_event",
+   "fieldtype": "Select",
+   "label": "Type of Event ",
+   "options": "Commissioned\nRetired\nLoaner Installed\nLoaner Returned\nScrapped"
+  },
+  {
+   "description": "\"The physical location of the asset.\"",
+   "fieldname": "custom_location",
+   "fieldtype": "Link",
+   "label": "Site/Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_asset_lifecycle_log",
+   "fieldtype": "Section Break",
+   "label": "Asset Lifecycle Log"
+  },
+  {
+   "fieldname": "custom_related_serial",
+   "fieldtype": "Link",
+   "label": "Related Asset",
+   "options": "Maintenance App Asset Registry"
+  },
+  {
+   "description": "\"Points to the source document (Ticket or CR).\"",
+   "fieldname": "custom_ref_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Type",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "custom_reference",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Document",
+   "options": "custom_ref_doctype"
+  },
+  {
+   "fieldname": "column_break_fdgx",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-23 13:47:13.806916",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Asset Lifecycle Log",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

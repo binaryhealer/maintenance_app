@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-23 13:03:54.268260",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_config_update_table",
+  "custom_property",
+  "custom_old_value",
+  "custom_new_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_config_update_table",
+   "fieldtype": "Section Break",
+   "label": "Config Update Table"
+  },
+  {
+   "fieldname": "custom_property",
+   "fieldtype": "Data",
+   "label": "Parameter Name"
+  },
+  {
+   "fieldname": "custom_old_value",
+   "fieldtype": "Small Text",
+   "label": "Current Value"
+  },
+  {
+   "fieldname": "custom_new_value",
+   "fieldtype": "Small Text",
+   "label": "New Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-23 13:06:08.557762",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Config Update Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

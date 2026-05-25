@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-12 21:23:10.162145",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_item_code",
+  "custom_item_name",
+  "custom_brand",
+  "custom_billed",
+  "column_break_mjwv",
+  "custom_warehouse",
+  "custom_qty",
+  "custom_mission_intervention"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_item_code",
+   "fieldtype": "Link",
+   "label": "Item code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "custom_item_name",
+   "fieldtype": "Data",
+   "label": "Item Name"
+  },
+  {
+   "fieldname": "custom_brand",
+   "fieldtype": "Data",
+   "label": "Brand"
+  },
+  {
+   "fieldname": "custom_qty",
+   "fieldtype": "Float",
+   "label": "Qty"
+  },
+  {
+   "fieldname": "custom_warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "custom_mission_intervention",
+   "fieldtype": "Link",
+   "label": "Mission Intervention",
+   "options": "Mission Intervention"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_billed",
+   "fieldtype": "Check",
+   "label": "Billed?",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mjwv",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-13 02:40:48.436332",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket Used Parts",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

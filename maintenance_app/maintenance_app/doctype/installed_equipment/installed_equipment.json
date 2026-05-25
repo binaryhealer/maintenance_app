@@ -1,0 +1,394 @@
+{
+ "actions": [],
+ "allow_events_in_timeline": 1,
+ "allow_rename": 1,
+ "autoname": "SITE-ASSET-.#####",
+ "creation": "2026-03-23 13:24:46.192912",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_maintenance_app_asset_registry",
+  "custom_asset_category_cb",
+  "custom_parent_customer",
+  "custom_branch",
+  "custom_asset_name",
+  "custom_item_code",
+  "custom_make",
+  "custom_model",
+  "column_break_afnw",
+  "custom_asset_category",
+  "custom_asset_id",
+  "custom_asset_type",
+  "custom_site_id",
+  "section_break_sffk",
+  "custom_next_maintenance",
+  "custom_ownership",
+  "custom_asset_status",
+  "column_break_vyja",
+  "custom_expiry_date",
+  "custom_maint_frequency",
+  "section_break_ajrk",
+  "lft",
+  "rgt",
+  "is_group",
+  "old_parent",
+  "parent_maintenance_app_asset_registry",
+  "custom_addtional_info",
+  "custom_client_asset_code",
+  "custom_location_status",
+  "custom_equipment_health",
+  "column_break_zspy",
+  "custom_maintenance_contract",
+  "custom_sla_rule",
+  "custom_last_service_date",
+  "section_break_zkha",
+  "custom_replaces_equipment",
+  "custom_replaced_by_equipment",
+  "custom_replacement_reason",
+  "column_break_blst",
+  "custom_replacement_date",
+  "custom_commissioned_date",
+  "custom_info",
+  "custom_display_name",
+  "section_break_dgug",
+  "custom_component_overview"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_maintenance_app_asset_registry",
+   "fieldtype": "Section Break",
+   "label": "Maintenance App Asset Registry"
+  },
+  {
+   "depends_on": "eval:doc.custom_asset_type !== \"Software\"",
+   "fieldname": "custom_site_id",
+   "fieldtype": "Data",
+   "label": "Site Position / Slot ID"
+  },
+  {
+   "fieldname": "custom_asset_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Serial Number"
+  },
+  {
+   "fieldname": "custom_ownership",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Ownership",
+   "options": "Client Owned\nCompany Owned\nSupplier Loan\nTemporary Loan\nRental"
+  },
+  {
+   "description": "\n\n\n",
+   "fieldname": "custom_asset_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Equipment Status",
+   "options": "Installed\nUnder Repair\nIn Transit\nIn Workshop\nLoaned\nReturned\nRetired\nScrapped\nLost\nIn Use"
+  },
+  {
+   "fieldname": "custom_maint_frequency",
+   "fieldtype": "Select",
+   "label": "Maintenance Frequency",
+   "options": "Monthly\nQuarterly\nBi-Annual\nAnnual"
+  },
+  {
+   "description": " \"Date the next PM ticket is due.\"",
+   "fieldname": "custom_next_maintenance",
+   "fieldtype": "Date",
+   "label": "Next Maintenance Date"
+  },
+  {
+   "fieldname": "column_break_afnw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_asset_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Equipment Name"
+  },
+  {
+   "fieldname": "custom_asset_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Equipment Type",
+   "options": "Hardware\nSoftware"
+  },
+  {
+   "fetch_from": "custom_brand_id.custom_make",
+   "fieldname": "custom_make",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Brand / Make",
+   "options": "Brand"
+  },
+  {
+   "fetch_from": "custom_item_code.item_name",
+   "fieldname": "custom_model",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Model",
+   "options": "Maintenance Item"
+  },
+  {
+   "fieldname": "custom_expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Warranty /Contract Expiry Date"
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Client Site / Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "section_break_sffk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_vyja",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lft",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Left",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "rgt",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Right",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_group",
+   "fieldtype": "Check",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Is Group"
+  },
+  {
+   "fieldname": "old_parent",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Old Parent",
+   "options": "Installed Equipment"
+  },
+  {
+   "fetch_from": "custom_brand_id.custom_asset_category",
+   "fieldname": "custom_asset_category",
+   "fieldtype": "Link",
+   "label": "Equipment Category",
+   "options": "Item Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_asset_category_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_parent_customer",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Name",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "section_break_ajrk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_addtional_info",
+   "fieldtype": "Tab Break",
+   "label": "Additonal Info"
+  },
+  {
+   "fieldname": "custom_client_asset_code",
+   "fieldtype": "Data",
+   "label": "Client Asset Code"
+  },
+  {
+   "fieldname": "custom_location_status",
+   "fieldtype": "Select",
+   "label": "Current Location Status",
+   "options": "Client Site\nWorkshop\nVan\nWarehouse\nIn Transit"
+  },
+  {
+   "fieldname": "custom_equipment_health",
+   "fieldtype": "Select",
+   "label": "Equipment Health",
+   "options": "Good\nWarning\nCritical\nUnknown"
+  },
+  {
+   "fieldname": "custom_maintenance_contract",
+   "fieldtype": "Link",
+   "label": "Maintenance Contract",
+   "options": "Maintenance Contract"
+  },
+  {
+   "fieldname": "column_break_zspy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_sla_rule",
+   "fieldtype": "Link",
+   "label": "SLA Rule",
+   "options": "SLA Rule"
+  },
+  {
+   "fieldname": "section_break_zkha",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_replaces_equipment",
+   "fieldtype": "Link",
+   "label": "Replaces Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_replaced_by_equipment",
+   "fieldtype": "Link",
+   "label": "Replaced By Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_replacement_date",
+   "fieldtype": "Date",
+   "label": "Replacement Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_replacement_reason",
+   "fieldtype": "Small Text",
+   "label": "Replacement Reason"
+  },
+  {
+   "fieldname": "custom_commissioned_date",
+   "fieldtype": "Date",
+   "label": "Commissioned Date"
+  },
+  {
+   "fieldname": "custom_last_service_date",
+   "fieldtype": "Date",
+   "label": "Last Service Date"
+  },
+  {
+   "fieldname": "column_break_blst",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_display_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Display Name"
+  },
+  {
+   "fieldname": "custom_item_code",
+   "fieldtype": "Link",
+   "label": "ERPNext Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "custom_info",
+   "fieldtype": "Tab Break",
+   "label": "Info"
+  },
+  {
+   "fieldname": "parent_maintenance_app_asset_registry",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Parent Maintenance App Asset Registry",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_overview",
+   "fieldtype": "HTML",
+   "label": "Component Overview"
+  },
+  {
+   "fieldname": "section_break_dgug",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_calendar_and_gantt": 1,
+ "links": [
+  {
+   "group": "MainAPP",
+   "link_doctype": "Asset Lifecycle Log",
+   "link_fieldname": "custom_related_asset"
+  },
+  {
+   "group": "Config Update History",
+   "link_doctype": "Config Update Log",
+   "link_fieldname": "custom_asset"
+  },
+  {
+   "group": "Service Logs",
+   "link_doctype": "Asset Service Log",
+   "link_fieldname": "custom_related_asset"
+  },
+  {
+   "group": "Components",
+   "link_doctype": "Installed Equipment",
+   "link_fieldname": "parent_maintenance_app_asset_registry"
+  }
+ ],
+ "modified": "2026-05-22 18:00:41.256853",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Installed Equipment",
+ "naming_rule": "Expression",
+ "nsm_parent_field": "parent_maintenance_app_asset_registry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "custom_display_name",
+ "track_changes": 1
+}

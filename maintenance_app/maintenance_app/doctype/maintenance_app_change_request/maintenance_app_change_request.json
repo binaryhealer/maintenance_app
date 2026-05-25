@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "CR-.YYYY.-.#####",
+ "creation": "2026-04-05 06:37:17.076791",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_maintenance_app_change_request",
+  "amended_from",
+  "custom_intervention_ref",
+  "custom_request_type",
+  "column_break_zylc",
+  "custom_asset",
+  "custom_parent_customer",
+  "custom_reason",
+  "section_break_iebp",
+  "custom_approval",
+  "custom_approved_by",
+  "custom_approval_date",
+  "custom_manager_comments",
+  "custom_swap_details_section",
+  "custom_swap_section",
+  "custom_replacement_asset",
+  "custom_new_make",
+  "column_break_avmj",
+  "custom_new_serial",
+  "custom_new_model",
+  "section_break_fuyc",
+  "custom_from_wh",
+  "custom_to_wh",
+  "custom_return_date",
+  "column_break_mxgv"
+ ],
+ "fields": [
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Maintenance App Change Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "custom_maintenance_app_change_request",
+   "fieldtype": "Section Break",
+   "label": "Maintenance App Change Request"
+  },
+  {
+   "fieldname": "column_break_zylc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_swap_section",
+   "fieldtype": "Section Break",
+   "label": "Swap Section"
+  },
+  {
+   "fieldname": "column_break_avmj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_new_serial",
+   "fieldtype": "Data",
+   "label": "New Serial"
+  },
+  {
+   "fieldname": "section_break_iebp",
+   "fieldtype": "Section Break",
+   "label": "Approval Status"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "custom_approval",
+   "fieldtype": "Select",
+   "label": "Approval Status",
+   "options": "Pending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "custom_swap_details_section",
+   "fieldtype": "Tab Break",
+   "label": "Swap Details"
+  },
+  {
+   "fieldname": "custom_from_wh",
+   "fieldtype": "Link",
+   "label": "Source Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "description": "Link to Warehouse). Where the broken unit is going (e.g., Scrap or Repair Bench",
+   "fieldname": "custom_to_wh",
+   "fieldtype": "Link",
+   "label": "Dest. Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "custom_return_date",
+   "fieldtype": "Date",
+   "label": "Expected Return Date"
+  },
+  {
+   "fieldname": "section_break_fuyc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_asset",
+   "fieldtype": "Link",
+   "label": "Target Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_intervention_ref",
+   "fieldtype": "Link",
+   "label": "Intervention Ref",
+   "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "custom_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason for Change"
+  },
+  {
+   "fieldname": "custom_manager_comments",
+   "fieldtype": "Small Text",
+   "label": "Manager Comments"
+  },
+  {
+   "fieldname": "custom_parent_customer",
+   "fieldtype": "Link",
+   "label": "Customer / Account",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "custom_new_make",
+   "fieldtype": "Link",
+   "label": "New Make",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "column_break_mxgv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_new_model",
+   "fieldtype": "Data",
+   "label": "New Model",
+   "options": "Maintenance Item"
+  },
+  {
+   "fieldname": "custom_request_type",
+   "fieldtype": "Select",
+   "label": "Request Type",
+   "options": "Temporary Loan\nCompany Replacement\nCommercial Override\nOther"
+  },
+  {
+   "fieldname": "custom_replacement_asset",
+   "fieldtype": "Link",
+   "label": "Replacement Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_approval_date",
+   "fieldtype": "Datetime",
+   "label": "Approval Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-05-05 21:27:49.690439",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Maintenance App Change Request",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

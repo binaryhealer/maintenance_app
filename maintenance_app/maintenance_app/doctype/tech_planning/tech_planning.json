@@ -1,0 +1,275 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "Tech-.###",
+ "creation": "2026-04-07 11:22:15.130838",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_parent_customer",
+  "custom_branch",
+  "custom_asset",
+  "custom_subject",
+  "column_break_sxsg",
+  "custom_service_type",
+  "custom_request_type",
+  "custom_ticket_type",
+  "section_break_emfh",
+  "custom_notes",
+  "custom_planning",
+  "custom_planned_starttime",
+  "custom_planned_endtime",
+  "column_break_swfk",
+  "custom_planning_status",
+  "custom_vehicle",
+  "section_break_fsoi",
+  "custom_planned_team",
+  "custom_contact_information",
+  "custom_primary_contact",
+  "custom_contact_name",
+  "column_break_eevi",
+  "custom_contact_phone",
+  "custom_contact_email",
+  "custom_reference",
+  "custom_mission_ref",
+  "custom_service_ticket",
+  "section_break_iivs",
+  "custom_request_description",
+  "custom_reschedule",
+  "custom_reschedule_required",
+  "custom_reschedule_reason",
+  "custom_reschedule_count",
+  "custom_reschedule_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_asset",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Target Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Client Branch",
+   "options": "Client Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sxsg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_vehicle",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vehicle / Van",
+   "options": "Vehicle"
+  },
+  {
+   "fieldname": "custom_planned_team",
+   "fieldtype": "Table",
+   "label": "Planned Team",
+   "options": "Planned Technicians"
+  },
+  {
+   "fieldname": "custom_parent_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_planned_starttime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Planned Start Time"
+  },
+  {
+   "fieldname": "custom_planned_endtime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Planned End Time"
+  },
+  {
+   "fieldname": "custom_service_type",
+   "fieldtype": "Select",
+   "label": "Service Type",
+   "options": "Warranty\nAMC\nBillable\nInternal"
+  },
+  {
+   "fieldname": "custom_mission_ref",
+   "fieldtype": "Link",
+   "label": "Mission Ref",
+   "options": "Tech Mission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_request_description",
+   "fieldtype": "Long Text",
+   "label": "Request Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Service Ticket Ref",
+   "options": "Service Ticket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_request_type",
+   "fieldtype": "Select",
+   "label": "Request Type",
+   "options": "Breakdown\nMaintenance Request\nGeneral Request"
+  },
+  {
+   "fieldname": "custom_ticket_type",
+   "fieldtype": "Select",
+   "label": "Ticket Type",
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nSwap / Loan"
+  },
+  {
+   "fieldname": "section_break_iivs",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_planning",
+   "fieldtype": "Tab Break",
+   "label": "Planning Details (CORE)"
+  },
+  {
+   "fieldname": "section_break_fsoi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_reference",
+   "fieldtype": "Tab Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "column_break_swfk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_planning_status",
+   "fieldtype": "Select",
+   "label": "Planning Status",
+   "options": "Draft\nPlanned\nIn Progress\nCompleted\nCancelled"
+  },
+  {
+   "fieldname": "section_break_emfh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_notes",
+   "fieldtype": "Small Text",
+   "label": "Planning Notes"
+  },
+  {
+   "fieldname": "custom_contact_information",
+   "fieldtype": "Tab Break",
+   "label": "Contact Information"
+  },
+  {
+   "fieldname": "custom_primary_contact",
+   "fieldtype": "Link",
+   "label": "Primary Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_contact_name",
+   "fieldtype": "Data",
+   "label": "Contact Name"
+  },
+  {
+   "fieldname": "custom_contact_phone",
+   "fieldtype": "Data",
+   "label": "Contact Phone"
+  },
+  {
+   "fieldname": "custom_contact_email",
+   "fieldtype": "Data",
+   "label": "Contact Email"
+  },
+  {
+   "fieldname": "column_break_eevi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_reschedule",
+   "fieldtype": "Tab Break",
+   "label": "Reschedule"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_reschedule_required",
+   "fieldtype": "Check",
+   "label": "Reschedule Required"
+  },
+  {
+   "fieldname": "custom_reschedule_reason",
+   "fieldtype": "Select",
+   "label": "Reschedule Reason",
+   "options": "Client Request\nEmergency Priority Change\nTechnician Unavailable\nTechnician Sick Leave\nParts Not Available\nAwaiting Purchase\nVehicle Breakdown\nVehicle Unavailable\nSite Not Accessible\nCustomer Site Closed\nWeather Conditions\nPermit / Access Delay\nInternal Scheduling Conflict\nAwaiting Approval\nAwaiting Quote Approval\nAwaiting Parts Delivery\nMission Overrun\nSafety Issue\nOther"
+  },
+  {
+   "fieldname": "custom_reschedule_count",
+   "fieldtype": "Int",
+   "label": "Reschedule Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_reschedule_notes",
+   "fieldtype": "Small Text",
+   "label": "Reschedule Notes"
+  },
+  {
+   "fieldname": "custom_subject",
+   "fieldtype": "Data",
+   "label": "Subject"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-25 21:51:58.299878",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Tech Planning",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

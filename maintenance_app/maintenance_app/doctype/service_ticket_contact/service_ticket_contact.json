@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-05 14:04:42.809331",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_contact",
+  "custom_contact_name",
+  "custom_email",
+  "column_break_ajsq",
+  "custom_phone",
+  "custom_role",
+  "custom_is_primary",
+  "section_break_skfi",
+  "custom_additional_contacts"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_contact",
+   "fieldtype": "Link",
+   "label": "Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_contact_name",
+   "fieldtype": "Data",
+   "label": "Contact Name"
+  },
+  {
+   "fieldname": "custom_email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "custom_phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "custom_role",
+   "fieldtype": "Select",
+   "label": "Role",
+   "options": "Requester\nSite Contact\nApprover\nBilling\nTechnical"
+  },
+  {
+   "fieldname": "column_break_ajsq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_is_primary",
+   "fieldtype": "Check",
+   "label": "Is Primary?"
+  },
+  {
+   "fieldname": "section_break_skfi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_additional_contacts",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-05 14:14:04.141358",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket Contact",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

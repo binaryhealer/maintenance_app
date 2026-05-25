@@ -1,0 +1,249 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "LC-.YYYY.-.#####",
+ "creation": "2026-03-23 12:41:53.004518",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_asset_lifecycle_log",
+  "custom_customer",
+  "custom_branch",
+  "custom_related_asset",
+  "custom_date",
+  "custom_event",
+  "custom_to_branch",
+  "column_break_fdgx",
+  "custom_replacement_asset",
+  "custom_replacement_serial",
+  "custom_new_make",
+  "custom_new_model",
+  "amended_from",
+  "custom_event_source",
+  "custom_removed_asset_outcome",
+  "section_break_vzqv",
+  "custom_action_taken",
+  "custom_reference_billing",
+  "custom_technician",
+  "custom_service_ticket",
+  "custom_billing_analysis",
+  "column_break_ugkc",
+  "custom_mission_ref",
+  "custom_intervention_ref",
+  "custom_equipment_history",
+  "custom_previous_make",
+  "custom_previous_model",
+  "column_break_gdcx",
+  "custom_from_branch",
+  "custom_previous_serial"
+ ],
+ "fields": [
+  {
+   "description": "\"The date this status change occurred.\"",
+   "fieldname": "custom_date",
+   "fieldtype": "Datetime",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Date of Event",
+   "read_only": 1,
+   "sticky": 1
+  },
+  {
+   "fieldname": "custom_event",
+   "fieldtype": "Select",
+   "label": "Event Type",
+   "options": "Commissioned\nServiced\nAsset Relocation\nHardware Swap\nTemporary Loan\nReturn from Loan\nRepaired\nRetired\nScrapped"
+  },
+  {
+   "fieldname": "custom_asset_lifecycle_log",
+   "fieldtype": "Section Break",
+   "label": "Asset Lifecycle Log"
+  },
+  {
+   "fieldname": "column_break_fdgx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Data",
+   "label": "Technician",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_action_taken",
+   "fieldtype": "Small Text",
+   "label": "Action Taken"
+  },
+  {
+   "fieldname": "custom_related_asset",
+   "fieldtype": "Link",
+   "label": "Related Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "custom_replacement_serial",
+   "fieldtype": "Data",
+   "label": "Replacement Serial"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Asset Lifecycle Log",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "custom_previous_serial",
+   "fieldtype": "Data",
+   "label": "Previous Serial"
+  },
+  {
+   "fieldname": "custom_previous_make",
+   "fieldtype": "Link",
+   "label": "Previous Make",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "custom_previous_model",
+   "fieldtype": "Data",
+   "label": "Previous Model"
+  },
+  {
+   "fieldname": "section_break_vzqv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "label": "Service Ticket",
+   "options": "Service Ticket"
+  },
+  {
+   "fieldname": "custom_mission_ref",
+   "fieldtype": "Link",
+   "label": "Mission Ref",
+   "options": "Tech Mission"
+  },
+  {
+   "fieldname": "custom_equipment_history",
+   "fieldtype": "Tab Break",
+   "label": "Equipment History"
+  },
+  {
+   "fieldname": "column_break_gdcx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ugkc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_reference_billing",
+   "fieldtype": "Tab Break",
+   "label": "Reference & Billing"
+  },
+  {
+   "fieldname": "custom_billing_analysis",
+   "fieldtype": "Select",
+   "label": "Billing Analysis",
+   "options": "Covered by AMC/Warranty Billable - Misuse\nBillable - Out of Scope\nBillable - Client Request\nInternal / No Charge"
+  },
+  {
+   "fieldname": "custom_new_make",
+   "fieldtype": "Link",
+   "label": "New Make",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "custom_new_model",
+   "fieldtype": "Data",
+   "label": "New Model"
+  },
+  {
+   "fieldname": "custom_replacement_asset",
+   "fieldtype": "Link",
+   "label": "Replacement Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "description": "\"The physical location of the asset.\"",
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "label": "Site/Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_to_branch",
+   "fieldtype": "Link",
+   "label": "Destination Location",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_from_branch",
+   "fieldtype": "Link",
+   "label": "Previous Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_event_source",
+   "fieldtype": "Select",
+   "label": "Event Source",
+   "options": "Intervention\nManual\nSystem"
+  },
+  {
+   "fieldname": "custom_intervention_ref",
+   "fieldtype": "Link",
+   "label": "Intervention Ref",
+   "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "custom_removed_asset_outcome",
+   "fieldtype": "Select",
+   "label": "Removed Asset Outcome",
+   "options": "Sent for Repair\nReturned to Stock\nRetired\nScrapped"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-05-12 20:40:36.072886",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Asset Lifecycle Log",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

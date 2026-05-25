@@ -1,0 +1,500 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "Ticket-.#####",
+ "creation": "2026-05-05 13:21:11.948569",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_request_details",
+  "custom_ticket_title",
+  "custom_customer",
+  "custom_client_branch",
+  "custom_target_equipment",
+  "custom_opening_date",
+  "column_break_jygr",
+  "custom_request_type",
+  "custom_subject",
+  "custom_raised_by",
+  "custom_ticket_type",
+  "custom_planning_required",
+  "section_break_dmjb",
+  "custom_description",
+  "custom_assignment_review",
+  "custom_rm_reviewer",
+  "custom_priority",
+  "custom_planned_team",
+  "section_break_wvlv",
+  "custom_rm_notes",
+  "custom_classification",
+  "custom_service_type",
+  "custom_work_type",
+  "custom_requires_parts",
+  "column_break_mqlq",
+  "custom_maintenance_contract",
+  "custom_sla_rule",
+  "custom_sla_basic",
+  "custom_response_due",
+  "custom_resolution_due",
+  "custom_sla_status",
+  "custom_contact_communication",
+  "custom_primary_contact",
+  "custom_contact_name",
+  "column_break_fdih",
+  "custom_contact_email",
+  "custom_contact_phone",
+  "section_break_hisi",
+  "custom_additional_contacts",
+  "custom_status_commercial",
+  "custom_ticket_status",
+  "custom_commercial_status",
+  "custom_post_work_quote",
+  "column_break_rfsh",
+  "custom_hold_reason",
+  "section_break_mcns",
+  "custom_commercial_references",
+  "section_break_crzq",
+  "custom_used_parts",
+  "custom_resolution_detail",
+  "custom_resolution_date",
+  "custom_resolved_by",
+  "custom_resolution_source_mi",
+  "custom_resolution_details",
+  "column_break_roia",
+  "custom_planning_status",
+  "custom_primary_mission_ref",
+  "custom_primary_planning_ref",
+  "section_break_nivr",
+  "custom_closed_date",
+  "custom_closed_by",
+  "custom_closure_notes",
+  "custom_rework_details",
+  "custom_is_rework",
+  "custom_rework_approved",
+  "custom_original_ticket",
+  "custom_rework_count",
+  "custom_rework_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "custom_client_branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Client Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_target_equipment",
+   "fieldtype": "Link",
+   "label": "Target Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_subject",
+   "fieldtype": "Data",
+   "label": "Subject"
+  },
+  {
+   "fieldname": "custom_description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "custom_request_type",
+   "fieldtype": "Select",
+   "label": "Request Type",
+   "options": "Breakdown\nMaintenance Request\nGeneral Request"
+  },
+  {
+   "fieldname": "column_break_jygr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_raised_by",
+   "fieldtype": "Data",
+   "label": "Raised By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_request_details",
+   "fieldtype": "Section Break",
+   "label": "Request Details"
+  },
+  {
+   "fieldname": "custom_assignment_review",
+   "fieldtype": "Tab Break",
+   "label": "Assignment & Review"
+  },
+  {
+   "fieldname": "custom_rm_reviewer",
+   "fieldtype": "Link",
+   "label": "RM Reviewer",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nNormal\nHigh\nUrgent"
+  },
+  {
+   "fieldname": "custom_planned_team",
+   "fieldtype": "Table",
+   "label": "Planned Team",
+   "options": "Planned Technicians"
+  },
+  {
+   "fieldname": "custom_rm_notes",
+   "fieldtype": "Small Text",
+   "label": "RM Notes"
+  },
+  {
+   "fieldname": "section_break_dmjb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_wvlv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_classification",
+   "fieldtype": "Tab Break",
+   "label": "Classification"
+  },
+  {
+   "fieldname": "custom_ticket_type",
+   "fieldtype": "Select",
+   "label": "Ticket Type",
+   "options": "Service\nRepair\nPreventive Maintenance Installation\nSurvey\nAsset Relocation\nConfig Change\nSwap\nLoan"
+  },
+  {
+   "default": "Billable",
+   "fieldname": "custom_service_type",
+   "fieldtype": "Select",
+   "label": "Service Type",
+   "options": "Warranty\nAMC\nBillable\nInternal"
+  },
+  {
+   "fieldname": "custom_work_type",
+   "fieldtype": "Select",
+   "label": "Work Type",
+   "options": "Quick Intervention\nTech Mission"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_parts",
+   "fieldtype": "Check",
+   "label": "Requires Parts"
+  },
+  {
+   "fieldname": "column_break_mqlq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_maintenance_contract",
+   "fieldtype": "Link",
+   "label": "Maintenance Contract",
+   "options": "Maintenance Contract",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_sla_rule",
+   "fieldtype": "Link",
+   "label": "SLA Rule",
+   "options": "SLA Rule",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_contact_communication",
+   "fieldtype": "Tab Break",
+   "label": "Contact & Communication"
+  },
+  {
+   "fieldname": "custom_primary_contact",
+   "fieldtype": "Link",
+   "label": "Primary Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_contact_name",
+   "fieldtype": "Data",
+   "label": "Contact Name"
+  },
+  {
+   "fieldname": "column_break_fdih",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_contact_email",
+   "fieldtype": "Data",
+   "label": "Contact Email"
+  },
+  {
+   "fieldname": "custom_contact_phone",
+   "fieldtype": "Data",
+   "label": "Contact Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "section_break_hisi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_additional_contacts",
+   "fieldtype": "Table",
+   "label": "Additional Contacts",
+   "options": "Service Ticket Contact"
+  },
+  {
+   "fieldname": "custom_status_commercial",
+   "fieldtype": "Tab Break",
+   "label": "Status & Commercial"
+  },
+  {
+   "default": "Open",
+   "fieldname": "custom_ticket_status",
+   "fieldtype": "Select",
+   "label": "Ticket Status",
+   "options": "Open\nUnder Review\nReady for Planning\nPlanned\nIn Progress\nOn Hold\nResolved\nClosed\nCancelled",
+   "read_only": 1
+  },
+  {
+   "default": "N/A",
+   "fieldname": "custom_commercial_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Commercial Status",
+   "options": "N/A\nCovered by Contract\nCovered\nWarranty\nTo Quote\nQuote Sent\nQuote Approved\nAwaiting Parts\nReady for Planning\nTo be Invoiced\nInvoiced\nPartly Paid\nPaid"
+  },
+  {
+   "fieldname": "custom_hold_reason",
+   "fieldtype": "Select",
+   "label": "Hold Reason",
+   "options": "Awaiting Client\nAwaiting Quote Approval\nAwaiting Parts\nAwaiting PO\nAwaiting Internal Review\nOther",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_planning_required",
+   "fieldtype": "Check",
+   "label": "Planning Required"
+  },
+  {
+   "fieldname": "custom_planning_status",
+   "fieldtype": "Select",
+   "label": "Planning Status",
+   "options": "Not Required\nRequired\nPartially Planned\nFully Planned\nIn Progress\nCompleted"
+  },
+  {
+   "fieldname": "custom_primary_planning_ref",
+   "fieldtype": "Link",
+   "label": "Primary Planning Ref",
+   "options": "Tech Planning",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_primary_mission_ref",
+   "fieldtype": "Link",
+   "label": "Primary Mission Ref",
+   "options": "Tech Mission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_mcns",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_commercial_references",
+   "fieldtype": "Table",
+   "label": "Commercial References",
+   "options": "HD Ticket Commercial Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_sla_basic",
+   "fieldtype": "Section Break",
+   "label": "SLA (basic only)"
+  },
+  {
+   "fieldname": "custom_response_due",
+   "fieldtype": "Datetime",
+   "label": "Response Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_resolution_due",
+   "fieldtype": "Datetime",
+   "label": "Resolution Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_sla_status",
+   "fieldtype": "Select",
+   "label": "SLA Status",
+   "options": "Not Applicable\nOn Track\nWarning\nBreached\nPaused\nFulfilled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rfsh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_is_rework",
+   "fieldtype": "Check",
+   "label": "Is Rework?",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_rework_approved",
+   "fieldtype": "Check",
+   "label": "Rework Approved"
+  },
+  {
+   "fieldname": "custom_original_ticket",
+   "fieldtype": "Link",
+   "label": "Original Ticket",
+   "options": "Service Ticket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_rework_count",
+   "fieldtype": "Int",
+   "label": "Rework Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_rework_reason",
+   "fieldtype": "Small Text",
+   "label": "Rework Reason"
+  },
+  {
+   "fieldname": "custom_ticket_title",
+   "fieldtype": "Data",
+   "label": "Ticket Title"
+  },
+  {
+   "fieldname": "custom_resolution_detail",
+   "fieldtype": "Tab Break",
+   "label": "Resolution Details"
+  },
+  {
+   "fieldname": "custom_resolution_date",
+   "fieldtype": "Datetime",
+   "label": "Resolution Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_resolved_by",
+   "fieldtype": "Link",
+   "label": "Resolved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_resolution_source_mi",
+   "fieldtype": "Link",
+   "label": "Resolution Source MI",
+   "options": "Mission Intervention",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_resolution_details",
+   "fieldtype": "Text Editor",
+   "label": "Resolution Details",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_nivr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_closed_date",
+   "fieldtype": "Datetime",
+   "label": "Closed Date"
+  },
+  {
+   "fieldname": "custom_closed_by",
+   "fieldtype": "Link",
+   "label": "Closed By",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_closure_notes",
+   "fieldtype": "Small Text",
+   "label": "Closure Notes"
+  },
+  {
+   "fieldname": "custom_opening_date",
+   "fieldtype": "Datetime",
+   "label": "Opening Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_post_work_quote",
+   "fieldtype": "Check",
+   "label": "Post Work Quote"
+  },
+  {
+   "fieldname": "section_break_crzq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_used_parts",
+   "fieldtype": "Table",
+   "label": "Used Parts",
+   "options": "Service Ticket Used Parts"
+  },
+  {
+   "fieldname": "column_break_roia",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_rework_details",
+   "fieldtype": "Section Break",
+   "label": "Rework Section Details"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-25 22:01:37.797599",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "custom_ticket_title"
+}

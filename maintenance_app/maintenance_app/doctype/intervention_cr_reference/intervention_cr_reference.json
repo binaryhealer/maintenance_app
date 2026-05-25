@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-17 14:58:36.602370",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_cr_link",
+  "custom_workflow_state",
+  "custom_category"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_cr_link",
+   "fieldtype": "Link",
+   "label": "Change Request",
+   "options": "Maintenance App Change Request"
+  },
+  {
+   "fieldname": "custom_workflow_state",
+   "fieldtype": "Read Only",
+   "label": "Status",
+   "options": "custom_cr_link.workflow_state"
+  },
+  {
+   "fieldname": "custom_category",
+   "fieldtype": "Data",
+   "label": "Change Category"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-19 23:51:34.613944",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Intervention CR Reference",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

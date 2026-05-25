@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "LOAN-.YYYY.-.#####",
+ "creation": "2026-04-05 06:24:17.123276",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_wlt8",
+  "amended_from",
+  "custom_loan_status",
+  "custom_ticket",
+  "column_break_zdhc",
+  "custom_client_representative",
+  "custom_loaner_serial",
+  "signature",
+  "custom_delivery_signature",
+  "column_break_pyuz",
+  "custom_return_signature"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_wlt8",
+   "fieldtype": "Section Break",
+   "label": "Loan Acknowledgement"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Loan Acknowledgement",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "custom_loan_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Out at Client\nReturned,\nLost/Damaged"
+  },
+  {
+   "fieldname": "custom_ticket",
+   "fieldtype": "Link",
+   "label": "Originating Ticket",
+   "options": "HD Ticket"
+  },
+  {
+   "fieldname": "column_break_zdhc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_client_representative",
+   "fieldtype": "Data",
+   "label": "Client Contact Person"
+  },
+  {
+   "description": "\"Signed by tech on collection.\"",
+   "fieldname": "custom_loaner_serial",
+   "fieldtype": "Data",
+   "label": "Equipment Serial"
+  },
+  {
+   "fieldname": "signature",
+   "fieldtype": "Section Break",
+   "label": "Signature"
+  },
+  {
+   "description": "\"Signed by client on receipt.\"",
+   "fieldname": "custom_delivery_signature",
+   "fieldtype": "Signature",
+   "label": "Client Delivery Signature"
+  },
+  {
+   "fieldname": "column_break_pyuz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "\"Signed by tech on collection.\"",
+   "fieldname": "custom_return_signature",
+   "fieldtype": "Signature",
+   "label": "Tech Pickup Signature"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-04-22 06:55:22.633826",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Loan Acknowledgement",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
