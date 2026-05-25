@@ -9,6 +9,16 @@ website_route_rules = [
     {"from_route": "/tech", "to_route": "tech"},
 ]
 
+fixtures = [
+    "Custom Field",
+    "Property Setter",
+    "Client Script",
+    "Server Script",
+    "Workflow",
+    "Workflow State",
+    "Workflow Action Master",
+    "Print Format"
+]
 # Apps
 # ------------------
 

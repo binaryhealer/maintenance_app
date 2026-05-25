@@ -1,0 +1,58 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-01-24 17:01:15.467739",
+  "name": "Approve",
+  "workflow_action_name": "Approve"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-01-24 17:01:15.473588",
+  "name": "Reject",
+  "workflow_action_name": "Reject"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-01-24 17:01:15.478121",
+  "name": "Review",
+  "workflow_action_name": "Review"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-04-17 14:03:56.187287",
+  "name": "Submit For approval",
+  "workflow_action_name": "Submit For approval"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-04-17 14:04:36.902114",
+  "name": "Approve & Submit",
+  "workflow_action_name": "Approve & Submit"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-04-17 14:05:12.889991",
+  "name": "Need More Info",
+  "workflow_action_name": "Need More Info"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-04-17 14:05:46.692281",
+  "name": "Reject & Cancel",
+  "workflow_action_name": "Reject & Cancel"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2026-04-17 14:06:13.993115",
+  "name": "Re-Submit",
+  "workflow_action_name": "Re-Submit"
+ }
+]
