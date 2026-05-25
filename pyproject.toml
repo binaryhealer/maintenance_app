@@ -4,7 +4,7 @@ authors = [
     { name = "Gotech Ltd", email = "gerrard@gotechmu.com"}
 ]
 description = "Support and Maintenance App"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
