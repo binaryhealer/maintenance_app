@@ -5,6 +5,8 @@ app_description = "Support and Maintenance App"
 app_email = "gerrard@gotechmu.com"
 app_license = "unlicense"
 
+sync_customizations = True
+
 website_route_rules = [
     {"from_route": "/tech", "to_route": "tech"},
 ]

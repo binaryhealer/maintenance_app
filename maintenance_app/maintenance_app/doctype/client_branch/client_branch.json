@@ -14,6 +14,7 @@
   "column_break_juqt",
   "custom_longitude",
   "custom_latitude",
+  "custom_type",
   "section_break_eaiw",
   "custom_branch_inventory",
   "custom_contact_list",
@@ -106,12 +107,18 @@
    "fieldtype": "Table",
    "label": "HQ Technical & Billing Contacts",
    "options": "Branch Contact Link"
+  },
+  {
+   "fieldname": "custom_type",
+   "fieldtype": "Table",
+   "label": "Client Type",
+   "options": "Client Branch Type"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-25 11:47:27.855698",
+ "modified": "2026-05-26 12:37:05.874096",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Client Branch",
