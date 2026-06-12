@@ -12,6 +12,10 @@
   "custom_start_date",
   "custom_end_date",
   "custom_included_tickets",
+  "custom_duration_years",
+  "custom_days_remaining",
+  "custom_response_time_hours",
+  "custom_resolution_time_hours",
   "column_break_gkmy",
   "custom_contract_type",
   "custom_consumption_type",
@@ -19,11 +23,23 @@
   "custom_default_sla_rule",
   "custom_maintenance_frequency",
   "custom_includes_transport",
+  "custom_priority_level",
   "custom_billing",
+  "custom_includes_parts",
+  "column_break_dabv",
+  "custom_includes_labour",
+  "section_break_ohju",
+  "custom_currency",
   "custom_billing_frequency",
   "custom_contract_value",
-  "custom_includes_parts",
-  "custom_includes_labour",
+  "custom_annual_cost",
+  "custom_excluded_services",
+  "column_break_ljuj",
+  "custom_cost_per_visit",
+  "custom_next_billing_date",
+  "custom_paid_status",
+  "custom_service_hours",
+  "custom_included_services",
   "section_break_loke",
   "custom_internal_notes",
   "custom_contract_branch",
@@ -37,6 +53,27 @@
   "column_break_oxwu",
   "custom_used_tickets",
   "custom_remaining_tickets",
+  "remote_support_section_section",
+  "custom_remote_tickets_included",
+  "custom_remote_tickets_limit",
+  "column_break_clra",
+  "custom_remote_tickets_used",
+  "custom_remote_tickets_remaining",
+  "section_break_vtnq",
+  "custom_onsite_visits_included",
+  "custom_onsite_visit_charge_rate",
+  "custom_onsite_visits_used",
+  "custom_onsite_visits_remaining",
+  "custom_consumption_period",
+  "custom_period_reset_date",
+  "column_break_ignn",
+  "custom_allows_carryover",
+  "custom_carryover_max_percent",
+  "custom_carryover_hours_available",
+  "custom_carryover_visits_available",
+  "custom_renewal_option",
+  "custom_auto_renew",
+  "custom_termination_notice_days",
   "section_break_enrv",
   "custom_min_billable_minutes",
   "custom_rounding_increment",
@@ -116,7 +153,7 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Maintenance Frequency",
-   "options": "Monthly\nQuarterly\nBi-Annual\nAnnual"
+   "options": "Monthly\nQuarterly\nBi-Annual\nAnnual\nWeekly\nDaily"
   },
   {
    "fieldname": "custom_billing",
@@ -263,12 +300,200 @@
    "fieldtype": "Int",
    "label": "Remaining Tickets",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_duration_years",
+   "fieldtype": "Int",
+   "label": "Duration (Years)"
+  },
+  {
+   "fieldname": "custom_response_time_hours",
+   "fieldtype": "Int",
+   "label": "Response Time (Hours)"
+  },
+  {
+   "fieldname": "custom_resolution_time_hours",
+   "fieldtype": "Int",
+   "label": "Resolution Time (Hours)"
+  },
+  {
+   "fieldname": "custom_priority_level",
+   "fieldtype": "Select",
+   "label": "Priority Level",
+   "options": "Low\nMedium\nHigh\nCritical"
+  },
+  {
+   "fieldname": "custom_currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "custom_annual_cost",
+   "fieldtype": "Currency",
+   "label": "Annual Cost"
+  },
+  {
+   "fieldname": "custom_cost_per_visit",
+   "fieldtype": "Currency",
+   "label": "Cost Per Visit"
+  },
+  {
+   "fieldname": "column_break_ljuj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_next_billing_date",
+   "fieldtype": "Date",
+   "label": "Next Billing Date"
+  },
+  {
+   "fieldname": "custom_paid_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Unpaid\nPartially Paid\nPaid\nOverdue"
+  },
+  {
+   "fieldname": "custom_service_hours",
+   "fieldtype": "Select",
+   "label": "Service Hours",
+   "options": "Business Hours (9-5)\n24/5 (Mon-Fri)\n24/7"
+  },
+  {
+   "fieldname": "custom_included_services",
+   "fieldtype": "Small Text",
+   "label": "Included Services"
+  },
+  {
+   "fieldname": "custom_excluded_services",
+   "fieldtype": "Small Text",
+   "label": "Excluded Services"
+  },
+  {
+   "fieldname": "remote_support_section_section",
+   "fieldtype": "Section Break",
+   "label": "Remote Support Section"
+  },
+  {
+   "fieldname": "custom_remote_tickets_included",
+   "fieldtype": "Select",
+   "label": "Remote Support Tickets",
+   "options": "Unlimited\nLimited"
+  },
+  {
+   "fieldname": "custom_remote_tickets_limit",
+   "fieldtype": "Int",
+   "label": "Remote Tickets per Period"
+  },
+  {
+   "fieldname": "column_break_clra",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_remote_tickets_used",
+   "fieldtype": "Int",
+   "label": "Remote Tickets Used"
+  },
+  {
+   "fieldname": "custom_remote_tickets_remaining",
+   "fieldtype": "Int",
+   "label": "Remote Tickets Remaining"
+  },
+  {
+   "fieldname": "section_break_vtnq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_onsite_visits_included",
+   "fieldtype": "Int",
+   "label": "Onsite Visits per Period"
+  },
+  {
+   "fieldname": "custom_onsite_visit_charge_rate",
+   "fieldtype": "Currency",
+   "label": "Charge per Additional Onsite"
+  },
+  {
+   "fieldname": "custom_onsite_visits_used",
+   "fieldtype": "Int",
+   "label": "Onsite Visits Used"
+  },
+  {
+   "fieldname": "custom_onsite_visits_remaining",
+   "fieldtype": "Int",
+   "label": "Onsite Visits Remaining"
+  },
+  {
+   "fieldname": "custom_consumption_period",
+   "fieldtype": "Select",
+   "label": "Consumption Period",
+   "options": "Monthly\nQuarterly\nBi-annual\nAnnual\nUnlimited"
+  },
+  {
+   "fieldname": "column_break_ignn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_period_reset_date",
+   "fieldtype": "Date",
+   "label": "Next Period Reset Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_allows_carryover",
+   "fieldtype": "Check",
+   "label": "Allow Unused Hours/Visits Carryover"
+  },
+  {
+   "fieldname": "custom_carryover_max_percent",
+   "fieldtype": "Int",
+   "label": "Max Carryover (%)"
+  },
+  {
+   "fieldname": "custom_carryover_hours_available",
+   "fieldtype": "Float",
+   "label": "Carryover Hours Available"
+  },
+  {
+   "fieldname": "custom_carryover_visits_available",
+   "fieldtype": "Int",
+   "label": "Carryover Onsite Visits Available"
+  },
+  {
+   "fieldname": "custom_renewal_option",
+   "fieldtype": "Select",
+   "label": "Renewal Option",
+   "options": "Manual\nAutomatic\nOptional"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_auto_renew",
+   "fieldtype": "Check",
+   "label": "Auto Renew"
+  },
+  {
+   "fieldname": "custom_termination_notice_days",
+   "fieldtype": "Int",
+   "label": "Termination Notice (Days)"
+  },
+  {
+   "fieldname": "custom_days_remaining",
+   "fieldtype": "Int",
+   "label": "Days Remaining"
+  },
+  {
+   "fieldname": "column_break_dabv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ohju",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-13 12:14:28.437445",
+ "modified": "2026-06-12 04:18:04.512696",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Maintenance Contract",

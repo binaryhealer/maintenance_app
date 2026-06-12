@@ -9,6 +9,7 @@
   "custom_item_code",
   "custom_item_name",
   "custom_brand",
+  "custom_equipment",
   "custom_billed",
   "column_break_mjwv",
   "custom_warehouse",
@@ -19,33 +20,39 @@
   {
    "fieldname": "custom_item_code",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Item code",
    "options": "Item"
   },
   {
    "fieldname": "custom_item_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Item Name"
   },
   {
    "fieldname": "custom_brand",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Brand"
   },
   {
    "fieldname": "custom_qty",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Qty"
   },
   {
    "fieldname": "custom_warehouse",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Warehouse",
    "options": "Warehouse"
   },
   {
    "fieldname": "custom_mission_intervention",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Mission Intervention",
    "options": "Mission Intervention"
   },
@@ -53,19 +60,27 @@
    "default": "0",
    "fieldname": "custom_billed",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Billed?",
    "read_only": 1
   },
   {
    "fieldname": "column_break_mjwv",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_equipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Equipment",
+   "options": "Installed Equipment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-13 02:40:48.436332",
+ "modified": "2026-06-08 13:55:41.200829",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket Used Parts",

@@ -20,18 +20,21 @@
   {
    "fieldname": "custom_equipment",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Equipment",
    "options": "Installed Equipment"
   },
   {
    "fieldname": "custom_client_asset_code",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Client Asset Code",
    "read_only": 1
   },
   {
    "fieldname": "custom_serial_number",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Serial Number",
    "read_only": 1
   },
@@ -39,11 +42,13 @@
    "default": "0",
    "fieldname": "custom_covered",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Covered"
   },
   {
    "fieldname": "custom_coverage_type",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Coverage Type",
    "options": "Labour Only\nParts Only\nLabour + Parts\nSLA Only"
   },
@@ -54,6 +59,7 @@
   {
    "fieldname": "custom_notes",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Notes"
   },
   {
@@ -63,6 +69,7 @@
   {
    "fieldname": "custom_branch",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Branch",
    "options": "Client Branch"
   }
@@ -71,7 +78,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-06 10:24:21.048864",
+ "modified": "2026-06-08 13:57:47.469251",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Contract Equipment",

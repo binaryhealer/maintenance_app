@@ -12,12 +12,15 @@
   "custom_client_branch",
   "custom_target_equipment",
   "custom_opening_date",
+  "custom_applicant",
   "column_break_jygr",
   "custom_request_type",
   "custom_subject",
   "custom_raised_by",
   "custom_ticket_type",
   "custom_planning_required",
+  "custom_component_group",
+  "custom_component_item_code",
   "section_break_dmjb",
   "custom_description",
   "custom_assignment_review",
@@ -37,14 +40,20 @@
   "custom_response_due",
   "custom_resolution_due",
   "custom_sla_status",
+  "column_break_tmen",
+  "custom_component_item",
+  "custom_component_brand",
+  "custom_component_model",
+  "custom_component_serial",
+  "custom_component_row_id",
   "custom_contact_communication",
-  "custom_primary_contact",
-  "custom_contact_name",
-  "column_break_fdih",
-  "custom_contact_email",
-  "custom_contact_phone",
-  "section_break_hisi",
-  "custom_additional_contacts",
+  "custom_applicant_role",
+  "custom_applicant_phone",
+  "custom_applicant_email",
+  "custom_ho_contacts",
+  "custom_head_office_contacts",
+  "custom_branch_operational_contacts",
+  "custom_branch_contacts",
   "custom_status_commercial",
   "custom_ticket_status",
   "custom_commercial_status",
@@ -56,18 +65,31 @@
   "section_break_crzq",
   "custom_used_parts",
   "custom_resolution_detail",
-  "custom_resolution_date",
-  "custom_resolved_by",
-  "custom_resolution_source_mi",
-  "custom_resolution_details",
-  "column_break_roia",
   "custom_planning_status",
   "custom_primary_mission_ref",
+  "custom_resolved_by",
+  "column_break_roia",
   "custom_primary_planning_ref",
+  "custom_resolution_source_mi",
+  "custom_resolution_date",
+  "section_break_jocs",
+  "custom_resolution_details",
+  "section_break_ecrg",
+  "custom_intervention_history",
   "section_break_nivr",
   "custom_closed_date",
   "custom_closed_by",
   "custom_closure_notes",
+  "section_break_esuq",
+  "custom_actual_component_item",
+  "custom_component_error_source",
+  "custom_wrong_component_reported",
+  "custom_component_change_reason",
+  "column_break_tfht",
+  "custom_actual_equipment",
+  "custom_equipment_error_source",
+  "custom_wrong_equipment_reported",
+  "custom_equipment_change_reason",
   "custom_rework_details",
   "custom_is_rework",
   "custom_rework_approved",
@@ -104,7 +126,7 @@
   },
   {
    "fieldname": "custom_description",
-   "fieldtype": "Text Editor",
+   "fieldtype": "Small Text",
    "label": "Description"
   },
   {
@@ -173,7 +195,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance Installation\nSurvey\nAsset Relocation\nConfig Change\nSwap\nLoan"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan"
   },
   {
    "default": "Billable",
@@ -218,42 +240,6 @@
    "label": "Contact & Communication"
   },
   {
-   "fieldname": "custom_primary_contact",
-   "fieldtype": "Link",
-   "label": "Primary Contact",
-   "options": "Contact"
-  },
-  {
-   "fieldname": "custom_contact_name",
-   "fieldtype": "Data",
-   "label": "Contact Name"
-  },
-  {
-   "fieldname": "column_break_fdih",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "custom_contact_email",
-   "fieldtype": "Data",
-   "label": "Contact Email"
-  },
-  {
-   "fieldname": "custom_contact_phone",
-   "fieldtype": "Data",
-   "label": "Contact Phone",
-   "options": "Phone"
-  },
-  {
-   "fieldname": "section_break_hisi",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "custom_additional_contacts",
-   "fieldtype": "Table",
-   "label": "Additional Contacts",
-   "options": "Service Ticket Contact"
-  },
-  {
    "fieldname": "custom_status_commercial",
    "fieldtype": "Tab Break",
    "label": "Status & Commercial"
@@ -279,8 +265,10 @@
   {
    "fieldname": "custom_hold_reason",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Hold Reason",
-   "options": "Awaiting Client\nAwaiting Quote Approval\nAwaiting Parts\nAwaiting PO\nAwaiting Internal Review\nOther",
+   "options": "Waiting for Client\nWaiting for Parts\nAwaiting Quote Approval\nWaiting for PO\nWaiting for Internal Review\nContinue Work\nCould Not Complete\nTo Quote",
    "read_only": 1
   },
   {
@@ -465,12 +453,181 @@
    "fieldname": "custom_rework_details",
    "fieldtype": "Section Break",
    "label": "Rework Section Details"
+  },
+  {
+   "fieldname": "custom_applicant",
+   "fieldtype": "Link",
+   "label": "Applicant",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_applicant_role",
+   "fieldtype": "Data",
+   "label": "Applicant Role"
+  },
+  {
+   "fieldname": "custom_applicant_email",
+   "fieldtype": "Data",
+   "label": "Applicant Email"
+  },
+  {
+   "fieldname": "custom_applicant_phone",
+   "fieldtype": "Data",
+   "label": "Applicant Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "custom_branch_operational_contacts",
+   "fieldtype": "Section Break",
+   "label": "Branch Operational Contacts"
+  },
+  {
+   "fieldname": "custom_branch_contacts",
+   "fieldtype": "Table",
+   "label": "Branch Contact",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_ho_contacts",
+   "fieldtype": "Section Break",
+   "label": "HO Contacts"
+  },
+  {
+   "fieldname": "custom_head_office_contacts",
+   "fieldtype": "Table",
+   "label": "Head Office Contacts",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "section_break_ecrg",
+   "fieldtype": "Section Break",
+   "label": "History of Interventions"
+  },
+  {
+   "fieldname": "custom_intervention_history",
+   "fieldtype": "Table",
+   "label": "Intervention History",
+   "options": "Service Ticket Intervention"
+  },
+  {
+   "fieldname": "section_break_esuq",
+   "fieldtype": "Section Break",
+   "label": "Reported Equipment Component Tracking"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_wrong_equipment_reported",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Wrong Equipment Reported",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_actual_equipment",
+   "fieldtype": "Link",
+   "label": "Actual Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment_change_reason",
+   "fieldtype": "Small Text",
+   "label": "Equipment Change Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment_error_source",
+   "fieldtype": "Select",
+   "label": "Equipment Selection Error By",
+   "options": "Client\nInternal\nUnknown"
+  },
+  {
+   "fieldname": "section_break_jocs",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Select",
+   "label": "Component Group"
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Select",
+   "label": "Component Item"
+  },
+  {
+   "fieldname": "column_break_tmen",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_component_brand",
+   "fieldtype": "Data",
+   "label": "Component Brand",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_model",
+   "fieldtype": "Data",
+   "label": "Component Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_serial",
+   "fieldtype": "Data",
+   "label": "Component Serial",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_row_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Row ID",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_wrong_component_reported",
+   "fieldtype": "Check",
+   "label": "Wrong Component Reported",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tfht",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_actual_component_item",
+   "fieldtype": "Link",
+   "label": "Actual Component",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_error_source",
+   "fieldtype": "Select",
+   "label": "Componenet Selection Error By",
+   "options": "Client\nInternal\nUnknown"
+  },
+  {
+   "fieldname": "custom_component_change_reason",
+   "fieldtype": "Small Text",
+   "label": "ComponentChange Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_item_code",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Component Item Code",
+   "options": "Item",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-25 22:01:37.797599",
+ "modified": "2026-06-07 21:10:37.162487",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

@@ -1,0 +1,68 @@
+{
+ "custom": 1,
+ "doctype": "DocType",
+ "document_type": "Table",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_item_type",
+  "custom_item_name",
+  "custom_license_key",
+  "col_break_dates",
+  "custom_license_start_date",
+  "custom_license_period_years",
+  "custom_license_end_date",
+  "custom_license_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_item_type",
+   "fieldtype": "Select",
+   "label": "Item Type",
+   "options": "Software License\nSupport Contract\nExtended Warranty\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_license_key",
+   "fieldtype": "Data",
+   "label": "License Key"
+  },
+  {
+   "fieldname": "col_break_dates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_license_start_date",
+   "fieldtype": "Date",
+   "label": "License Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_license_period_years",
+   "fieldtype": "Int",
+   "label": "License Period (Years)"
+  },
+  {
+   "fieldname": "custom_license_end_date",
+   "fieldtype": "Date",
+   "label": "License End Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_license_notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "is_submittable": 0,
+ "istable": 1,
+ "module": "Maintenance",
+ "name": "Warranty License",
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

@@ -13,12 +13,7 @@
   "custom_related_asset",
   "custom_date",
   "custom_event",
-  "custom_to_branch",
   "column_break_fdgx",
-  "custom_replacement_asset",
-  "custom_replacement_serial",
-  "custom_new_make",
-  "custom_new_model",
   "amended_from",
   "custom_event_source",
   "custom_removed_asset_outcome",
@@ -32,11 +27,27 @@
   "custom_mission_ref",
   "custom_intervention_ref",
   "custom_equipment_history",
+  "custom_new_make",
+  "custom_new_model",
+  "custom_new_serial",
+  "custom_new_asset",
+  "custom_new_branch",
+  "custom_asset_change_reason",
+  "column_break_gdcx",
   "custom_previous_make",
   "custom_previous_model",
-  "column_break_gdcx",
-  "custom_from_branch",
-  "custom_previous_serial"
+  "custom_previous_serial",
+  "custom_previous_branch",
+  "custom_component_history_tab",
+  "custom_component_item",
+  "custom_component_serial",
+  "custom_component_brand",
+  "custom_component_model",
+  "column_break_vsmn",
+  "custom_new_component_item",
+  "custom_new_component_serial",
+  "custom_new_component_brand",
+  "custom_new_component_model"
  ],
  "fields": [
   {
@@ -55,7 +66,7 @@
    "fieldname": "custom_event",
    "fieldtype": "Select",
    "label": "Event Type",
-   "options": "Commissioned\nServiced\nAsset Relocation\nHardware Swap\nTemporary Loan\nReturn from Loan\nRepaired\nRetired\nScrapped"
+   "options": "Commissioned\nRelocated\nServiced\nAsset Relocation\nHardware Swap\nTemporary Loan\nReturn from Loan\nRepaired\nRetired\nScrapped\nComponent Replaced\nSent For Repair\nReturned From Repair"
   },
   {
    "fieldname": "custom_asset_lifecycle_log",
@@ -89,11 +100,6 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer"
-  },
-  {
-   "fieldname": "custom_replacement_serial",
-   "fieldtype": "Data",
-   "label": "Replacement Serial"
   },
   {
    "fieldname": "amended_from",
@@ -173,28 +179,10 @@
    "label": "New Model"
   },
   {
-   "fieldname": "custom_replacement_asset",
-   "fieldtype": "Link",
-   "label": "Replacement Equipment",
-   "options": "Installed Equipment"
-  },
-  {
    "description": "\"The physical location of the asset.\"",
    "fieldname": "custom_branch",
    "fieldtype": "Link",
    "label": "Site/Branch",
-   "options": "Client Branch"
-  },
-  {
-   "fieldname": "custom_to_branch",
-   "fieldtype": "Link",
-   "label": "Destination Location",
-   "options": "Client Branch"
-  },
-  {
-   "fieldname": "custom_from_branch",
-   "fieldtype": "Link",
-   "label": "Previous Branch",
    "options": "Client Branch"
   },
   {
@@ -213,14 +201,91 @@
    "fieldname": "custom_removed_asset_outcome",
    "fieldtype": "Select",
    "label": "Removed Asset Outcome",
-   "options": "Sent for Repair\nReturned to Stock\nRetired\nScrapped"
+   "options": "\nSent for Repair\nReturned to Stock\nRetired\nScrapped"
+  },
+  {
+   "fieldname": "custom_component_history_tab",
+   "fieldtype": "Tab Break",
+   "label": "Component History"
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Data",
+   "label": "Component Item"
+  },
+  {
+   "fieldname": "custom_component_serial",
+   "fieldtype": "Data",
+   "label": "Component Serial"
+  },
+  {
+   "fieldname": "custom_component_brand",
+   "fieldtype": "Data",
+   "label": "Component Brand"
+  },
+  {
+   "fieldname": "custom_component_model",
+   "fieldtype": "Data",
+   "label": "Component Model"
+  },
+  {
+   "fieldname": "column_break_vsmn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_new_component_item",
+   "fieldtype": "Data",
+   "label": "New Component Item"
+  },
+  {
+   "fieldname": "custom_new_component_serial",
+   "fieldtype": "Data",
+   "label": "New Component Serial"
+  },
+  {
+   "fieldname": "custom_new_component_brand",
+   "fieldtype": "Data",
+   "label": "New Component Brand"
+  },
+  {
+   "fieldname": "custom_new_component_model",
+   "fieldtype": "Data",
+   "label": "New Component Model"
+  },
+  {
+   "fieldname": "custom_new_serial",
+   "fieldtype": "Data",
+   "label": "Replacement Serial"
+  },
+  {
+   "fieldname": "custom_new_asset",
+   "fieldtype": "Link",
+   "label": "Replacement Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_new_branch",
+   "fieldtype": "Link",
+   "label": "Destination Location",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_previous_branch",
+   "fieldtype": "Link",
+   "label": "Previous Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_asset_change_reason",
+   "fieldtype": "Small Text",
+   "label": "Change Reason"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-12 20:40:36.072886",
+ "modified": "2026-06-08 06:13:53.348822",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Lifecycle Log",

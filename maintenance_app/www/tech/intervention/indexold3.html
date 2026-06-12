@@ -1,0 +1,379 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+
+<style>
+    body {
+        background: #f5f7fb;
+        font-family: Inter, sans-serif;
+    }
+
+    .pwa-wrap {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    .mi-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .section-title {
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    .info-label {
+        font-weight: 700;
+        color: #555;
+        font-size: 13px;
+    }
+
+    .info-value {
+        font-size: 15px;
+        margin-bottom: 10px;
+    }
+
+    .action-btn {
+        width: 100%;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        padding: 12px;
+        font-weight: 600;
+    }
+
+    .status-box {
+        min-height: 112px;
+        border-radius: 14px;
+        padding: 14px;
+    }
+
+    .status-badge {
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 999px;
+    }
+
+    .top-nav a {
+        border-radius: 999px;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+
+    .muted-small {
+        font-size: 13px;
+        color: #6b7280;
+    }
+</style>
+
+<div class="container mt-3 mb-5">
+    <div class="pwa-wrap">
+
+        <div class="mi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h3 class="mb-1">Mission Intervention</h3>
+                    <div class="muted-small">{{ mi.name }}</div>
+                </div>
+
+                <span class="badge bg-primary status-badge">
+                    {{ mi.custom_work_outcome or "Open" }}
+                </span>
+            </div>
+
+            <div class="top-nav mt-3">
+                <a href="/tech" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+
+                {% if mi.custom_parent_mission %}
+                    <a href="/app/tech-mission/{{ mi.custom_parent_mission }}" class="btn btn-sm btn-outline-primary">Desk Mission</a>
+                {% endif %}
+
+                {% if mi.custom_service_ticket %}
+                    <a href="/app/service-ticket/{{ mi.custom_service_ticket }}" class="btn btn-sm btn-outline-primary">Desk Ticket</a>
+                {% endif %}
+
+                <a href="/app" class="btn btn-sm btn-outline-dark">Desk</a>
+            </div>
+        </div>
+
+        <div class="mi-card">
+            <div class="section-title">Mission Status</div>
+
+            <div class="row">
+                <div class="col-6">
+                    <div class="status-box bg-success-subtle text-center">
+                        <b>Check In</b><br><br>
+                        {% if mi.custom_start_time %}
+                            {{ mi.custom_start_time }}
+                        {% else %}
+                            Not Checked In
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-6">
+                    <div class="status-box bg-warning-subtle text-center">
+                        <b>Check Out</b><br><br>
+                        {% if mi.custom_end_time %}
+                            {{ mi.custom_end_time }}
+                        {% else %}
+                            Not Checked Out
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <span class="badge bg-dark status-badge">
+                    {{ "Submitted" if mi.docstatus == 1 else "Draft" }}
+                </span>
+
+                {% if mi.custom_equipment_changed %}
+                    <span class="badge bg-danger status-badge">
+                        Equipment Changed
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mi-card">
+            <div class="section-title">Intervention Details</div>
+
+            <div class="info-label">Subject</div>
+            <div class="info-value">{{ mi.custom_subject or "-" }}</div>
+
+            <div class="info-label">Service Ticket</div>
+            <div class="info-value">{{ mi.custom_service_ticket or "-" }}</div>
+
+            <div class="info-label">Tech Mission</div>
+            <div class="info-value">{{ mi.custom_parent_mission or "-" }}</div>
+
+            <div class="info-label">Customer</div>
+            <div class="info-value">{{ mi.custom_parent_customer or "-" }}</div>
+
+            <div class="info-label">Branch</div>
+            <div class="info-value">{{ mi.custom_branch or "-" }}</div>
+
+            <div class="info-label">Equipment</div>
+            <div class="info-value">{{ mi.custom_asset or "-" }}</div>
+
+            {% if mi.custom_equipment_changed %}
+                <div class="info-label">Original Equipment</div>
+                <div class="info-value">{{ mi.custom_original_equipment or "-" }}</div>
+
+                <div class="info-label">Equipment Change Reason</div>
+                <div class="info-value">{{ mi.custom_equipment_change_reason or "-" }}</div>
+            {% endif %}
+
+            <div class="info-label">Technician</div>
+            <div class="info-value">{{ mi.custom_technician or "-" }}</div>
+        </div>
+
+        <div class="mi-card">
+            <div class="section-title">Work Details</div>
+
+            <div class="info-label">Intervention Type</div>
+            <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
+
+            <div class="info-label">Service Type</div>
+            <div class="info-value">{{ mi.custom_service_type or "-" }}</div>
+
+            <div class="info-label">Work Progress</div>
+            <div class="info-value">{{ mi.custom_work_progress or "-" }}</div>
+
+            <div class="info-label">Work Outcome</div>
+            <div class="info-value">{{ mi.custom_work_outcome or "-" }}</div>
+        </div>
+
+        {% if mi.docstatus == 0 %}
+            <div class="mi-card">
+                <div class="section-title">Actions</div>
+
+                {% if not mi.custom_start_time %}
+                    <button class="btn btn-success action-btn" onclick="check_in('{{ mi.name }}')">
+                        Check In
+                    </button>
+                {% endif %}
+
+                {% if mi.custom_start_time and not mi.custom_end_time %}
+
+                    <div class="mb-3">
+                        <label class="form-label"><b>Final Outcome</b></label>
+                        <select id="checkout_outcome" class="form-control">
+                            <option value="">Select outcome</option>
+                            <option value="Work Completed">Work Completed</option>
+                            <option value="Continue Work">Continue Work</option>
+                            <option value="Waiting for Parts">Waiting for Parts</option>
+                            <option value="Waiting for Client">Waiting for Client</option>
+                            <option value="To Quote (Billable)">To Quote (Billable)</option>
+                            <option value="Could Not Complete">Could Not Complete</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><b>Technical Progress Notes</b></label>
+                        <textarea id="checkout_notes"
+                                  class="form-control"
+                                  rows="5"
+                                  placeholder="Write work done, issue found, pending items...">{{ mi.custom_work_progress or "" }}</textarea>
+                    </div>
+
+                    <button class="btn btn-warning action-btn" onclick="check_out('{{ mi.name }}')">
+                        Check Out
+                    </button>
+
+                {% endif %}
+
+                {% if mi.custom_start_time and mi.custom_end_time %}
+                    <button class="btn btn-dark action-btn" onclick="submit_mi('{{ mi.name }}')">
+                        Submit Intervention
+                    </button>
+                {% endif %}
+
+                <a class="btn btn-outline-primary action-btn"
+                   href="/app/mission-intervention/{{ mi.name }}">
+                    Open Full Desk Form
+                </a>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                This intervention has already been submitted.
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+function reload_page() {
+    window.location.reload();
+}
+
+function show_error(r) {
+    let msg = "Something went wrong.";
+
+    if (r && r.message) {
+        msg = r.message;
+    }
+
+    if (r && r._server_messages) {
+        try {
+            let messages = JSON.parse(r._server_messages);
+            if (messages && messages.length) {
+                msg = JSON.parse(messages[0]).message || msg;
+            }
+        } catch(e) {}
+    }
+
+    frappe.msgprint(msg);
+}
+
+function check_in(mi_name) {
+    frappe.call({
+        method: "frappe.client.get",
+        args: {
+            doctype: "Mission Intervention",
+            name: mi_name
+        },
+        freeze: true,
+        freeze_message: __("Checking in..."),
+        callback: function(r) {
+            if (!r.message) return;
+
+            let doc = r.message;
+            doc.custom_start_time = frappe.datetime.now_datetime();
+            doc.custom_start_date = frappe.datetime.get_today();
+
+            frappe.call({
+                method: "frappe.client.save",
+                args: { doc: doc },
+                callback: function() {
+                    reload_page();
+                },
+                error: show_error
+            });
+        },
+        error: show_error
+    });
+}
+
+function check_out(mi_name) {
+    let outcome = document.getElementById("checkout_outcome").value;
+    let notes = document.getElementById("checkout_notes").value;
+
+    if (!outcome) {
+        frappe.msgprint("Please select final outcome.");
+        return;
+    }
+
+    if (!notes || !notes.trim()) {
+        frappe.msgprint("Please enter technical progress notes.");
+        return;
+    }
+
+    frappe.call({
+        method: "frappe.client.get",
+        args: {
+            doctype: "Mission Intervention",
+            name: mi_name
+        },
+        freeze: true,
+        freeze_message: __("Checking out..."),
+        callback: function(r) {
+            if (!r.message) return;
+
+            let doc = r.message;
+            doc.custom_work_outcome = outcome;
+            doc.custom_work_progress = notes;
+            doc.custom_end_time = frappe.datetime.now_datetime();
+
+            frappe.call({
+                method: "frappe.client.save",
+                args: { doc: doc },
+                callback: function() {
+                    window.location.reload();
+                },
+                error: show_error
+            });
+        },
+        error: show_error
+    });
+}
+
+function submit_mi(mi_name) {
+    frappe.confirm(
+        __("Submit this intervention? You will not be able to edit it afterwards."),
+        function() {
+            frappe.call({
+                method: "frappe.client.get",
+                args: {
+                    doctype: "Mission Intervention",
+                    name: mi_name
+                },
+                freeze: true,
+                freeze_message: __("Submitting..."),
+                callback: function(r) {
+                    if (!r.message) return;
+
+                    frappe.call({
+                        method: "frappe.client.submit",
+                        args: { doc: r.message },
+                        callback: function() {
+                            reload_page();
+                        },
+                        error: show_error
+                    });
+                },
+                error: show_error
+            });
+        }
+    );
+}
+</script>
+
+{% endblock %}

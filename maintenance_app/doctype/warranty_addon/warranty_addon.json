@@ -1,0 +1,42 @@
+{
+ "custom": 1,
+ "doctype": "DocType",
+ "document_type": "Table",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_addon_name",
+  "custom_addon_code",
+  "custom_addon_status",
+  "custom_addon_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_addon_name",
+   "fieldtype": "Data",
+   "label": "Add-on Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_addon_code",
+   "fieldtype": "Data",
+   "label": "Add-on Code"
+  },
+  {
+   "fieldname": "custom_addon_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nExpired\nCancelled"
+  },
+  {
+   "fieldname": "custom_addon_notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "is_submittable": 0,
+ "istable": 1,
+ "module": "Maintenance",
+ "name": "Warranty Addon",
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

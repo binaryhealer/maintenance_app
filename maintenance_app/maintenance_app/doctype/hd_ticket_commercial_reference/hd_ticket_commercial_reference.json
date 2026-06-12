@@ -17,33 +17,39 @@
   {
    "fieldname": "custom_reference_type",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Reference Type",
    "options": "Quotation\nSales Order\nPurchase Order\nPurchase Receipt\nDelivery Note\nSales Invoice\nPayment Entry"
   },
   {
    "fieldname": "custom_reference_name",
    "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
    "label": "Reference Name",
    "options": "custom_reference_type"
   },
   {
    "fieldname": "custom_status",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Status"
   },
   {
    "fieldname": "custom_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Amount"
   },
   {
    "fieldname": "custom_posting_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Posting Date"
   },
   {
    "fieldname": "custom_remarks",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Remarks"
   }
  ],
@@ -51,7 +57,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-08 22:05:04.346874",
+ "modified": "2026-06-08 13:58:22.053944",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "HD Ticket Commercial Reference",

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:custom_branch",
  "creation": "2026-03-23 13:07:03.196261",
@@ -10,17 +11,16 @@
   "custom_branch",
   "custom_parent_customer",
   "custom_require_cr_approval",
-  "custom_address",
   "column_break_juqt",
-  "custom_longitude",
-  "custom_latitude",
-  "custom_type",
+  "custom_site_type",
   "section_break_eaiw",
   "custom_branch_inventory",
   "custom_contact_list",
-  "custom_local_branch_contacts",
+  "custom_branch_contacts",
   "custom_hq_section",
-  "custom_head_office_contacts"
+  "custom_head_office_contacts",
+  "custom_location_navigation",
+  "custom_address"
  ],
  "fields": [
   {
@@ -37,22 +37,11 @@
    "options": "Customer"
   },
   {
-   "description": " \"Enter decimal latitude for geofencing.\"",
-   "fieldname": "custom_latitude",
-   "fieldtype": "Float",
-   "label": "GPS Latitude"
-  },
-  {
-   "description": "\"Enter decimal longitude for geofencing.\"\n",
-   "fieldname": "custom_longitude",
-   "fieldtype": "Float",
-   "label": "GPS Longitude"
-  },
-  {
    "default": "0",
    "description": "\"Toggles mandatory manager approval for site changes.\"",
    "fieldname": "custom_require_cr_approval",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Require Change Approval"
   },
   {
@@ -92,12 +81,6 @@
    "label": "Contact List"
   },
   {
-   "fieldname": "custom_local_branch_contacts",
-   "fieldtype": "Table",
-   "label": "Branch Contacts",
-   "options": "Branch Contact Link"
-  },
-  {
    "fieldname": "custom_hq_section",
    "fieldtype": "Section Break",
    "label": "Head Office / Corporate Contacts"
@@ -106,19 +89,33 @@
    "fieldname": "custom_head_office_contacts",
    "fieldtype": "Table",
    "label": "HQ Technical & Billing Contacts",
-   "options": "Branch Contact Link"
+   "options": "Client Branch Contact"
   },
   {
-   "fieldname": "custom_type",
+   "fieldname": "custom_branch_contacts",
    "fieldtype": "Table",
+   "label": "Branch Contacts",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_location_navigation",
+   "fieldtype": "Tab Break",
+   "label": "Location and Navigation"
+  },
+  {
+   "fieldname": "custom_site_type",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Client Type",
-   "options": "Client Branch Type"
+   "options": "Customer Group"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-26 12:37:05.874096",
+ "modified": "2026-06-08 06:08:04.320626",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Client Branch",

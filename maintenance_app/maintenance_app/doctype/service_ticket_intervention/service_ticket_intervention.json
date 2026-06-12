@@ -1,0 +1,85 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-29 07:05:21.240884",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_mission_intervention",
+  "custom_equipment",
+  "custom_work_outcome",
+  "custom_start_time",
+  "custom_end_time",
+  "custom_source",
+  "custom_technician",
+  "custom_component_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_mission_intervention",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mission Intervention",
+   "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "custom_equipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_work_outcome",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Work Outcome"
+  },
+  {
+   "fieldname": "custom_start_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "custom_end_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "End Time"
+  },
+  {
+   "fieldname": "custom_source",
+   "fieldtype": "Data",
+   "label": "Source"
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Link",
+   "label": "Technician",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Component Item",
+   "options": "Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-08 13:52:32.792132",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket Intervention",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

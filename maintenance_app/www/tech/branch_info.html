@@ -1,0 +1,252 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+
+<style>
+    body {
+        background: #f4f6fb;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #111827;
+    }
+
+    .branch-wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    .branch-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
+
+    .top-title {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .muted-small {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 12px;
+    }
+
+    .info-label {
+        font-size: 11px;
+        font-weight: 800;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 3px;
+    }
+
+    .info-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: #111827;
+        word-break: break-word;
+    }
+
+    .info-box {
+        background: #f9fafb;
+        border: 1px solid #eef0f3;
+        border-radius: 14px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .action-btn {
+        width: 100%;
+        border-radius: 14px;
+        padding: 13px;
+        font-weight: 800;
+    }
+
+    .contact-card {
+        background: #f9fafb;
+        border: 1px solid #eef0f3;
+        border-radius: 14px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .contact-name {
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .contact-role {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+
+    .contact-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .top-title {
+            font-size: 22px;
+        }
+    }
+</style>
+
+<div class="container mt-3">
+    <div class="branch-wrap">
+
+        <div class="branch-card">
+            <a href="/tech/mi?name={{ mi.name }}" class="btn btn-sm btn-outline-secondary mb-3">
+                ← Back to Intervention
+            </a>
+
+            <h3 class="top-title">Address & Contacts</h3>
+            <div class="muted-small">{{ branch.name }}</div>
+        </div>
+
+        <div class="branch-card">
+            <div class="section-title">Branch Information</div>
+
+            <div class="info-box">
+                <div class="info-label">Customer</div>
+                <div class="info-value">{{ branch.custom_parent_customer or "-" }}</div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-label">Branch</div>
+                <div class="info-value">{{ branch.name or "-" }}</div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-label">Address</div>
+                <div class="info-value">{{ branch.custom_address or "-" }}</div>
+            </div>
+
+            {% if branch.custom_address %}
+                <button class="btn btn-primary action-btn"
+                        onclick="get_directions('{{ branch.custom_address | urlencode }}')">
+                    Get Directions
+                </button>
+            {% endif %}
+        </div>
+
+        <div class="branch-card">
+            <div class="section-title">Branch Contacts</div>
+
+            {% if branch_contacts %}
+                {% for row in branch_contacts %}
+                    <div class="contact-card">
+                        <div class="contact-name">{{ row.custom_contact or "Contact" }}</div>
+                        <div class="contact-role">{{ row.custom_contact_role or "" }}</div>
+
+                        {% if row.custom_phone %}
+                            <div class="muted-small">📞 {{ row.custom_phone }}</div>
+                        {% endif %}
+
+                        {% if row.custom_email %}
+                            <div class="muted-small">✉️ {{ row.custom_email }}</div>
+                        {% endif %}
+
+                        <div class="contact-actions">
+                            {% if row.custom_phone %}
+                                <a class="btn btn-sm btn-outline-success"
+                                   href="tel:{{ row.custom_phone }}">
+                                    Call
+                                </a>
+                            {% endif %}
+
+                            {% if row.custom_email %}
+                                <a class="btn btn-sm btn-outline-primary"
+                                   href="mailto:{{ row.custom_email }}">
+                                    Email
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="info-box">
+                    <div class="muted-small">No branch contacts found.</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="branch-card">
+            <div class="section-title">Head Office Contacts</div>
+
+            {% if ho_contacts %}
+                {% for row in ho_contacts %}
+                    <div class="contact-card">
+                        <div class="contact-name">{{ row.custom_contact or "Contact" }}</div>
+                        <div class="contact-role">{{ row.custom_contact_role or "" }}</div>
+
+                        {% if row.custom_phone %}
+                            <div class="muted-small">📞 {{ row.custom_phone }}</div>
+                        {% endif %}
+
+                        {% if row.custom_email %}
+                            <div class="muted-small">✉️ {{ row.custom_email }}</div>
+                        {% endif %}
+
+                        <div class="contact-actions">
+                            {% if row.custom_phone %}
+                                <a class="btn btn-sm btn-outline-success"
+                                   href="tel:{{ row.custom_phone }}">
+                                    Call
+                                </a>
+                            {% endif %}
+
+                            {% if row.custom_email %}
+                                <a class="btn btn-sm btn-outline-primary"
+                                   href="mailto:{{ row.custom_email }}">
+                                    Email
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="info-box">
+                    <div class="muted-small">No head office contacts found.</div>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+function get_directions(encoded_address) {
+    if (!encoded_address) {
+        frappe.msgprint("No address found for this branch.");
+        return;
+    }
+
+    let maps_url =
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encoded_address;
+
+    window.open(maps_url, "_blank");
+}
+</script>
+
+{% endblock %}

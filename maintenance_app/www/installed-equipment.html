@@ -1,0 +1,1489 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Installed Equipment{% endblock %}
+
+{% block head_include %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET FRAPPE WEB STYLES FOR THIS PAGE ── */
+.navbar, .web-footer, .container { display: none !important; }
+body { background: #0f1117 !important; padding: 0 !important; margin: 0 !important; overflow: hidden; }
+.page-content { padding: 0 !important; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #181c27;
+  --surface2: #1e2333;
+  --border: #2a2f42;
+  --border2: #363c54;
+  --text: #e8eaf0;
+  --text2: #8b91a8;
+  --text3: #555c75;
+  --accent: #4f8ef7;
+  --accent2: #3a6fd8;
+  --green: #34c97b;
+  --amber: #f5a623;
+  --red: #f05656;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { font-family: var(--sans); font-size: 14px; color: var(--text); }
+
+/* ── LAYOUT ── */
+.eq-shell { display: flex; height: 100vh; overflow: hidden; }
+
+.eq-sidebar {
+  width: 220px; min-width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 20px 0;
+}
+
+.eq-sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.eq-sidebar-logo .app-name { font-family: var(--mono); font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .12em; }
+.eq-sidebar-logo .page-title { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 4px; }
+
+.eq-sidebar-nav { flex: 1; overflow-y: auto; padding: 0 10px; }
+
+.eq-nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 7px; cursor: pointer;
+  color: var(--text2); font-size: 13px; font-weight: 400;
+  transition: all .15s; margin-bottom: 2px; text-decoration: none;
+}
+
+.eq-nav-item:hover { background: var(--surface2); color: var(--text); }
+.eq-nav-item.active { background: rgba(79,142,247,.12); color: var(--accent); font-weight: 500; }
+.eq-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; flex-shrink: 0; }
+.eq-nav-item.active .eq-nav-dot { opacity: 1; }
+
+.eq-sidebar-footer { padding: 16px 20px 0; border-top: 1px solid var(--border); font-size: 12px; color: var(--text3); }
+
+.eq-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── TOPBAR ── */
+.eq-topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 24px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+
+.eq-breadcrumb { display: flex; align-items: center; gap: 6px; flex: 1; flex-wrap: wrap; }
+.bc-item { font-size: 13px; color: var(--accent); cursor: pointer; font-weight: 500; }
+.bc-item:hover { text-decoration: underline; }
+.bc-item.current { color: var(--text); cursor: default; font-weight: 400; }
+.bc-sep { color: var(--text3); font-size: 11px; font-family: var(--mono); }
+
+.eq-search-wrap { position: relative; }
+.eq-search-wrap input {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 7px 12px 7px 32px;
+  border-radius: 8px; font-size: 13px; font-family: var(--sans);
+  width: 220px; outline: none; transition: border-color .15s;
+}
+.eq-search-wrap input:focus { border-color: var(--accent); }
+.eq-search-wrap input::placeholder { color: var(--text3); }
+.eq-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; }
+
+/* ── CONTENT ── */
+.eq-content { flex: 1; overflow-y: auto; padding: 24px; }
+.eq-level-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text3); margin-bottom: 14px; }
+
+/* ── CUSTOMER LIST ── */
+.eq-customer-list { display: flex; flex-direction: column; gap: 2px; max-width: 720px; }
+
+.eq-customer-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px;
+  cursor: pointer; transition: all .15s;
+}
+.eq-customer-row:hover { border-color: var(--border2); background: var(--surface2); transform: translateX(2px); }
+.eq-customer-avatar { width: 36px; height: 36px; border-radius: 8px; background: rgba(79,142,247,.12); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.eq-customer-info { flex: 1; }
+.eq-customer-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.eq-customer-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.eq-customer-arrow { color: var(--text3); font-size: 16px; transition: transform .15s; }
+.eq-customer-row:hover .eq-customer-arrow { transform: translateX(3px); color: var(--accent); }
+
+/* ── CARDS ── */
+.eq-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; max-width: 900px; }
+
+.eq-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; cursor: pointer;
+  transition: all .18s; display: flex; flex-direction: column; gap: 6px;
+}
+.eq-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.eq-card-icon { font-size: 22px; margin-bottom: 2px; }
+.eq-card-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.eq-card-sub { font-size: 12px; color: var(--text3); }
+
+/* ── EQUIPMENT CARDS ── */
+.eq-unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; max-width: 960px; }
+
+.eq-unit-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; cursor: pointer; transition: all .18s;
+}
+.eq-unit-card:hover { border-color: var(--border2); background: var(--surface2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.eq-unit-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.eq-unit-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.eq-unit-model { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.eq-unit-site { font-size: 11px; color: var(--text3); margin-top: 6px; font-family: var(--mono); }
+
+.health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.h-good { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.h-warn { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.h-crit { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.h-unk  { background: var(--text3); }
+
+.cov-badge { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 500; font-family: var(--mono); margin-top: 10px; }
+.cov-amc      { background: rgba(52,201,123,.12); color: var(--green);  border: 1px solid rgba(52,201,123,.2); }
+.cov-warranty { background: rgba(79,142,247,.12); color: var(--accent); border: 1px solid rgba(79,142,247,.2); }
+.cov-billable { background: rgba(245,166,35,.12); color: var(--amber);  border: 1px solid rgba(245,166,35,.2); }
+.cov-expired  { background: rgba(240,86,86,.12);  color: var(--red);    border: 1px solid rgba(240,86,86,.2); }
+.cov-unknown  { background: rgba(139,145,168,.1); color: var(--text3);  border: 1px solid var(--border); }
+
+/* ── DETAIL ── */
+.eq-detail-wrap { max-width: 900px; }
+.eq-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.eq-detail-title { font-size: 20px; font-weight: 600; color: var(--text); }
+.eq-detail-serial { font-size: 12px; font-family: var(--mono); color: var(--text3); margin-top: 4px; }
+.eq-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.eq-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: var(--sans); transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+.eq-btn-primary { background: var(--accent); color: #fff; }
+.eq-btn-primary:hover { background: var(--accent2); }
+.eq-btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.eq-btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+.eq-meta-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+.eq-meta-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; }
+.eq-meta-label { font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--text3); margin-bottom: 5px; }
+.eq-meta-val { font-size: 13px; font-weight: 500; color: var(--text); }
+.eq-meta-val.mono { font-family: var(--mono); font-size: 12px; }
+
+/* ── TABS ── */
+.eq-tabs-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.eq-tab-btn { padding: 9px 16px; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border: none; background: transparent; font-family: var(--sans); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; display: flex; align-items: center; gap: 6px; }
+.eq-tab-btn:hover { color: var(--text2); }
+.eq-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.eq-tab-count { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1px 6px; font-size: 10px; font-family: var(--mono); }
+.eq-tab-btn.active .eq-tab-count { background: rgba(79,142,247,.15); border-color: rgba(79,142,247,.3); color: var(--accent); }
+.eq-tab-panel { display: none; }
+.eq-tab-panel.active { display: block; }
+
+/* ── LOG TABLES ── */
+.eq-log-table { width: 100%; border-collapse: collapse; }
+.eq-log-table th { text-align: left; padding: 8px 12px; font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--text3); border-bottom: 1px solid var(--border); background: var(--surface); }
+.eq-log-table td { padding: 11px 12px; font-size: 13px; color: var(--text2); border-bottom: 1px solid var(--border); vertical-align: top; }
+.eq-log-table tr:last-child td { border-bottom: none; }
+.eq-log-table tr:hover td { background: rgba(255,255,255,.02); }
+
+.eq-log-link { color: var(--accent); cursor: pointer; font-family: var(--mono); font-size: 12px; }
+.eq-log-link:hover { text-decoration: underline; }
+.eq-event-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: var(--mono); background: var(--surface2); border: 1px solid var(--border); color: var(--text2); }
+
+.eq-comp-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: var(--mono); }
+.cs-installed { background: rgba(52,201,123,.12); color: var(--green); }
+.cs-replaced  { background: rgba(240,86,86,.1);  color: var(--red); }
+.cs-other     { background: rgba(139,145,168,.1); color: var(--text3); }
+
+/* ── MODAL ── */
+.eq-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.eq-modal-overlay.open { display: flex; }
+.eq-modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,.5); }
+.eq-modal-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.eq-modal-sub { font-size: 12px; color: var(--text3); margin-bottom: 20px; font-family: var(--mono); }
+
+.eq-form-row { margin-bottom: 14px; }
+.eq-form-label { font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 6px; display: block; }
+.eq-form-row select, .eq-form-row input, .eq-form-row textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 9px 12px; border-radius: 8px; font-size: 13px; font-family: var(--sans); outline: none; transition: border-color .15s; }
+.eq-form-row select:focus, .eq-form-row input:focus, .eq-form-row textarea:focus { border-color: var(--accent); }
+.eq-form-row textarea { min-height: 80px; resize: vertical; }
+
+.eq-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+
+.eq-modal-confirm { background: rgba(52,201,123,.1); border: 1px solid rgba(52,201,123,.25); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--green); margin-top: 14px; display: none; line-height: 1.6; white-space: pre-line; }
+.eq-modal-confirm.show { display: block; }
+
+.eq-modal-error { background: rgba(240,86,86,.1); border: 1px solid rgba(240,86,86,.25); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--red); margin-top: 14px; display: none; }
+.eq-modal-error.show { display: block; }
+
+/* ── LOADING ── */
+.eq-loading { display: flex; align-items: center; justify-content: center; padding: 48px; color: var(--text3); gap: 10px; font-family: var(--mono); font-size: 12px; }
+.eq-spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.eq-empty { padding: 48px 24px; text-align: center; color: var(--text3); font-size: 13px; }
+.eq-empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+
+/* ── HELP DESK STYLE MULTI PICKER ── */
+.eq-picker {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px;
+  min-height: 43px;
+  position: relative;
+}
+
+.eq-picker:focus-within {
+  border-color: var(--accent);
+}
+
+.eq-picker-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.eq-picker-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(79,142,247,.16);
+  color: var(--text);
+  border: 1px solid rgba(79,142,247,.30);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.eq-picker-tag button {
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.eq-picker-tag button:hover {
+  color: var(--red);
+}
+
+.eq-picker-input {
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  padding: 5px 4px !important;
+  color: var(--text) !important;
+  outline: none !important;
+}
+
+.eq-picker-dropdown {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: 0 14px 32px rgba(0,0,0,.45);
+  z-index: 1100;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.eq-picker-dropdown.open {
+  display: block;
+}
+
+.eq-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.eq-picker-option:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.eq-picker-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(79,142,247,.15);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+.eq-picker-empty {
+  padding: 9px;
+  color: var(--text3);
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .eq-sidebar { display: none; }
+  .eq-meta-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="eq-shell">
+
+  <!-- SIDEBAR -->
+  <div class="eq-sidebar">
+    <div class="eq-sidebar-logo">
+      <div class="app-name">Maintenance App</div>
+      <div class="page-title">Equipment</div>
+    </div>
+    <div class="eq-sidebar-nav">
+      <div class="eq-nav-item active" onclick="eqGo('customers')">
+        <span class="eq-nav-dot"></span> Installed Equipment
+      </div>
+      <a class="eq-nav-item" href="/app/service-ticket">
+        <span class="eq-nav-dot"></span> Service Tickets
+      </a>
+      <a class="eq-nav-item" href="/app/tech-mission">
+        <span class="eq-nav-dot"></span> Tech Missions
+      </a>
+      <a class="eq-nav-item" href="/app/tech-planning">
+        <span class="eq-nav-dot"></span> Tech Planning
+      </a>
+    </div>
+    <div class="eq-sidebar-footer">
+      Logged in as {{ frappe.session.user }}
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="eq-main">
+    <div class="eq-topbar">
+      <div class="eq-breadcrumb" id="eq-breadcrumb"></div>
+      <div class="eq-search-wrap">
+        <span class="eq-search-icon">⌕</span>
+        <input type="text" id="eq-search" placeholder="Search… ( / )" oninput="eqOnSearch(this.value)">
+      </div>
+    </div>
+    <div class="eq-content" id="eq-content">
+      <div class="eq-loading"><div class="eq-spinner"></div>Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- TICKET MODAL -->
+<div class="eq-modal-overlay" id="eq-modal-overlay">
+  <div class="eq-modal">
+    <div class="eq-modal-title">Open Service Ticket</div>
+    <div class="eq-modal-sub" id="eq-modal-eq-label">—</div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Request Type</label>
+      <select id="eq-m-req-type" onchange="eqOnRequestTypeChange()">
+        <option>Breakdown</option>
+        <option>Maintenance Request</option>
+        <option>General Request</option>
+      </select>
+    </div>
+    <div class="eq-form-row">
+      <label class="eq-form-label">Ticket Type</label>
+      <select id="eq-m-ticket-type">
+        <option>Repair</option>
+      </select>
+    </div>
+    <div class="eq-form-row">
+      <label class="eq-form-label">Subject</label>
+      <input type="text" id="eq-m-subject" placeholder="Brief description of issue…">
+    </div>
+    <div class="eq-form-row">
+      <label class="eq-form-label">Priority</label>
+      <select id="eq-m-priority">
+        <option>Normal</option>
+        <option>Low</option>
+        <option>High</option>
+        <option>Urgent</option>
+      </select>
+    </div>
+    <div class="eq-form-row">
+      <label class="eq-form-label">Description</label>
+      <textarea id="eq-m-description" placeholder="Additional details…"></textarea>
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Suggested Technicians</label>
+      <div class="eq-picker" id="eq-tech-picker">
+        <div class="eq-picker-tags" id="eq-tech-tags"></div>
+        <input
+          type="text"
+          id="eq-tech-search"
+          class="eq-picker-input"
+          placeholder="Type technician name or email…"
+          autocomplete="off"
+          oninput="eqRenderTechnicianSuggestions()"
+          onfocus="eqRenderTechnicianSuggestions()"
+          onkeydown="eqTechSearchKeydown(event)"
+        >
+        <div class="eq-picker-dropdown" id="eq-tech-suggestions"></div>
+      </div>
+    </div>
+    <div class="eq-form-row">
+      <label class="eq-form-label">Applicant / Contact</label>
+      <select id="eq-m-applicant">
+        <option value="">Loading contacts…</option>
+      </select>
+    </div>
+
+<div class="eq-modal-confirm" id="eq-modal-confirm"></div>
+    <div class="eq-modal-error" id="eq-modal-error"></div>
+
+    <div class="eq-modal-actions">
+      <button class="eq-btn eq-btn-ghost" onclick="eqCloseModal()">Cancel</button>
+      <button class="eq-btn eq-btn-ghost" id="eq-btn-open-desk" onclick="eqOpenInDesk()">Open in Desk ↗</button>
+      <button class="eq-btn eq-btn-primary" onclick="eqSubmitTicket()">Create Ticket</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+var EQ = {
+  state: { level: "customers", customerId: null, branchId: null, categoryId: null, equipmentId: null },
+  searchVal: "",
+  activeTab: "service",
+  modalEq: null,
+  createdTicket: null,
+  selectedTechnicians: [],
+  technicianCache: [],
+
+  // Cache to avoid repeated API calls
+  cache: {
+    customers: null,
+    branches: {},
+    equipment: {},
+    logs: {}
+  }
+};
+
+const CAT_ICONS = {
+  "Fuel Dispensing Unit": "⛽",
+  "Fuel Storage Tanks & Ancillary": "🛢️",
+  "Fuel Storage Tanks": "🛢️",
+  "Compressor": "🔧",
+  "Air Dial (Analog & Digital)": "💨",
+  "Air Dial": "💨",
+  "Safety & Fire Protection Systems": "🚒",
+  "Electrical & Control Systems": "⚡",
+  "Canopies & Lighting": "💡",
+  "Signage & Customer Interfaces": "📺",
+  "Drainage Systems": "🕳️"
+};
+
+const COV_MAP = {
+  "Under AMC":      { cls: "cov-amc",      label: "Under AMC" },
+  "Under Warranty": { cls: "cov-warranty", label: "Under Warranty" },
+  "Billable":       { cls: "cov-billable", label: "Billable" },
+  "Expired":        { cls: "cov-expired",  label: "Expired" },
+  "Not Covered":    { cls: "cov-expired",  label: "Not Covered" },
+  "Warranty":       { cls: "cov-warranty", label: "Warranty" },
+  "AMC":            { cls: "cov-amc",      label: "AMC" },
+  "None":           { cls: "cov-unknown",  label: "None" }
+};
+
+
+function eqEscape(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function eqEscapeAttr(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function eqGo(level, cid, bid, catId, eqId) {
+  EQ.state = {
+    level: level,
+    customerId: cid || null,
+    branchId: bid || null,
+    categoryId: catId || null,
+    equipmentId: eqId || null
+  };
+  EQ.searchVal = "";
+  EQ.activeTab = "service";
+  document.getElementById("eq-search").value = "";
+  eqRender();
+}
+
+function eqOnSearch(v) {
+  EQ.searchVal = v.toLowerCase();
+  eqRender();
+}
+
+// ══════════════════════════════════════════════════════════
+// API HELPERS
+// ══════════════════════════════════════════════════════════
+function eqCall(method, args) {
+  return new Promise(function(resolve, reject) {
+    frappe.call({
+      method: method,
+      args: args || {},
+      callback: function(r) {
+        if (r && r.message !== undefined) {
+          resolve(r.message);
+        } else {
+          reject("No response from " + method);
+        }
+      },
+      error: function(err) {
+        reject(err);
+      }
+    });
+  });
+}
+
+function eqLoading() {
+  document.getElementById("eq-content").innerHTML =
+    '<div class="eq-loading"><div class="eq-spinner"></div>Loading…</div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// BREADCRUMB
+// ══════════════════════════════════════════════════════════
+function eqRenderBreadcrumb() {
+  var el = document.getElementById("eq-breadcrumb");
+  var parts = [{ label: "All Customers", onclick: "eqGo('customers')" }];
+
+  if (EQ.state.customerId && EQ.cache.customers) {
+    var c = EQ.cache.customers.find(function(x) { return x.name === EQ.state.customerId; });
+    if (c) parts.push({ label: c.customer_name, onclick: "eqGo('branches','" + EQ.state.customerId + "')" });
+  }
+
+  if (EQ.state.branchId && EQ.cache.branches[EQ.state.customerId]) {
+    var b = EQ.cache.branches[EQ.state.customerId].find(function(x) { return x.name === EQ.state.branchId; });
+    if (b) parts.push({ label: b.branch_name, onclick: "eqGo('categories','" + EQ.state.customerId + "','" + EQ.state.branchId + "')" });
+  }
+
+  if (EQ.state.categoryId) {
+    parts.push({ label: EQ.state.categoryId, onclick: "eqGo('equipment','" + EQ.state.customerId + "','" + EQ.state.branchId + "','" + EQ.state.categoryId + "')" });
+  }
+
+  if (EQ.state.equipmentId && EQ.cache.equipment[EQ.state.branchId]) {
+    var eq = EQ.cache.equipment[EQ.state.branchId].find(function(x) { return x.name === EQ.state.equipmentId; });
+    if (eq) parts.push({ label: eq.custom_asset_name || EQ.state.equipmentId });
+  }
+
+  el.innerHTML = parts.map(function(p, i) {
+    var isLast = i === parts.length - 1;
+    var html = isLast
+      ? '<span class="bc-item current">' + p.label + '</span>'
+      : '<span class="bc-item" onclick="' + p.onclick + '">' + p.label + '</span><span class="bc-sep">›</span>';
+    return html;
+  }).join("");
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER ROUTER
+// ══════════════════════════════════════════════════════════
+function eqRender() {
+  eqRenderBreadcrumb();
+  var level = EQ.state.level;
+  if      (level === "customers")  eqRenderCustomers();
+  else if (level === "branches")   eqRenderBranches();
+  else if (level === "categories") eqRenderCategories();
+  else if (level === "equipment")  eqRenderEquipment();
+  else if (level === "detail")     eqRenderDetail();
+}
+
+// ══════════════════════════════════════════════════════════
+// LEVEL: CUSTOMERS
+// ══════════════════════════════════════════════════════════
+function eqRenderCustomers() {
+  var el = document.getElementById("eq-content");
+
+  if (EQ.cache.customers) {
+    eqBuildCustomerList(el, EQ.cache.customers);
+    return;
+  }
+
+  eqLoading();
+
+  eqCall("maintenance_app.api.get_eq_customers").then(function(data) {
+    EQ.cache.customers = data || [];
+    eqBuildCustomerList(el, EQ.cache.customers);
+  }).catch(function(err) {
+    el.innerHTML = '<div class="eq-empty"><div class="eq-empty-icon">⚠️</div>Could not load customers.<br><small>' + err + '</small></div>';
+  });
+}
+
+function eqBuildCustomerList(el, customers) {
+  var list = customers.filter(function(c) {
+    return !EQ.searchVal || c.customer_name.toLowerCase().includes(EQ.searchVal);
+  });
+
+  var html = '<div class="eq-level-label">Select customer — ' + list.length + ' of ' + customers.length + '</div>';
+  html += '<div class="eq-customer-list">';
+
+  if (!list.length) {
+    html += '<div class="eq-empty"><div class="eq-empty-icon">🔍</div>No customers match "' + EQ.searchVal + '"</div>';
+  } else {
+    list.forEach(function(c) {
+      var badge = c.open_tickets > 0
+        ? '<span style="background:rgba(240,86,86,.12);color:var(--red);border:1px solid rgba(240,86,86,.2);padding:2px 8px;border-radius:4px;font-size:11px;font-family:var(--mono)">' + c.open_tickets + ' open</span>'
+        : '<span style="color:var(--text3);font-size:12px">' + (c.customer_group || '') + '</span>';
+
+      html += '<div class="eq-customer-row" onclick="eqGo(\'branches\',\'' + c.name + '\')">'
+        + '<div class="eq-customer-avatar">⛽</div>'
+        + '<div class="eq-customer-info">'
+        + '<div class="eq-customer-name">' + c.customer_name + '</div>'
+        + '<div class="eq-customer-meta">' + (c.branch_count || 0) + ' branch(es)</div>'
+        + '</div>'
+        + badge
+        + '<span class="eq-customer-arrow">›</span>'
+        + '</div>';
+    });
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// LEVEL: BRANCHES
+// ══════════════════════════════════════════════════════════
+function eqRenderBranches() {
+  var el = document.getElementById("eq-content");
+  var cid = EQ.state.customerId;
+
+  if (EQ.cache.branches[cid]) {
+    eqBuildBranchCards(el, EQ.cache.branches[cid]);
+    return;
+  }
+
+  eqLoading();
+
+  eqCall("maintenance_app.api.get_eq_branches", { customer: cid }).then(function(data) {
+    EQ.cache.branches[cid] = data || [];
+    eqBuildBranchCards(el, EQ.cache.branches[cid]);
+  }).catch(function(err) {
+    el.innerHTML = '<div class="eq-empty"><div class="eq-empty-icon">⚠️</div>Could not load branches.</div>';
+  });
+}
+
+function eqBuildBranchCards(el, branches) {
+  var cust = (EQ.cache.customers || []).find(function(c) { return c.name === EQ.state.customerId; });
+  var list = branches.filter(function(b) {
+    return !EQ.searchVal || b.branch_name.toLowerCase().includes(EQ.searchVal);
+  });
+
+  var html = '<div class="eq-level-label">Select branch' + (cust ? ' — ' + cust.customer_name : '') + '</div>';
+  html += '<div class="eq-cards-grid">';
+
+  list.forEach(function(b) {
+    html += '<div class="eq-card" onclick="eqGo(\'categories\',\'' + EQ.state.customerId + '\',\'' + b.name + '\')">'
+      + '<div class="eq-card-icon">🏪</div>'
+      + '<div class="eq-card-name">' + b.branch_name + '</div>'
+      + '<div class="eq-card-sub">' + (b.address || '') + '</div>'
+      + '<div class="eq-card-sub" style="font-family:var(--mono);font-size:11px">' + (b.equipment_count || 0) + ' unit(s)</div>'
+      + '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// LEVEL: CATEGORIES
+// ══════════════════════════════════════════════════════════
+function eqRenderCategories() {
+  var el = document.getElementById("eq-content");
+  var bid = EQ.state.branchId;
+
+  // Load equipment for branch if not cached — categories are derived from it
+  if (EQ.cache.equipment[bid]) {
+    eqBuildCategoryCards(el, EQ.cache.equipment[bid]);
+    return;
+  }
+
+  eqLoading();
+
+  eqCall("maintenance_app.api.get_eq_equipment", {
+    customer: EQ.state.customerId,
+    branch: bid
+  }).then(function(data) {
+    EQ.cache.equipment[bid] = data || [];
+    eqBuildCategoryCards(el, EQ.cache.equipment[bid]);
+  }).catch(function() {
+    el.innerHTML = '<div class="eq-empty"><div class="eq-empty-icon">⚠️</div>Could not load equipment.</div>';
+  });
+}
+
+function eqBuildCategoryCards(el, equipment) {
+  var branch = null;
+  if (EQ.cache.branches[EQ.state.customerId]) {
+    branch = EQ.cache.branches[EQ.state.customerId].find(function(b) { return b.name === EQ.state.branchId; });
+  }
+
+  // Derive unique categories from equipment
+  var cats = [];
+  equipment.forEach(function(e) {
+    var cat = e.custom_asset_category;
+    if (cat && !cats.includes(cat)) cats.push(cat);
+  });
+
+  cats = cats.filter(function(c) {
+    return !EQ.searchVal || c.toLowerCase().includes(EQ.searchVal);
+  });
+
+  var html = '<div class="eq-level-label">Equipment categories' + (branch ? ' — ' + branch.branch_name : '') + '</div>';
+  html += '<div class="eq-cards-grid">';
+
+  cats.forEach(function(cat) {
+    var count = equipment.filter(function(e) { return e.custom_asset_category === cat; }).length;
+    var icon = CAT_ICONS[cat] || "🖥️";
+    html += '<div class="eq-card" onclick="eqGo(\'equipment\',\'' + EQ.state.customerId + '\',\'' + EQ.state.branchId + '\',\'' + encodeURIComponent(cat) + '\')">'
+      + '<div class="eq-card-icon">' + icon + '</div>'
+      + '<div class="eq-card-name">' + cat + '</div>'
+      + '<div class="eq-card-sub" style="font-family:var(--mono);font-size:11px">' + count + ' unit' + (count !== 1 ? 's' : '') + '</div>'
+      + '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// LEVEL: EQUIPMENT CARDS
+// ══════════════════════════════════════════════════════════
+function eqRenderEquipment() {
+  var el = document.getElementById("eq-content");
+  var bid = EQ.state.branchId;
+  var cat = decodeURIComponent(EQ.state.categoryId);
+
+  if (EQ.cache.equipment[bid]) {
+    eqBuildEquipmentCards(el, EQ.cache.equipment[bid], cat);
+    return;
+  }
+
+  eqLoading();
+
+  eqCall("maintenance_app.api.get_eq_equipment", {
+    customer: EQ.state.customerId,
+    branch: bid
+  }).then(function(data) {
+    EQ.cache.equipment[bid] = data || [];
+    eqBuildEquipmentCards(el, EQ.cache.equipment[bid], cat);
+  }).catch(function() {
+    el.innerHTML = '<div class="eq-empty"><div class="eq-empty-icon">⚠️</div>Could not load equipment.</div>';
+  });
+}
+
+function eqBuildEquipmentCards(el, equipment, cat) {
+  var list = equipment
+    .filter(function(e) { return e.custom_asset_category === cat; })
+    .filter(function(e) {
+      return !EQ.searchVal
+        || (e.custom_asset_name || "").toLowerCase().includes(EQ.searchVal)
+        || (e.custom_model || "").toLowerCase().includes(EQ.searchVal)
+        || (e.custom_asset_id || "").toLowerCase().includes(EQ.searchVal);
+    });
+
+  var html = '<div class="eq-level-label">' + cat + ' — ' + list.length + ' unit(s)</div>';
+
+  if (!list.length) {
+    el.innerHTML = html + '<div class="eq-empty"><div class="eq-empty-icon">🖥️</div>No equipment found.</div>';
+    return;
+  }
+
+  html += '<div class="eq-unit-grid">';
+
+  list.forEach(function(eq) {
+    var health = eq.custom_equipment_health || "Unknown";
+    var hCls = health === "Good" ? "h-good" : health === "Warning" ? "h-warn" : health === "Critical" ? "h-crit" : "h-unk";
+    var covKey = eq.custom_current_coverage_type || eq.custom_coverage_type || "";
+    var cov = COV_MAP[covKey] || { cls: "cov-unknown", label: covKey || "Not Set" };
+    var catParam = encodeURIComponent(cat);
+
+    html += '<div class="eq-unit-card" onclick="eqGo(\'detail\',\'' + EQ.state.customerId + '\',\'' + EQ.state.branchId + '\',\'' + catParam + '\',\'' + eq.name + '\')">'
+      + '<div class="eq-unit-header">'
+      + '<div>'
+      + '<div class="eq-unit-name">' + (eq.custom_asset_name || eq.name) + '</div>'
+      + '<div class="eq-unit-model">' + (eq.custom_make || '') + ' ' + (eq.custom_model || '') + '</div>'
+      + '</div>'
+      + '<div class="health-dot ' + hCls + '" title="' + health + '"></div>'
+      + '</div>'
+      + '<div class="eq-unit-site">' + (eq.custom_site_id || '—') + ' · ' + (eq.custom_asset_status || '—') + '</div>'
+      + '<span class="cov-badge ' + cov.cls + '">' + cov.label + '</span>'
+      + '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// LEVEL: DETAIL
+// ══════════════════════════════════════════════════════════
+function eqRenderDetail() {
+  var el = document.getElementById("eq-content");
+  var bid = EQ.state.branchId;
+  var eqName = EQ.state.equipmentId;
+  var eqData = null;
+
+  if (EQ.cache.equipment[bid]) {
+    eqData = EQ.cache.equipment[bid].find(function(e) { return e.name === eqName; });
+  }
+
+  if (!eqData) {
+    eqLoading();
+    eqCall("maintenance_app.api.get_eq_equipment", {
+      customer: EQ.state.customerId,
+      branch: bid
+    }).then(function(data) {
+      EQ.cache.equipment[bid] = data || [];
+      eqData = EQ.cache.equipment[bid].find(function(e) { return e.name === eqName; });
+      if (eqData) eqBuildDetail(el, eqData);
+      else el.innerHTML = '<div class="eq-empty">Equipment not found.</div>';
+    });
+    return;
+  }
+
+  eqBuildDetail(el, eqData);
+}
+
+function eqBuildDetail(el, eq) {
+  var health = eq.custom_equipment_health || "Unknown";
+  var hCls = health === "Good" ? "h-good" : health === "Warning" ? "h-warn" : health === "Critical" ? "h-crit" : "h-unk";
+  var covKey = eq.custom_current_coverage_type || eq.custom_coverage_type || "";
+  var cov = COV_MAP[covKey] || { cls: "cov-unknown", label: covKey || "Not Set" };
+
+  var html = '<div class="eq-detail-wrap">'
+    + '<div class="eq-detail-header">'
+    + '<div>'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<div class="health-dot ' + hCls + '"></div>'
+    + '<div class="eq-detail-title">' + (eq.custom_asset_name || eq.name) + ' — ' + (eq.custom_make || '') + ' ' + (eq.custom_model || '') + '</div>'
+    + '<span class="cov-badge ' + cov.cls + '">' + cov.label + '</span>'
+    + '</div>'
+    + '<div class="eq-detail-serial">' + (eq.custom_asset_id || '—') + ' · ' + (eq.custom_site_id || '—') + '</div>'
+    + '</div>'
+    + '<div class="eq-detail-actions">'
+    + '<button class="eq-btn eq-btn-primary" onclick="eqOpenTicketModal(\'' + eq.name + '\')">+ Open Ticket</button>'
+    + '<button class="eq-btn eq-btn-ghost" onclick="window.location.href=\'/app/installed-equipment/' + eq.name + '\'">Open in Desk ↗</button>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="eq-meta-grid">'
+    + eqMetaCell("Status", eq.custom_asset_status || '—')
+    + eqMetaCell("Health", health)
+    + eqMetaCell("Ownership", eq.custom_ownership || '—')
+    + eqMetaCell("Expiry Date", eq.custom_expiry_date || '—')
+    + eqMetaCell("Last Service", eq.custom_last_service_date || '—')
+    + eqMetaCell("Next Maintenance", eq.custom_next_maintenance || '—')
+    + '</div>'
+
+    + '<div class="eq-tabs-bar">'
+    + eqTabBtn("service", "Service Logs", "…")
+    + eqTabBtn("lifecycle", "Lifecycle", "…")
+    + eqTabBtn("config", "Config", "…")
+    + eqTabBtn("components", "Components", "…")
+    + '</div>'
+
+    + '<div class="eq-tab-panel active" id="eq-tab-service"><div class="eq-loading"><div class="eq-spinner"></div>Loading…</div></div>'
+    + '<div class="eq-tab-panel" id="eq-tab-lifecycle"></div>'
+    + '<div class="eq-tab-panel" id="eq-tab-config"></div>'
+    + '<div class="eq-tab-panel" id="eq-tab-components"></div>'
+    + '</div>';
+
+  el.innerHTML = html;
+
+  // Load logs
+  eqLoadLogs(eq.name);
+}
+
+function eqMetaCell(label, val) {
+  return '<div class="eq-meta-cell"><div class="eq-meta-label">' + label + '</div><div class="eq-meta-val">' + val + '</div></div>';
+}
+
+function eqTabBtn(id, label, count) {
+  var active = EQ.activeTab === id ? " active" : "";
+  return '<button class="eq-tab-btn' + active + '" id="eq-tabbtn-' + id + '" onclick="eqSwitchTab(\'' + id + '\')">'
+    + label + ' <span class="eq-tab-count" id="eq-tabcount-' + id + '">' + count + '</span>'
+    + '</button>';
+}
+
+function eqSwitchTab(tab) {
+  EQ.activeTab = tab;
+  document.querySelectorAll(".eq-tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  document.querySelectorAll(".eq-tab-panel").forEach(function(p) { p.classList.remove("active"); });
+  var btn = document.getElementById("eq-tabbtn-" + tab);
+  var panel = document.getElementById("eq-tab-" + tab);
+  if (btn) btn.classList.add("active");
+  if (panel) panel.classList.add("active");
+}
+
+// ══════════════════════════════════════════════════════════
+// LOG LOADING
+// ══════════════════════════════════════════════════════════
+function eqLoadLogs(eqName) {
+  if (EQ.cache.logs[eqName]) {
+    eqBuildAllLogs(eqName, EQ.cache.logs[eqName]);
+    return;
+  }
+
+  eqCall("maintenance_app.api.get_eq_logs", { equipment: eqName }).then(function(data) {
+    EQ.cache.logs[eqName] = data || { service: [], lifecycle: [], config: [], components: [] };
+    eqBuildAllLogs(eqName, EQ.cache.logs[eqName]);
+  }).catch(function() {
+    document.getElementById("eq-tab-service").innerHTML =
+      '<div class="eq-empty"><div class="eq-empty-icon">⚠️</div>Could not load logs.</div>';
+  });
+}
+
+function eqBuildAllLogs(eqName, logs) {
+  // Update tab counts
+  ["service","lifecycle","config","components"].forEach(function(t) {
+    var key = t === "components" ? "components" : t;
+    var arr = logs[key] || [];
+    var el = document.getElementById("eq-tabcount-" + t);
+    if (el) el.textContent = arr.length;
+  });
+
+  // Build each tab
+  document.getElementById("eq-tab-service").innerHTML   = eqBuildServiceLogs(logs.service || []);
+  document.getElementById("eq-tab-lifecycle").innerHTML = eqBuildLifecycleLogs(logs.lifecycle || []);
+  document.getElementById("eq-tab-config").innerHTML    = eqBuildConfigLogs(logs.config || []);
+  document.getElementById("eq-tab-components").innerHTML = eqBuildComponents(logs.components || []);
+}
+
+function eqBuildServiceLogs(logs) {
+  if (!logs.length) return '<div class="eq-empty"><div class="eq-empty-icon">📋</div>No service logs yet.</div>';
+
+  var html = '<table class="eq-log-table"><thead><tr>'
+    + '<th>Date</th><th>Type</th><th>Technician</th><th>Outcome</th><th>Notes</th><th>Ticket</th><th>MI</th>'
+    + '</tr></thead><tbody>';
+
+  logs.forEach(function(r) {
+    var outcomeColor = r.custom_work_outcome === "Work Completed" ? "var(--green)" : "var(--amber)";
+    html += '<tr>'
+      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (r.custom_service_date || '—') + '</td>'
+      + '<td><span class="eq-event-pill">' + (r.custom_intervention_type || '—') + '</span></td>'
+      + '<td>' + (r.custom_technician || '—') + '</td>'
+      + '<td style="color:' + outcomeColor + '">' + (r.custom_work_outcome || '—') + '</td>'
+      + '<td style="max-width:200px;font-size:12px">' + (r.custom_notes || '—') + '</td>'
+      + '<td>' + eqDeskLink("Service Ticket", r.custom_service_ticket) + '</td>'
+      + '<td>' + eqDeskLink("Mission Intervention", r.custom_intervention_ref) + '</td>'
+      + '</tr>';
+  });
+
+  return html + '</tbody></table>';
+}
+
+function eqBuildLifecycleLogs(logs) {
+  if (!logs.length) return '<div class="eq-empty"><div class="eq-empty-icon">🔄</div>No lifecycle events yet.</div>';
+
+  var html = '<table class="eq-log-table"><thead><tr>'
+    + '<th>Date</th><th>Event</th><th>Technician</th><th>Action</th><th>From Branch</th><th>To Branch</th><th>Ticket</th>'
+    + '</tr></thead><tbody>';
+
+  logs.forEach(function(r) {
+    html += '<tr>'
+      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (r.custom_date || '—') + '</td>'
+      + '<td><span class="eq-event-pill">' + (r.custom_event || '—') + '</span></td>'
+      + '<td>' + (r.custom_technician || '—') + '</td>'
+      + '<td style="max-width:160px;font-size:12px">' + (r.custom_action_taken || '—') + '</td>'
+      + '<td style="font-size:12px;color:var(--text3)">' + (r.custom_previous_branch || '—') + '</td>'
+      + '<td style="font-size:12px">' + (r.custom_new_branch || '—') + '</td>'
+      + '<td>' + eqDeskLink("Service Ticket", r.custom_service_ticket) + '</td>'
+      + '</tr>';
+  });
+
+  return html + '</tbody></table>';
+}
+
+function eqBuildConfigLogs(logs) {
+  if (!logs.length) return '<div class="eq-empty"><div class="eq-empty-icon">⚙️</div>No config changes yet.</div>';
+
+  var html = '<table class="eq-log-table"><thead><tr>'
+    + '<th>Date</th><th>Parameter</th><th>Previous Value</th><th>New Value</th><th>Technician</th><th>Ticket</th>'
+    + '</tr></thead><tbody>';
+
+  logs.forEach(function(r) {
+    html += '<tr>'
+      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (r.custom_config_datetime || '—') + '</td>'
+      + '<td style="font-weight:500;color:var(--text)">' + (r.custom_parameter || '—') + '</td>'
+      + '<td style="font-family:var(--mono);font-size:12px;color:var(--red)">' + (r.custom_current_value || '—') + '</td>'
+      + '<td style="font-family:var(--mono);font-size:12px;color:var(--green)">' + (r.custom_new_value || '—') + '</td>'
+      + '<td>' + (r.custom_technician || '—') + '</td>'
+      + '<td>' + eqDeskLink("Service Ticket", r.custom_service_ticket) + '</td>'
+      + '</tr>';
+  });
+
+  return html + '</tbody></table>';
+}
+
+function eqBuildComponents(comps) {
+  if (!comps.length) return '<div class="eq-empty"><div class="eq-empty-icon">🔩</div>No components registered.</div>';
+
+  var html = '<table class="eq-log-table"><thead><tr>'
+    + '<th>#</th><th>Item</th><th>Group</th><th>Serial</th><th>Brand</th><th>Model</th><th>Status</th>'
+    + '</tr></thead><tbody>';
+
+  comps.forEach(function(c, i) {
+    var scls = c.custom_status === "Installed" ? "cs-installed" : c.custom_status === "Replaced" ? "cs-replaced" : "cs-other";
+    html += '<tr>'
+      + '<td style="font-family:var(--mono);color:var(--text3)">' + (i + 1) + '</td>'
+      + '<td style="font-weight:500;color:var(--text)">' + (c.custom_component_item || '—') + '</td>'
+      + '<td style="color:var(--text3);font-size:12px">' + (c.custom_item_group || '—') + '</td>'
+      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (c.custom_serial_number || '—') + '</td>'
+      + '<td>' + (c.custom_brand || '—') + '</td>'
+      + '<td>' + (c.custom_model || '—') + '</td>'
+      + '<td><span class="eq-comp-status ' + scls + '">' + (c.custom_status || '—') + '</span></td>'
+      + '</tr>';
+  });
+
+  return html + '</tbody></table>';
+}
+
+function eqDeskLink(doctype, name) {
+  if (!name) return '—';
+  return '<span class="eq-log-link" onclick="window.location.href=\'/app/' + doctype.toLowerCase().replace(/ /g,'-') + '/' + name + '\'">' + name + '</span>';
+}
+
+// ══════════════════════════════════════════════════════════
+// TICKET MODAL
+// ══════════════════════════════════════════════════════════
+function eqOpenTicketModal(eqName) {
+  var bid = EQ.state.branchId;
+  var eq = null;
+
+  if (EQ.cache.equipment[bid]) {
+    eq = EQ.cache.equipment[bid].find(function(x) {
+      return x.name === eqName;
+    });
+  }
+
+  if (!eq) {
+    eqShowModalError("Equipment details not found. Please refresh and try again.");
+    return;
+  }
+
+  EQ.modalEq = eq;
+  EQ.createdTicket = null;
+  EQ.selectedTechnicians = [];
+  eqRenderSelectedTechnicians();
+
+  var label = eq.custom_display_name || eq.custom_asset_name || eq.name;
+  if (eq.custom_client_asset_code) {
+    label += " - " + eq.custom_client_asset_code;
+  }
+
+  document.getElementById("eq-modal-eq-label").textContent = label;
+  document.getElementById("eq-m-subject").value = "";
+  document.getElementById("eq-m-description").value = "";
+  document.getElementById("eq-m-req-type").value = "Breakdown";
+  document.getElementById("eq-m-priority").value = "Normal";
+
+  document.getElementById("eq-modal-overlay").dataset.customer = eq.custom_parent_customer || "";
+  document.getElementById("eq-modal-overlay").dataset.branch = eq.custom_branch || "";
+
+  eqOnRequestTypeChange();
+  eqLoadTechnicians();
+  eqLoadApplicants(eq.name);
+
+  document.getElementById("eq-modal-confirm").className = "eq-modal-confirm";
+  document.getElementById("eq-modal-error").className = "eq-modal-error";
+  document.getElementById("eq-modal-overlay").classList.add("open");
+}
+
+function eqCloseModal() {
+  document.getElementById("eq-modal-overlay").classList.remove("open");
+  EQ.modalEq = null;
+  EQ.createdTicket = null;
+  EQ.selectedTechnicians = [];
+  eqRenderSelectedTechnicians();
+  document.getElementById("eq-modal-overlay").dataset.customer = "";
+  document.getElementById("eq-modal-overlay").dataset.branch = "";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REQUEST TYPE -> TICKET TYPE MAPPING (same as Service Ticket form)
+// ═══════════════════════════════════════════════════════════════════════════
+const TICKET_TYPE_BY_REQUEST_TYPE = {
+    "Breakdown": [
+        "Repair",
+        "Service"
+    ],
+    "Maintenance Request": [
+        "Preventive Maintenance",
+        "Service",
+        "Calibration"
+    ],
+    "General Request": [
+        "Installation",
+        "Survey",
+        "Asset Relocation",
+        "Config Change",
+        "Swap",
+        "Loan",
+        "Service"
+    ]
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REQUEST TYPE CHANGE - Filter ticket types dynamically
+// ═══════════════════════════════════════════════════════════════════════════
+function eqOnRequestTypeChange() {
+  var requestType = document.getElementById("eq-m-req-type").value;
+  var ticketTypeSelect = document.getElementById("eq-m-ticket-type");
+
+  var allowedTicketTypes = TICKET_TYPE_BY_REQUEST_TYPE[requestType] || [
+    "Service", "Repair", "Preventive Maintenance", "Installation", 
+    "Survey", "Asset Relocation", "Config Change", "Calibration", "Swap", "Loan"
+  ];
+
+  ticketTypeSelect.innerHTML = "";
+  allowedTicketTypes.forEach(function(type) {
+    var option = document.createElement("option");
+    option.value = type;
+    option.textContent = type;
+    ticketTypeSelect.appendChild(option);
+  });
+
+  if (allowedTicketTypes.length > 0) {
+    ticketTypeSelect.value = allowedTicketTypes[0];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TECHNICIAN + APPLICANT LOADING
+// ═══════════════════════════════════════════════════════════════════════════
+function eqLoadTechnicians() {
+  frappe.call({
+    method: "maintenance_app.api.get_technicians",
+    callback: function(r) {
+      EQ.technicianCache = r.message || [];
+      eqRenderSelectedTechnicians();
+      eqRenderTechnicianSuggestions();
+    },
+    error: function() {
+      EQ.technicianCache = [];
+      eqRenderTechnicianSuggestions();
+    }
+  });
+}
+
+function eqTechnicianLabel(user) {
+  if (!user) return "";
+  var fullName = user.full_name || user.name || "";
+  if (user.name && fullName !== user.name) {
+    return fullName + " (" + user.name + ")";
+  }
+  return fullName;
+}
+
+function eqTechnicianInitials(user) {
+  var label = (user.full_name || user.name || "?").trim();
+  var parts = label.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function eqRenderSelectedTechnicians() {
+  var tags = document.getElementById("eq-tech-tags");
+  if (!tags) return;
+
+  if (!EQ.selectedTechnicians.length) {
+    tags.innerHTML = "";
+    return;
+  }
+
+  tags.innerHTML = EQ.selectedTechnicians.map(function(user) {
+    return '<span class="eq-picker-tag">'
+      + eqEscape(eqTechnicianLabel(user))
+      + '<button type="button" data-tech="' + eqEscapeAttr(user.name) + '" onclick="eqRemoveTechnician(this.dataset.tech)">×</button>'
+      + '</span>';
+  }).join("");
+}
+
+function eqRenderTechnicianSuggestions() {
+  var input = document.getElementById("eq-tech-search");
+  var dropdown = document.getElementById("eq-tech-suggestions");
+  if (!input || !dropdown) return;
+
+  var q = (input.value || "").toLowerCase().trim();
+  var selected = {};
+  EQ.selectedTechnicians.forEach(function(u) {
+    selected[u.name] = true;
+  });
+
+  var matches = (EQ.technicianCache || []).filter(function(u) {
+    if (!u || !u.name || selected[u.name]) return false;
+
+    var label = ((u.full_name || "") + " " + (u.name || "")).toLowerCase();
+
+    if (!q) return true;
+    return label.indexOf(q) !== -1;
+  }).slice(0, 8);
+
+  if (!matches.length) {
+    dropdown.innerHTML = '<div class="eq-picker-empty">' + (q ? "No matching technician" : "No technician available") + '</div>';
+    dropdown.classList.add("open");
+    return;
+  }
+
+  dropdown.innerHTML = matches.map(function(u) {
+    return '<div class="eq-picker-option" data-tech="' + eqEscapeAttr(u.name) + '" onclick="eqAddTechnician(this.dataset.tech)">'
+      + '<div class="eq-picker-avatar">' + eqEscape(eqTechnicianInitials(u)) + '</div>'
+      + '<div>' + eqEscape(eqTechnicianLabel(u)) + '</div>'
+      + '</div>';
+  }).join("");
+
+  dropdown.classList.add("open");
+}
+
+function eqAddTechnician(userName) {
+  var user = (EQ.technicianCache || []).find(function(u) {
+    return u.name === userName;
+  });
+
+  if (!user) return;
+
+  var exists = EQ.selectedTechnicians.some(function(u) {
+    return u.name === user.name;
+  });
+
+  if (!exists) {
+    EQ.selectedTechnicians.push(user);
+  }
+
+  var input = document.getElementById("eq-tech-search");
+  if (input) input.value = "";
+
+  eqRenderSelectedTechnicians();
+  eqRenderTechnicianSuggestions();
+
+  if (input) input.focus();
+}
+
+function eqRemoveTechnician(userName) {
+  EQ.selectedTechnicians = EQ.selectedTechnicians.filter(function(u) {
+    return u.name !== userName;
+  });
+
+  eqRenderSelectedTechnicians();
+  eqRenderTechnicianSuggestions();
+}
+
+function eqTechSearchKeydown(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+
+    var first = document.querySelector("#eq-tech-suggestions .eq-picker-option");
+    if (first) {
+      first.click();
+    }
+  }
+
+  if (event.key === "Backspace") {
+    var input = document.getElementById("eq-tech-search");
+    if (input && !input.value && EQ.selectedTechnicians.length) {
+      EQ.selectedTechnicians.pop();
+      eqRenderSelectedTechnicians();
+      eqRenderTechnicianSuggestions();
+    }
+  }
+
+  if (event.key === "Escape") {
+    var dropdown = document.getElementById("eq-tech-suggestions");
+    if (dropdown) dropdown.classList.remove("open");
+  }
+}
+
+function eqGetSelectedTechnicians() {
+  return (EQ.selectedTechnicians || []).map(function(u) {
+    return u.name;
+  }).filter(Boolean);
+}
+
+function eqLoadApplicants(eqName) {
+  var select = document.getElementById("eq-m-applicant");
+  if (!select) return;
+
+  select.innerHTML = '<option value="">No applicant selected</option>';
+
+  frappe.call({
+    method: "maintenance_app.api.get_eq_applicants_for_equipment",
+    args: {
+      equipment_name: eqName
+    },
+    callback: function(r) {
+      var contacts = r.message || [];
+
+      contacts.forEach(function(c) {
+        var option = document.createElement("option");
+        option.value = c.name;
+        option.textContent = c.label || c.name;
+        select.appendChild(option);
+      });
+    },
+    error: function() {
+      select.innerHTML = '<option value="">Could not load contacts</option>';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OPEN IN DESK
+// - If a ticket was already created, open that ticket.
+// - Otherwise open a new Service Ticket form with route_options.
+// ═══════════════════════════════════════════════════════════════════════════
+function eqOpenInDesk() {
+  if (EQ.createdTicket) {
+    window.location.href = "/app/service-ticket/" + EQ.createdTicket;
+    return;
+  }
+
+  if (!EQ.modalEq) return;
+
+  var subject = document.getElementById("eq-m-subject").value.trim()
+    || ("Service Request - " + (EQ.modalEq.custom_display_name || EQ.modalEq.custom_asset_name || EQ.modalEq.name));
+
+  frappe.route_options = {
+    custom_target_equipment: EQ.modalEq.name,
+    custom_subject: subject,
+    custom_customer: EQ.modalEq.custom_parent_customer || document.getElementById("eq-modal-overlay").dataset.customer,
+    custom_client_branch: EQ.modalEq.custom_branch || document.getElementById("eq-modal-overlay").dataset.branch,
+    custom_request_type: document.getElementById("eq-m-req-type").value,
+    custom_ticket_type: document.getElementById("eq-m-ticket-type").value,
+    custom_priority: document.getElementById("eq-m-priority").value,
+    custom_applicant: document.getElementById("eq-m-applicant").value || ""
+  };
+
+  window.location.href = "/app/service-ticket/new-service-ticket-1";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CREATE TICKET
+// Uses server-side API so customer/branch/warranty/applicant/technician logic
+// is applied consistently.
+// ═══════════════════════════════════════════════════════════════════════════
+function eqSubmitTicket() {
+  if (!EQ.modalEq) return;
+
+  var subject = document.getElementById("eq-m-subject").value.trim();
+  if (!subject) {
+    document.getElementById("eq-m-subject").focus();
+    eqShowModalError("Subject is required.");
+    return;
+  }
+
+  var btn = document.querySelector(".eq-btn-primary");
+  if (btn) { btn.disabled = true; btn.textContent = "Creating…"; }
+
+  frappe.call({
+    method: "maintenance_app.api.create_service_ticket_from_equipment",
+    args: {
+      equipment_name: EQ.modalEq.name,
+      request_type: document.getElementById("eq-m-req-type").value,
+      ticket_type: document.getElementById("eq-m-ticket-type").value,
+      subject: subject,
+      priority: document.getElementById("eq-m-priority").value,
+      description: document.getElementById("eq-m-description").value,
+      technicians: JSON.stringify(eqGetSelectedTechnicians()),
+      applicant: document.getElementById("eq-m-applicant").value || ""
+    },
+    callback: function(r) {
+      if (btn) { btn.disabled = false; btn.textContent = "Create Ticket"; }
+
+      if (r && r.message && r.message.ticket) {
+        EQ.createdTicket = r.message.ticket;
+
+        var coverage = r.message.coverage || {};
+        var serviceType = r.message.service_type || "Billable";
+
+        eqShowModalConfirm(
+          "✓ Ticket " + r.message.ticket + " created.\n"
+          + "Equipment: " + (EQ.modalEq.custom_display_name || EQ.modalEq.custom_asset_name || EQ.modalEq.name) + "\n"
+          + "Service Type: " + serviceType + "\n"
+          + (coverage.message || "")
+        );
+
+        EQ.cache.customers = null;
+      } else {
+        eqShowModalError("Ticket was created but no ticket reference was returned.");
+      }
+    },
+    error: function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = "Create Ticket"; }
+      eqShowModalError("Failed to create ticket. Please try again.");
+      console.log(err);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODAL MESSAGES
+// ═══════════════════════════════════════════════════════════════════════════
+function eqShowModalConfirm(msg) {
+  var el = document.getElementById("eq-modal-confirm");
+  el.textContent = msg;
+  el.className = "eq-modal-confirm show";
+  document.getElementById("eq-modal-error").className = "eq-modal-error";
+}
+
+function eqShowModalError(msg) {
+  var el = document.getElementById("eq-modal-error");
+  el.textContent = msg;
+  el.className = "eq-modal-error show";
+}
+
+frappe.ready(function() {
+  eqGo("customers");
+});
+document.addEventListener("click", function(e) {
+  var picker = document.getElementById("eq-tech-picker");
+  var dropdown = document.getElementById("eq-tech-suggestions");
+
+  if (!picker || !dropdown) return;
+
+  if (!picker.contains(e.target)) {
+    dropdown.classList.remove("open");
+  }
+})
+
+</script>
+{% endblock %}

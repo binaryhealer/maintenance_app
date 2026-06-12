@@ -1,0 +1,97 @@
+{
+ "custom": 1,
+ "doctype": "DocType",
+ "document_type": "Table",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_rma_number",
+  "custom_rma_date",
+  "custom_item_affected",
+  "custom_item_serial",
+  "custom_rma_reason",
+  "col_break_description",
+  "custom_failure_description",
+  "custom_replacement_item",
+  "custom_replacement_serial",
+  "col_break_return",
+  "custom_return_date",
+  "custom_rma_status",
+  "custom_rma_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_rma_number",
+   "fieldtype": "Data",
+   "label": "RMA Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_rma_date",
+   "fieldtype": "Date",
+   "label": "RMA Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_item_affected",
+   "fieldtype": "Data",
+   "label": "Item/Component Affected",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_item_serial",
+   "fieldtype": "Data",
+   "label": "Item Serial Number"
+  },
+  {
+   "fieldname": "custom_rma_reason",
+   "fieldtype": "Select",
+   "label": "RMA Reason",
+   "options": "Defect\nFailure\nUpgrade\nOther"
+  },
+  {
+   "fieldname": "col_break_description",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_failure_description",
+   "fieldtype": "Small Text",
+   "label": "Failure Description"
+  },
+  {
+   "fieldname": "custom_replacement_item",
+   "fieldtype": "Data",
+   "label": "Replacement Item"
+  },
+  {
+   "fieldname": "custom_replacement_serial",
+   "fieldtype": "Data",
+   "label": "Replacement Serial"
+  },
+  {
+   "fieldname": "col_break_return",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_return_date",
+   "fieldtype": "Date",
+   "label": "Return Date"
+  },
+  {
+   "fieldname": "custom_rma_status",
+   "fieldtype": "Select",
+   "label": "RMA Status",
+   "options": "Open\nIn Transit\nReceived\nClosed\nDisputed"
+  },
+  {
+   "fieldname": "custom_rma_notes",
+   "fieldtype": "Small Text",
+   "label": "Internal Notes"
+  }
+ ],
+ "is_submittable": 0,
+ "istable": 1,
+ "module": "Maintenance",
+ "name": "Warranty RMA Record",
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

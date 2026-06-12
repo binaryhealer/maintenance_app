@@ -14,18 +14,21 @@
   {
    "fieldname": "custom_cr_link",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Change Request",
    "options": "Maintenance App Change Request"
   },
   {
    "fieldname": "custom_workflow_state",
    "fieldtype": "Read Only",
+   "in_list_view": 1,
    "label": "Status",
    "options": "custom_cr_link.workflow_state"
   },
   {
    "fieldname": "custom_category",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Change Category"
   }
  ],
@@ -33,7 +36,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-04-19 23:51:34.613944",
+ "modified": "2026-06-08 13:59:48.611701",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Intervention CR Reference",

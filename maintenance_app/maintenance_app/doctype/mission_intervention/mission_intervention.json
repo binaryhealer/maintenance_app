@@ -8,23 +8,24 @@
  "engine": "InnoDB",
  "field_order": [
   "custom_job_information",
-  "custom_naming_series",
-  "custom_service_ticket",
   "custom_parent_customer",
   "custom_branch",
+  "custom_applicant",
   "custom_asset",
-  "custom_service_type",
   "custom_make",
   "custom_model",
-  "column_break_ohxn",
-  "custom_client_asset_code",
-  "custom_planned_starttime",
-  "custom_planned_endtime",
-  "custom_asset_category",
   "custom_asset_id",
+  "column_break_ohxn",
+  "custom_component_group",
+  "custom_component_item",
   "custom_subject",
+  "custom_intervention_type",
+  "custom_start_date",
+  "section_break_pmao",
+  "custom_work_progress",
   "section_break_bzvm",
   "custom_quality_score",
+  "column_break_xeco",
   "column_break_pqpk",
   "custom_hse_score",
   "section_break_afet",
@@ -32,44 +33,96 @@
   "custom_signatory_name",
   "column_break_fuis",
   "custom_tech_signature",
-  "amended_from",
   "custom_work_execution",
   "custom_hours_worked",
+  "custom_billable_hours",
   "custom_planning_ref",
-  "custom_technician",
-  "custom_intervention_team",
-  "column_break_ryio",
-  "custom_intervention_type",
   "custom_work_outcome",
-  "custom_parent_mission",
-  "custom_removed_asset_outcome",
-  "custom_time",
+  "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
-  "column_break_nlou",
-  "custom_checkout_location",
-  "custom_checkin_location",
-  "section_break_fgck",
-  "custom_work_progress",
+  "custom_removed_asset_outcome",
+  "section_break_mewf",
+  "custom_intervention_team",
+  "section_break_sjux",
+  "custom_equipment_changed",
+  "custom_original_equipment",
+  "custom_equipment_change_reason",
+  "column_break_jxzc",
+  "custom_component_changed",
+  "custom_original_component_item",
+  "custom_component_change_reason",
+  "custom_addtional_mi",
+  "custom_additional_mi",
+  "custom_additional_mi_reason",
+  "custom_contact_communicatio",
+  "custom_applicant_role",
+  "column_break_cbyk",
+  "custom_applicant_email",
+  "custom_applicant_phone",
+  "custom_ho_contacts",
+  "custom_head_office_contacts",
+  "custom_branch_operational_contacts",
+  "custom_branch_contacts",
   "custom_parts_billing",
   "custom_billing_analysis",
   "custom_vehicle",
   "custom_vehicle_plate",
   "custom_parts_table",
   "custom_asset_change",
-  "section_break_vonf",
-  "custom_destination_branch",
-  "custom_swap_classification",
-  "custom_new_make",
+  "custom_component_replaced",
+  "column_break_bbev",
+  "custom_loan_return",
+  "column_break_jwyc",
   "custom_loan_required",
-  "custom_loan_approved",
-  "custom_is_loan_return",
-  "column_break_eoke",
-  "custom_replacement_serial",
-  "custom_replacement_asset",
+  "section_break_vonf",
+  "custom_swap_classification",
+  "custom_new_branch",
+  "custom_new_make",
   "custom_new_model",
+  "custom_loan_approved",
+  "column_break_eoke",
+  "custom_new_serial",
+  "custom_new_asset",
+  "custom_asset_change_reason",
+  "custom_component_swap_section",
+  "custom_new_component_item",
+  "custom_new_component_brand",
+  "custom_new_component_model",
+  "column_break_jlnm",
+  "custom_new_component_serial",
+  "custom_old_component_row_id",
+  "custom_component_replacement_reason",
   "custom_config_change",
-  "custom_config_changes"
+  "custom_config_changes",
+  "custm_info_tab",
+  "custom_service_ticket",
+  "custom_asset_category",
+  "custom_naming_series",
+  "custom_client_asset_code",
+  "custom_parent_mission",
+  "custom_planned_starttime",
+  "custom_planned_endtime",
+  "column_break_wndv",
+  "custom_technician",
+  "amended_from",
+  "custom_service_type",
+  "custom_component_brand",
+  "custom_component_model",
+  "custom_component_serial",
+  "custom_component_row_id",
+  "custom_location_data",
+  "custom_checkin_latitude",
+  "custom_checkin_longitude",
+  "column_break_vvhd",
+  "custom_checkout_latitude",
+  "custom_checkout_longitude",
+  "section_break_mwps",
+  "custom_completed_time",
+  "custom_client_signed_time",
+  "column_break_xcbr",
+  "custom_checkout_status",
+  "custom_client_signature_received"
  ],
  "fields": [
   {
@@ -191,21 +244,10 @@
    "read_only": 1
   },
   {
-   "fieldname": "custom_checkin_location",
-   "fieldtype": "Data",
-   "label": "Check-in Location"
-  },
-  {
-   "fieldname": "custom_checkout_location",
-   "fieldtype": "Data",
-   "label": "Check-out Location",
-   "read_only": 1
-  },
-  {
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance Installation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal\nCalibration"
   },
   {
    "fieldname": "custom_parts_table",
@@ -259,14 +301,9 @@
    "read_only": 1
   },
   {
-   "fieldname": "custom_replacement_asset",
-   "fieldtype": "Link",
-   "label": "Replacement Equipment",
-   "options": "Installed Equipment"
-  },
-  {
    "fieldname": "section_break_vonf",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Equipemnt Swap"
   },
   {
    "fieldname": "custom_billing_analysis",
@@ -293,20 +330,8 @@
    "fieldname": "custom_swap_classification",
    "fieldtype": "Select",
    "label": "Swap Type",
-   "options": "Temporary Loan\nPermanent Swap\nReturn from Loan\nClient Replacement",
+   "options": "Commissioned\nInstalled\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nRetired\nDisposed\nPermanent Swap",
    "read_only": 1
-  },
-  {
-   "fieldname": "custom_replacement_serial",
-   "fieldtype": "Data",
-   "label": "Replacement Serial",
-   "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_is_loan_return",
-   "fieldtype": "Check",
-   "label": "Loan Return?"
   },
   {
    "fieldname": "custom_work_outcome",
@@ -317,19 +342,12 @@
    "read_only": 1
   },
   {
-   "fieldname": "custom_destination_branch",
-   "fieldtype": "Link",
-   "label": "Destination Branch",
-   "options": "Client Branch"
-  },
-  {
    "fieldname": "custom_new_make",
    "fieldtype": "Link",
    "label": "New Make",
    "options": "Maintenance Item"
   },
   {
-   "fetch_from": "custom_new_make.custom_model",
    "fieldname": "custom_new_model",
    "fieldtype": "Data",
    "label": "New Model"
@@ -341,20 +359,7 @@
    "options": "Service Ticket"
   },
   {
-   "fieldname": "section_break_fgck",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "column_break_ryio",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "custom_time",
-   "fieldtype": "Section Break",
-   "label": "Time"
-  },
-  {
-   "fieldname": "column_break_nlou",
    "fieldtype": "Column Break"
   },
   {
@@ -402,6 +407,7 @@
    "default": "0",
    "fieldname": "custom_loan_approved",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Loan Approved?"
   },
   {
@@ -443,13 +449,346 @@
    "fieldname": "custom_subject",
    "fieldtype": "Data",
    "label": "Subject"
+  },
+  {
+   "fieldname": "custom_contact_communicatio",
+   "fieldtype": "Tab Break",
+   "label": "Contact & Communication"
+  },
+  {
+   "fieldname": "custom_applicant",
+   "fieldtype": "Link",
+   "label": "Applicant",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_applicant_role",
+   "fieldtype": "Data",
+   "label": "Applicant Role"
+  },
+  {
+   "fieldname": "column_break_cbyk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_applicant_email",
+   "fieldtype": "Data",
+   "label": "Applicant Email"
+  },
+  {
+   "fieldname": "custom_applicant_phone",
+   "fieldtype": "Data",
+   "label": "Applicant Phone"
+  },
+  {
+   "fieldname": "custom_ho_contacts",
+   "fieldtype": "Section Break",
+   "label": "HO Contacts"
+  },
+  {
+   "fieldname": "custom_head_office_contacts",
+   "fieldtype": "Table",
+   "label": "Head Office Contacts",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_branch_operational_contacts",
+   "fieldtype": "Section Break",
+   "label": "Branch Operational Contacts"
+  },
+  {
+   "fieldname": "custom_branch_contacts",
+   "fieldtype": "Table",
+   "label": "Branch Contact",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_addtional_mi",
+   "fieldtype": "Section Break",
+   "label": "Additional MI"
+  },
+  {
+   "fieldname": "custom_additional_mi_reason",
+   "fieldtype": "Small Text",
+   "label": "Additional MI Reason"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_additional_mi",
+   "fieldtype": "Check",
+   "label": "Additional MI"
+  },
+  {
+   "fieldname": "section_break_sjux",
+   "fieldtype": "Section Break",
+   "label": "Equipment Change Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_equipment_changed",
+   "fieldtype": "Check",
+   "label": "Equipment Changed"
+  },
+  {
+   "fieldname": "custom_original_equipment",
+   "fieldtype": "Link",
+   "label": "Original Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment_change_reason",
+   "fieldtype": "Small Text",
+   "label": "Equipment Change Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custm_info_tab",
+   "fieldtype": "Tab Break",
+   "label": "Info"
+  },
+  {
+   "fieldname": "column_break_wndv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_pmao",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_xeco",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_mewf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_checkin_latitude",
+   "fieldtype": "Data",
+   "label": "Check-in Latitude"
+  },
+  {
+   "fieldname": "custom_checkin_longitude",
+   "fieldtype": "Data",
+   "label": "Check-in Longitude"
+  },
+  {
+   "fieldname": "column_break_vvhd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_checkout_latitude",
+   "fieldtype": "Data",
+   "label": "Check-out Latitude",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_checkout_longitude",
+   "fieldtype": "Data",
+   "label": "Check-out Longitude"
+  },
+  {
+   "fieldname": "custom_location_data",
+   "fieldtype": "Section Break",
+   "label": "Location Data"
+  },
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Data",
+   "label": "Component Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Data",
+   "label": "Component Item"
+  },
+  {
+   "fieldname": "custom_component_brand",
+   "fieldtype": "Data",
+   "label": "Component Brand"
+  },
+  {
+   "fieldname": "custom_component_model",
+   "fieldtype": "Data",
+   "label": "Component Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_serial",
+   "fieldtype": "Data",
+   "label": "Component Serial",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_row_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Component Row ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_mwps",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_completed_time",
+   "fieldtype": "Datetime",
+   "label": "Work Completed Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_client_signed_time",
+   "fieldtype": "Datetime",
+   "label": "Client Signed Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_checkout_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Checkout Status",
+   "options": "Not Started\nChecked In\nWork Completed\nClient Signed\nChecked Out\nDefault: Not Started",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xcbr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_client_signature_received",
+   "fieldtype": "Check",
+   "label": "Client Signature Received",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_jxzc",
+   "fieldtype": "Column Break",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_component_changed",
+   "fieldtype": "Check",
+   "label": "Compnenet Change"
+  },
+  {
+   "fieldname": "custom_original_component_item",
+   "fieldtype": "Data",
+   "label": "Original Component",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_change_reason",
+   "fieldtype": "Small Text",
+   "label": "Component Change Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_swap_section",
+   "fieldtype": "Section Break",
+   "label": "Component Swap"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_component_replaced",
+   "fieldtype": "Check",
+   "label": "Component Replaced?"
+  },
+  {
+   "fieldname": "custom_new_component_item",
+   "fieldtype": "Link",
+   "label": "New Component Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "custom_new_component_serial",
+   "fieldtype": "Data",
+   "label": "New Component Serial"
+  },
+  {
+   "fieldname": "custom_new_component_brand",
+   "fieldtype": "Data",
+   "label": "New Component Brand"
+  },
+  {
+   "fieldname": "custom_new_component_model",
+   "fieldtype": "Data",
+   "label": "New Component Model"
+  },
+  {
+   "fieldname": "custom_component_replacement_reason",
+   "fieldtype": "Small Text",
+   "label": "Component Replacement Reason"
+  },
+  {
+   "fieldname": "custom_old_component_row_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Old Component Row ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_jlnm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_loan_return",
+   "fieldtype": "Check",
+   "label": "Loan Return?"
+  },
+  {
+   "fieldname": "custom_new_branch",
+   "fieldtype": "Link",
+   "label": "Destination Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_new_serial",
+   "fieldtype": "Data",
+   "label": "Replacement Serial",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_new_asset",
+   "fieldtype": "Link",
+   "label": "Replacement Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_asset_change_reason",
+   "fieldtype": "Small Text",
+   "label": "Change Reason"
+  },
+  {
+   "fieldname": "column_break_bbev",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_jwyc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_billable_hours",
+   "fieldtype": "Float",
+   "label": "Billable Hours"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-25 21:53:14.273116",
+ "modified": "2026-06-09 12:18:54.862540",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

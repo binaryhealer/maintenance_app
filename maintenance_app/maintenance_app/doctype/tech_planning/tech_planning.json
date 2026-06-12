@@ -9,8 +9,10 @@
   "custom_parent_customer",
   "custom_branch",
   "custom_asset",
-  "custom_subject",
+  "custom_component_group",
+  "custom_component_item",
   "column_break_sxsg",
+  "custom_subject",
   "custom_service_type",
   "custom_request_type",
   "custom_ticket_type",
@@ -25,14 +27,23 @@
   "section_break_fsoi",
   "custom_planned_team",
   "custom_contact_information",
-  "custom_primary_contact",
-  "custom_contact_name",
+  "custom_applicant",
+  "custom_applicant_role",
   "column_break_eevi",
-  "custom_contact_phone",
-  "custom_contact_email",
+  "custom_applicant_phone",
+  "custom_applicant_email",
+  "custom_ho_contacts",
+  "custom_head_office_contacts",
+  "custom_branch_operational_contacts",
+  "custom_branch_contacts",
   "custom_reference",
   "custom_mission_ref",
   "custom_service_ticket",
+  "custom_component_brand",
+  "column_break_wged",
+  "custom_component_model",
+  "custom_component_serial",
+  "custom_component_row_id",
   "section_break_iivs",
   "custom_request_description",
   "custom_reschedule",
@@ -140,7 +151,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nSwap / Loan"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nSwap / Loan\nCalibration"
   },
   {
    "fieldname": "section_break_iivs",
@@ -168,7 +179,8 @@
    "fieldname": "custom_planning_status",
    "fieldtype": "Select",
    "label": "Planning Status",
-   "options": "Draft\nPlanned\nIn Progress\nCompleted\nCancelled"
+   "options": "Draft\nPlanned\nIn Progress\nCompleted\nCancelled",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_emfh",
@@ -183,27 +195,6 @@
    "fieldname": "custom_contact_information",
    "fieldtype": "Tab Break",
    "label": "Contact Information"
-  },
-  {
-   "fieldname": "custom_primary_contact",
-   "fieldtype": "Link",
-   "label": "Primary Contact",
-   "options": "Contact"
-  },
-  {
-   "fieldname": "custom_contact_name",
-   "fieldtype": "Data",
-   "label": "Contact Name"
-  },
-  {
-   "fieldname": "custom_contact_phone",
-   "fieldtype": "Data",
-   "label": "Contact Phone"
-  },
-  {
-   "fieldname": "custom_contact_email",
-   "fieldtype": "Data",
-   "label": "Contact Email"
   },
   {
    "fieldname": "column_break_eevi",
@@ -241,12 +232,94 @@
    "fieldname": "custom_subject",
    "fieldtype": "Data",
    "label": "Subject"
+  },
+  {
+   "fieldname": "custom_applicant",
+   "fieldtype": "Link",
+   "label": "Applicant",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_applicant_role",
+   "fieldtype": "Data",
+   "label": "Role"
+  },
+  {
+   "fieldname": "custom_ho_contacts",
+   "fieldtype": "Section Break",
+   "label": "HHO Contacts"
+  },
+  {
+   "fieldname": "custom_head_office_contacts",
+   "fieldtype": "Table",
+   "label": "Head Office Contacts",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_branch_operational_contacts",
+   "fieldtype": "Section Break",
+   "label": "Branch Operational Contacts"
+  },
+  {
+   "fieldname": "custom_branch_contacts",
+   "fieldtype": "Table",
+   "label": "Branch Contact",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_applicant_email",
+   "fieldtype": "Data",
+   "label": "Contact Email"
+  },
+  {
+   "fieldname": "custom_applicant_phone",
+   "fieldtype": "Data",
+   "label": "Contact Phone"
+  },
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Data",
+   "label": "Component Group"
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Data",
+   "label": "Component Item"
+  },
+  {
+   "fieldname": "custom_component_brand",
+   "fieldtype": "Data",
+   "label": "Component Brand",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_wged",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_component_model",
+   "fieldtype": "Data",
+   "label": "Component Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_row_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Component Row ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_serial",
+   "fieldtype": "Data",
+   "label": "Component Serial",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-25 21:51:58.299878",
+ "modified": "2026-06-03 16:48:18.830276",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Planning",

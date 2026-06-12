@@ -25,7 +25,15 @@
   "column_break_jtml",
   "custom_start_time",
   "custom_end_time",
-  "custom_duration"
+  "custom_duration",
+  "custom_component_history",
+  "custom_component_group",
+  "custom_component_item",
+  "custom_component_brand",
+  "column_break_clfc",
+  "custom_component_model",
+  "custom_component_serial",
+  "custom_component_row_id"
  ],
  "fields": [
   {
@@ -131,13 +139,13 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nAsset Relocation\nConfig Change\nSwap\nLoan\nDisposal"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nAsset Relocation\nConfig Change\nSwap\nLoan\nDisposal\nCalibration"
   },
   {
    "fieldname": "custom_work_outcome",
    "fieldtype": "Select",
    "label": "Work Outcome",
-   "options": "Work Completed\nWaiting for Parts\nWaiting for Client\nTo Quote (Billable)"
+   "options": "Work Completed\nContinue Work\nWaiting for Parts\nWaiting for Client\nTo Quote (Billable)\nCould Not Complete"
   },
   {
    "fieldname": "custom_start_time",
@@ -155,13 +163,59 @@
    "in_standard_filter": 1,
    "label": "Related Equipment",
    "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_component_history",
+   "fieldtype": "Tab Break",
+   "label": "Component History"
+  },
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Data",
+   "label": "Component Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Data",
+   "label": "Component Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_brand",
+   "fieldtype": "Data",
+   "label": "Component Brand",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_clfc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_component_model",
+   "fieldtype": "Data",
+   "label": "Component Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_serial",
+   "fieldtype": "Data",
+   "label": "Component Serial",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_row_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Component Row ID",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-14 15:45:35.947933",
+ "modified": "2026-06-03 18:12:46.154196",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Service Log",

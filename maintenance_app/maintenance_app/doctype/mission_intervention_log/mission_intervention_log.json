@@ -21,27 +21,32 @@
   {
    "fieldname": "custom_date",
    "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "Date"
   },
   {
    "fieldname": "custom_intervention_reference",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Intervention Reference",
    "options": "Mission Intervention"
   },
   {
    "fieldname": "custom_technician",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Technician"
   },
   {
    "fieldname": "custom_work_progress",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Work Summary"
   },
   {
    "fieldname": "custom_hours",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Hours"
   },
   {
@@ -51,8 +56,9 @@
   {
    "fieldname": "custom_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Status",
-   "options": "In Progress\nCompleted\nWaiting Parts\nWaiting Client"
+   "options": "In Progress\nCompleted\nWaiting Parts\nWaiting Client\nOngoing"
   },
   {
    "fieldname": "section_break_kpfb",
@@ -61,11 +67,13 @@
   {
    "fieldname": "custom_technician_count",
    "fieldtype": "Int",
+   "in_list_view": 1,
    "label": "Technician Count"
   },
   {
    "fieldname": "custom_billable_hours",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Billable Hours"
   }
  ],
@@ -73,7 +81,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-06 18:42:03.318042",
+ "modified": "2026-06-08 13:59:14.361304",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention Log",

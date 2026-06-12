@@ -12,14 +12,49 @@ website_route_rules = [
 ]
 
 fixtures = [
-    "Custom Field",
-    "Property Setter",
+    {
+        "dt": "Custom Field",
+        "filters": [
+            ["dt", "in", [
+                "Quotation",
+                "Contact",
+                "Sales Invoice",
+                "Sales Order",
+                "Delivery Note",
+                "Purchase Order",
+                "Purchase Receipt",
+                "Customer",
+                "Warehouse",
+                "Vehicle",
+                "Item"
+            ]]
+        ]
+    },
+    {
+        "dt": "Property Setter",
+        "filters": [
+            ["doc_type", "in", [
+                "Quotation",
+                "Contact",
+                "Sales Invoice",
+                "Sales Order",
+                "Delivery Note",
+                "Purchase Order",
+                "Purchase Receipt",
+                "Customer",
+                "Warehouse",
+                "Vehicle",
+                "Item"
+            ]]
+        ]
+    },
     "Client Script",
     "Server Script",
     "Workflow",
     "Workflow State",
     "Workflow Action Master",
-    "Print Format"
+    "Print Format",
+    "Workspace"
 ]
 # Apps
 # ------------------

@@ -17,16 +17,19 @@
   {
    "fieldname": "custm_parameter",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Parameter"
   },
   {
    "fieldname": "custom_current_value",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Current Value"
   },
   {
    "fieldname": "custom_notes",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Notes"
   },
   {
@@ -36,11 +39,13 @@
   {
    "fieldname": "custom_new_value",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "New Value"
   },
   {
    "fieldname": "custom_config_datetime",
    "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "Config Change Datetime",
    "read_only": 1
   }
@@ -49,7 +54,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-12 00:55:29.628586",
+ "modified": "2026-06-08 13:56:11.174212",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "MI Config Change Row",

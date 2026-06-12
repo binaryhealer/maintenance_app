@@ -12,6 +12,7 @@
   {
    "fieldname": "custom_technician",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Technician",
    "options": "User"
   }
@@ -20,7 +21,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-04-07 21:52:54.882277",
+ "modified": "2026-06-08 13:49:58.731244",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Planned Technicians",

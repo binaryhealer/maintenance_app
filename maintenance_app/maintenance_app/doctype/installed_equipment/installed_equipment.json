@@ -21,12 +21,15 @@
   "custom_asset_type",
   "custom_site_id",
   "section_break_sffk",
-  "custom_next_maintenance",
+  "custom_next_maintenance_date",
   "custom_ownership",
   "custom_asset_status",
+  "custom_create_warranty_inline",
   "column_break_vyja",
-  "custom_expiry_date",
+  "custom_warranty",
   "custom_maint_frequency",
+  "custom_warranty_period_years",
+  "custom_coverage_type",
   "section_break_ajrk",
   "lft",
   "rgt",
@@ -50,8 +53,9 @@
   "custom_commissioned_date",
   "custom_info",
   "custom_display_name",
+  "custom_component_overview",
   "section_break_dgug",
-  "custom_component_overview"
+  "custom_installed_components"
  ],
  "fields": [
   {
@@ -93,12 +97,6 @@
    "options": "Monthly\nQuarterly\nBi-Annual\nAnnual"
   },
   {
-   "description": " \"Date the next PM ticket is due.\"",
-   "fieldname": "custom_next_maintenance",
-   "fieldtype": "Date",
-   "label": "Next Maintenance Date"
-  },
-  {
    "fieldname": "column_break_afnw",
    "fieldtype": "Column Break"
   },
@@ -133,12 +131,6 @@
    "in_standard_filter": 1,
    "label": "Model",
    "options": "Maintenance Item"
-  },
-  {
-   "fieldname": "custom_expiry_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Warranty /Contract Expiry Date"
   },
   {
    "fieldname": "custom_branch",
@@ -335,6 +327,43 @@
   {
    "fieldname": "section_break_dgug",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_installed_components",
+   "fieldtype": "Table",
+   "label": "Installed Components",
+   "options": "Installed Equipment Component"
+  },
+  {
+   "fieldname": "custom_warranty",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Warranty",
+   "options": "Warranty"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_create_warranty_inline",
+   "fieldtype": "Check",
+   "label": "Create Warranty Inline"
+  },
+  {
+   "default": "?",
+   "fieldname": "custom_warranty_period_years",
+   "fieldtype": "Int",
+   "label": "Warranty Period (Years)"
+  },
+  {
+   "fieldname": "custom_coverage_type",
+   "fieldtype": "Select",
+   "label": "Coverage Type",
+   "options": "Parts Only\nParts + Labour\nFull Coverage\nExtended"
+  },
+  {
+   "description": " \"Date the next PM ticket is due.\"",
+   "fieldname": "custom_next_maintenance_date",
+   "fieldtype": "Date",
+   "label": "Next Maintenance Date"
   }
  ],
  "grid_page_length": 50,
@@ -355,14 +384,9 @@
    "group": "Service Logs",
    "link_doctype": "Asset Service Log",
    "link_fieldname": "custom_related_asset"
-  },
-  {
-   "group": "Components",
-   "link_doctype": "Installed Equipment",
-   "link_fieldname": "parent_maintenance_app_asset_registry"
   }
  ],
- "modified": "2026-05-22 18:00:41.256853",
+ "modified": "2026-06-12 03:56:21.957377",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

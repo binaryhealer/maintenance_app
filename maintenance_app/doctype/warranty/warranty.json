@@ -1,0 +1,203 @@
+{
+ "allow_import": 1,
+ "allow_on_submit": 0,
+ "allow_rename": 1,
+ "autoname": "format:W-{MM}-{DD}-{######}",
+ "custom": 1,
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "warranty_details_section",
+  "custom_warranty_title",
+  "custom_customer",
+  "custom_installed_equipment",
+  "custom_branch",
+  "col_break_dates",
+  "custom_warranty_start_date",
+  "custom_warranty_period_years",
+  "custom_warranty_end_date",
+  "custom_warranty_status",
+  "col_break_source",
+  "custom_source",
+  "custom_source_doctype",
+  "coverage_items_tab",
+  "custom_warranty_coverage_items",
+  "addons_tab",
+  "custom_warranty_addons",
+  "warranty_licenses_tab",
+  "custom_warranty_licenses",
+  "rma_tracking_tab",
+  "custom_warranty_rma_records",
+  "internal_tab",
+  "custom_internal_notes",
+  "custom_created_from_delivery_note"
+ ],
+ "fields": [
+  {
+   "fieldname": "warranty_details_section",
+   "fieldtype": "Section Break",
+   "label": "Warranty Details"
+  },
+  {
+   "fieldname": "custom_warranty_title",
+   "fieldtype": "Data",
+   "label": "Warranty Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_installed_equipment",
+   "fieldtype": "Link",
+   "label": "Installed Equipment",
+   "options": "Installed Equipment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "col_break_dates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_warranty_start_date",
+   "fieldtype": "Date",
+   "label": "Warranty Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_warranty_period_years",
+   "fieldtype": "Int",
+   "label": "Warranty Period (Years)",
+   "reqd": 1,
+   "default": 1
+  },
+  {
+   "fieldname": "custom_warranty_end_date",
+   "fieldtype": "Date",
+   "label": "Warranty End Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_warranty_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nExpired\nRMA Pending\nReplaced",
+   "default": "Active",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "Delivery Note\nManual Entry\nPurchased Separately"
+  },
+  {
+   "fieldname": "custom_source_doctype",
+   "fieldtype": "Link",
+   "label": "Source Document",
+   "options": "Delivery Note"
+  },
+  {
+   "fieldname": "coverage_items_tab",
+   "fieldtype": "Tab Break",
+   "label": "Coverage Items"
+  },
+  {
+   "fieldname": "custom_warranty_coverage_items",
+   "fieldtype": "Table",
+   "label": "Coverage Items",
+   "options": "Warranty Coverage Item"
+  },
+  {
+   "fieldname": "addons_tab",
+   "fieldtype": "Tab Break",
+   "label": "Add-ons"
+  },
+  {
+   "fieldname": "custom_warranty_addons",
+   "fieldtype": "Table",
+   "label": "Add-ons",
+   "options": "Warranty Addon"
+  },
+  {
+   "fieldname": "warranty_licenses_tab",
+   "fieldtype": "Tab Break",
+   "label": "License Sub-Items"
+  },
+  {
+   "fieldname": "custom_warranty_licenses",
+   "fieldtype": "Table",
+   "label": "Warranty Licenses",
+   "options": "Warranty License"
+  },
+  {
+   "fieldname": "rma_tracking_tab",
+   "fieldtype": "Tab Break",
+   "label": "RMA Tracking"
+  },
+  {
+   "fieldname": "custom_warranty_rma_records",
+   "fieldtype": "Table",
+   "label": "RMA Records",
+   "options": "Warranty RMA Record"
+  },
+  {
+   "fieldname": "internal_tab",
+   "fieldtype": "Tab Break",
+   "label": "Internal"
+  },
+  {
+   "fieldname": "custom_internal_notes",
+   "fieldtype": "Small Text",
+   "label": "Internal Notes"
+  },
+  {
+   "fieldname": "custom_created_from_delivery_note",
+   "fieldtype": "Data",
+   "label": "Created From Delivery Note",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 0,
+ "module": "Maintenance",
+ "name": "Warranty",
+ "naming_rule": "Expression",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "read": 1,
+   "role": "Maintenance Manager",
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "custom_customer,custom_installed_equipment,custom_warranty_status",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "title_field": "custom_warranty_title",
+ "track_changes": 1
+}

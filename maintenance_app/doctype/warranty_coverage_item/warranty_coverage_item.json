@@ -1,0 +1,49 @@
+{
+ "custom": 1,
+ "doctype": "DocType",
+ "document_type": "Table",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_item_code",
+  "custom_coverage_type",
+  "custom_item_name",
+  "custom_quantity_limit",
+  "custom_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_item_code",
+   "fieldtype": "Data",
+   "label": "Item Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_coverage_type",
+   "fieldtype": "Select",
+   "label": "Coverage Type",
+   "options": "Parts\nLabour\nTransport\nPreventive\nRemote Support",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_item_name",
+   "fieldtype": "Data",
+   "label": "Item Name"
+  },
+  {
+   "fieldname": "custom_quantity_limit",
+   "fieldtype": "Data",
+   "label": "Quantity/Limit"
+  },
+  {
+   "fieldname": "custom_remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "is_submittable": 0,
+ "istable": 1,
+ "module": "Maintenance",
+ "name": "Warranty Coverage Item",
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

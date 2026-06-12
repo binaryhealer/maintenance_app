@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "branch_details_column",
   "custom_naming_series",
   "custom_parent_customer",
   "custom_branch",
@@ -18,6 +19,8 @@
   "custom_analytic_number",
   "custom_count_each_technician",
   "custom_subject",
+  "custom_component_group",
+  "custom_component_item",
   "section_break_lkej",
   "custom_intervention_table",
   "tab_2_tab",
@@ -31,12 +34,26 @@
   "custom_service_ticket",
   "custom_tech_planning",
   "custom_ticket_type",
+  "custom_component_brand",
+  "custom_component_model",
   "column_break_wpxe",
   "custom_total_hours",
   "custom_total_actual_hours",
   "custom_total_billable_hours",
+  "custom_component_serial",
+  "custom_component_row_id",
   "section_break_fyvt",
-  "custom_request_description"
+  "custom_request_description",
+  "custom_contact_communication",
+  "custom_applicant",
+  "custom_applicant_role",
+  "column_break_ofzv",
+  "custom_applicant_email",
+  "custom_applicant_phone",
+  "custom_ho_contacts",
+  "custom_head_office_contacts",
+  "custom_branch_operational_contacts",
+  "custom_branch_contacts"
  ],
  "fields": [
   {
@@ -74,8 +91,7 @@
   },
   {
    "fieldname": "column_break_atlh",
-   "fieldtype": "Column Break",
-   "label": "Branch Name"
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "section_break_lkej",
@@ -154,7 +170,7 @@
    "fieldname": "custom_mission_status",
    "fieldtype": "Select",
    "label": "Mission Status",
-   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled",
+   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work",
    "read_only": 1
   },
   {
@@ -232,18 +248,114 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance Installation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal\nCalibration",
+   "read_only": 1
   },
   {
    "fieldname": "custom_subject",
    "fieldtype": "Data",
    "label": "Subject"
+  },
+  {
+   "fieldname": "custom_contact_communication",
+   "fieldtype": "Tab Break",
+   "label": "Contacts & Communication"
+  },
+  {
+   "fieldname": "custom_applicant",
+   "fieldtype": "Link",
+   "label": "Applicant",
+   "options": "Contact",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_applicant_role",
+   "fieldtype": "Data",
+   "label": "Applicant Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ofzv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_applicant_email",
+   "fieldtype": "Data",
+   "label": "Applicant Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_applicant_phone",
+   "fieldtype": "Data",
+   "label": "Applicant Phone",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_ho_contacts",
+   "fieldtype": "Section Break",
+   "label": "HO Contacts"
+  },
+  {
+   "fieldname": "custom_head_office_contacts",
+   "fieldtype": "Table",
+   "label": "Head Office Contacts",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_branch_operational_contacts",
+   "fieldtype": "Section Break",
+   "label": "Branch Operational Contacts"
+  },
+  {
+   "fieldname": "custom_branch_contacts",
+   "fieldtype": "Table",
+   "label": "Branch Contact",
+   "options": "Client Branch Contact"
+  },
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Data",
+   "label": "Component Group"
+  },
+  {
+   "fieldname": "custom_component_item",
+   "fieldtype": "Data",
+   "label": "Component Item"
+  },
+  {
+   "fieldname": "custom_component_brand",
+   "fieldtype": "Data",
+   "label": "Component Brand",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_model",
+   "fieldtype": "Data",
+   "label": "Component Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_serial",
+   "fieldtype": "Data",
+   "label": "Component Serial",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component_row_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Component Row ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "branch_details_column",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-25 21:52:30.952804",
+ "modified": "2026-06-08 13:56:50.044355",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",
