@@ -1137,7 +1137,7 @@ def get_eq_logs(equipment):
         filters={"custom_related_asset": equipment},
         fields=[
             "name",
-            "custom_service_date",
+            "creation",
             "custom_end_time",
             "custom_intervention_type",
             "custom_technician",
@@ -1151,7 +1151,7 @@ def get_eq_logs(equipment):
             "custom_component_group",
             "custom_component_serial",
         ],
-        order_by="custom_service_date desc",
+        order_by="creation",
         limit=100
     )
 
