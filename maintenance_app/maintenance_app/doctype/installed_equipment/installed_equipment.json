@@ -357,7 +357,7 @@
    "fieldname": "custom_coverage_type",
    "fieldtype": "Select",
    "label": "Coverage Type",
-   "options": "Parts Only\nParts + Labour\nFull Coverage\nExtended"
+   "options": "\nParts Only\nParts + Labour\nFull Coverage\nExtended"
   },
   {
    "description": " \"Date the next PM ticket is due.\"",
@@ -378,7 +378,7 @@
   {
    "group": "Config Update History",
    "link_doctype": "Config Update Log",
-   "link_fieldname": "custom_asset"
+   "link_fieldname": "custom_related_asset"
   },
   {
    "group": "Service Logs",
@@ -386,7 +386,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-06-12 03:56:21.957377",
+ "modified": "2026-06-15 07:42:33.365241",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

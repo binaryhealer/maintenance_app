@@ -12,6 +12,17 @@ website_route_rules = [
 ]
 
 fixtures = [
+
+
+    {
+    "dt": "DocType",
+    "filters": [
+        ["name", "in", [
+            "Warranty"
+            ]]
+        ]
+    },
+
     {
         "dt": "Custom Field",
         "filters": [
