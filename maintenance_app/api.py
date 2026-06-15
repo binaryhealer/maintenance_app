@@ -1357,7 +1357,7 @@ def get_technicians():
         frappe.log_error(frappe.get_traceback(), "Get Technicians Error")
         return []'''
 
-@frappe.whitelist()
+'''@frappe.whitelist()
 def get_technicians():
     try:
         return frappe.db.sql("""
@@ -1376,8 +1376,16 @@ def get_technicians():
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Get Technicians Error")
-        return []
+        return []'''
 
+@frappe.whitelist()
+def get_technicians():
+    return [
+        {
+            "name": "TEST",
+            "full_name": "TEST ONLY"
+        }
+    ]
 # ============================================================
 # INSTALLED EQUIPMENT WEB VIEW - TICKET HELPERS
 # ============================================================
