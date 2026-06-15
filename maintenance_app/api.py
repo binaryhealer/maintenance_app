@@ -1380,12 +1380,29 @@ def get_technicians():
 
 @frappe.whitelist()
 def get_technicians():
-    return [
-        {
-            "name": "TEST",
-            "full_name": "TEST ONLY"
-        }
-    ]
+    try:
+        return frappe.db.sql("""
+            SELECT DISTINCT
+                u.name,
+                u.full_name
+            FROM tabUser u
+            WHERE
+                u.enabled = 1
+                AND u.user_type = 'System User'
+                AND EXISTS (
+                    SELECT 1
+                    FROM tabHas Role r
+                    WHERE
+                        r.parent = u.name
+                        AND r.parenttype = 'User'
+                        AND r.role IN ('Tech', 'Head Of Tech')
+                )
+            ORDER BY u.full_name ASC
+        """, as_dict=True)
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Get Technicians Error")
+        return []
 # ============================================================
 # INSTALLED EQUIPMENT WEB VIEW - TICKET HELPERS
 # ============================================================
