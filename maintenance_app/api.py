@@ -1337,7 +1337,7 @@ def get_equipment_warranty_status(equipment_name):
             "is_covered": False,
             "message": f"Error: {str(e)}"
         }
-@frappe.whitelist()
+'''@frappe.whitelist()
 def get_technicians():
     """
     Return active users for technician selection in the Installed Equipment web view.
@@ -1355,8 +1355,28 @@ def get_technicians():
         )
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Get Technicians Error")
-        return []
+        return []'''
 
+@frappe.whitelist()
+def get_technicians():
+    try:
+        return frappe.db.sql("""
+            SELECT DISTINCT
+                u.name,
+                u.full_name
+            FROM tabUser u
+            INNER JOIN tabHas Role r
+                ON r.parent = u.name
+            WHERE
+                u.enabled = 1
+                AND u.user_type = 'System User'
+                AND r.role IN ('Tech', 'Head Of Tech')
+            ORDER BY u.full_name ASC
+        """, as_dict=True)
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Get Technicians Error")
+        return []
 
 # ============================================================
 # INSTALLED EQUIPMENT WEB VIEW - TICKET HELPERS
