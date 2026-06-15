@@ -1105,7 +1105,7 @@ def get_eq_equipment(customer, branch):
             "custom_location_status",
             "custom_client_asset_code",
             "custom_last_service_date",
-            "custom_next_maintenance",
+            "custom_next_maintenance_date",
             "custom_maint_frequency",
             "custom_maintenance_contract",
             "custom_sla_rule",
