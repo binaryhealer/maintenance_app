@@ -1381,24 +1381,26 @@ def get_technicians():
 @frappe.whitelist()
 def get_technicians():
     try:
-        return frappe.db.sql("""
-            SELECT DISTINCT
-                u.name,
-                u.full_name
-            FROM tabUser u
-            WHERE
-                u.enabled = 1
-                AND u.user_type = 'System User'
-                AND EXISTS (
-                    SELECT 1
-                    FROM tabHas Role r
-                    WHERE
-                        r.parent = u.name
-                        AND r.parenttype = 'User'
-                        AND r.role IN ('Tech', 'Head Of Tech')
-                )
-            ORDER BY u.full_name ASC
-        """, as_dict=True)
+        tech_users = frappe.get_all(
+            "Has Role",
+            filters={
+                "role": ["in", ["Tech", "Head Of Tech"]]
+            },
+            pluck="parent"
+        )
+
+        if not tech_users:
+            return []
+
+        return frappe.get_all(
+            "User",
+            filters={
+                "name": ["in", list(set(tech_users))],
+                "enabled": 1
+            },
+            fields=["name", "full_name"],
+            order_by="full_name asc"
+        )
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Get Technicians Error")
