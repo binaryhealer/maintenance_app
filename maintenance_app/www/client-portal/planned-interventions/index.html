@@ -1,0 +1,628 @@
+<!-- Planned intervention for client portla will go here -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planned Interventions</title>
+
+<style>
+:root{
+--primary:#3b82f6;
+--primary-dark:#2563eb;
+--success:#10b981;
+--warning:#f59e0b;
+--danger:#ef4444;
+--gray50:#f9fafb;
+--gray100:#f3f4f6;
+--gray200:#e5e7eb;
+--gray300:#d1d5db;
+--gray500:#6b7280;
+--gray600:#4b5563;
+--gray700:#374151;
+--gray900:#111827;
+}
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+background:var(--gray50);
+color:var(--gray900);
+}
+
+.container{
+max-width:1400px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+border:1px solid var(--gray200);
+border-radius:8px;
+padding:20px;
+margin-bottom:24px;
+}
+
+.page-header{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+}
+
+.page-header h1{
+margin:0;
+color:var(--primary);
+font-size:28px;
+font-weight:700;
+margin-bottom:8px;
+}
+
+.page-header-subtitle{
+font-size:14px;
+color:var(--gray600);
+}
+
+.stats-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:16px;
+margin-bottom:24px;
+}
+
+.stat-card{
+background:white;
+border:1px solid var(--gray200);
+border-radius:8px;
+padding:16px;
+text-align:center;
+}
+
+.stat-value{
+font-size:24px;
+font-weight:700;
+color:var(--primary);
+}
+
+.stat-label{
+font-size:12px;
+color:var(--gray600);
+margin-top:6px;
+text-transform:uppercase;
+}
+
+.filters-title{
+font-weight:600;
+margin-bottom:12px;
+font-size:14px;
+}
+
+.filters{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;
+}
+
+input,select{
+padding:10px;
+border:1px solid var(--gray200);
+border-radius:6px;
+font-size:14px;
+font-family:inherit;
+}
+
+input:focus,select:focus{
+outline:none;
+border-color:var(--primary);
+box-shadow:0 0 0 2px rgba(59,130,246,0.1);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+thead{
+background:var(--gray50);
+}
+
+th{
+padding:12px;
+text-align:left;
+font-size:12px;
+text-transform:uppercase;
+font-weight:600;
+color:var(--gray700);
+border-bottom:2px solid var(--gray200);
+}
+
+td{
+padding:12px;
+border-bottom:1px solid var(--gray200);
+font-size:14px;
+}
+
+tbody tr:hover{
+background:var(--gray50);
+cursor:pointer;
+}
+
+.badge{
+padding:4px 8px;
+border-radius:4px;
+font-size:11px;
+font-weight:bold;
+display:inline-block;
+}
+
+.badge-scheduled{
+background:#dbeafe;
+color:#1d4ed8;
+}
+
+.badge-ongoing{
+background:#fef3c7;
+color:#92400e;
+}
+
+.badge-completed{
+background:#d1fae5;
+color:#065f46;
+}
+
+.empty{
+padding:40px;
+text-align:center;
+color:var(--gray500);
+}
+
+.empty-icon{
+font-size:48px;
+margin-bottom:16px;
+}
+
+.loading{
+text-align:center;
+padding:40px;
+color:var(--gray500);
+}
+
+.loader{
+display:inline-block;
+width:20px;
+height:20px;
+border:3px solid var(--gray200);
+border-top-color:var(--primary);
+border-radius:50%;
+animation:spin 0.8s linear infinite;
+}
+
+@keyframes spin{
+to{transform:rotate(360deg);}
+}
+
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.5);
+z-index:1000;
+align-items:center;
+justify-content:center;
+}
+
+.modal.open{
+display:flex;
+}
+
+.modal-content{
+background:white;
+border-radius:8px;
+padding:24px;
+max-width:600px;
+width:90%;
+max-height:80vh;
+overflow-y:auto;
+position:relative;
+}
+
+.modal-close{
+position:absolute;
+top:16px;
+right:16px;
+background:none;
+border:none;
+font-size:24px;
+cursor:pointer;
+color:var(--gray600);
+}
+
+.modal-title{
+font-size:20px;
+font-weight:700;
+margin-bottom:16px;
+}
+
+.modal-field{
+margin-bottom:16px;
+}
+
+.modal-label{
+font-size:12px;
+font-weight:600;
+color:var(--gray600);
+text-transform:uppercase;
+margin-bottom:4px;
+}
+
+.modal-value{
+font-size:14px;
+color:var(--gray900);
+padding:8px 12px;
+background:var(--gray50);
+border-radius:4px;
+border-left:3px solid var(--primary);
+}
+
+.technician-list{
+padding:8px 12px;
+background:var(--gray50);
+border-radius:4px;
+border-left:3px solid var(--primary);
+font-size:14px;
+}
+
+.technician-item{
+padding:4px 0;
+color:var(--gray900);
+}
+
+@media(max-width:768px){
+.filters{
+grid-template-columns:1fr;
+}
+
+table{
+font-size:12px;
+}
+
+th,td{
+padding:8px;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card page-header">
+<div>
+<h1>📅 Planned Interventions</h1>
+<div class="page-header-subtitle">Upcoming scheduled maintenance and service missions</div>
+</div>
+<a href="/client-portal" style="color:var(--primary); font-weight:600; text-decoration:none; padding:8px 16px; border:1px solid var(--gray200); border-radius:6px; display:inline-block; margin-top:4px; transition:all 0.2s;">
+← Back to Portal
+</a>
+</div>
+
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-value" id="stat-total">0</div>
+<div class="stat-label">Total Planned</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="stat-this-month">0</div>
+<div class="stat-label">This Month</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="stat-next-30">0</div>
+<div class="stat-label">Next 30 Days</div>
+</div>
+</div>
+
+<div class="card">
+<div class="filters-title">🔍 Filter Interventions</div>
+<div class="filters">
+<select id="filter-branch" onchange="applyFilters()">
+<option value="">All Branches</option>
+</select>
+
+<select id="filter-type" onchange="applyFilters()">
+<option value="">All Types</option>
+<option value="Service">Service</option>
+<option value="Repair">Repair</option>
+<option value="Preventive Maintenance">Preventive Maintenance</option>
+<option value="Installation">Installation</option>
+<option value="Inspection">Inspection</option>
+<option value="Config Change">Config Change</option>
+<option value="Asset Relocation">Asset Relocation</option>
+<option value="Swap">Swap</option>
+<option value="Loan">Loan</option>
+<option value="Retirement">Retirement</option>
+<option value="Disposal">Disposal</option>
+<option value="Calibration">Calibration</option>
+</select>
+
+<select id="filter-component" onchange="applyFilters()">
+<option value="">All Components</option>
+</select>
+
+<input type="date" id="filter-from" onchange="applyFilters()" placeholder="From Date">
+<input type="date" id="filter-to" onchange="applyFilters()" placeholder="To Date">
+</div>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Planned Date</th>
+<th>Equipment</th>
+<th>Component</th>
+<th>Ticket Type</th>
+<th>Branch</th>
+<th>Technicians</th>
+<th>Ticket</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="table-body">
+<tr>
+<td colspan="8" class="loading"><div class="loader"></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div id="empty-state" class="card empty" style="display:none;">
+<div class="empty-icon">📭</div>
+No planned interventions found for this period.
+</div>
+
+</div>
+
+<div class="modal" id="detail-modal">
+<div class="modal-content">
+<button class="modal-close" onclick="closeModal()">✕</button>
+<div class="modal-title" id="modal-title">-</div>
+
+<div class="modal-field">
+<div class="modal-label">Subject</div>
+<div class="modal-value" id="modal-subject">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Equipment / Parent Equipment</div>
+<div class="modal-value" id="modal-equipment">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Component</div>
+<div class="modal-value" id="modal-component">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Branch</div>
+<div class="modal-value" id="modal-branch">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Ticket Type</div>
+<div class="modal-value" id="modal-type">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Planned Start</div>
+<div class="modal-value" id="modal-start">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Planned End</div>
+<div class="modal-value" id="modal-end">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Assigned Technicians</div>
+<div class="technician-list" id="modal-technicians">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Service Ticket</div>
+<div class="modal-value" id="modal-ticket">-</div>
+</div>
+
+<div style="margin-top:24px;display:flex;gap:12px;">
+<button style="flex:1;padding:10px;background:var(--gray200);border:none;border-radius:4px;cursor:pointer;font-weight:600;" onclick="closeModal()">Close</button>
+</div>
+</div>
+</div>
+
+<script>
+let allInterventions = [];
+let masterInterventions = [];
+
+document.addEventListener('DOMContentLoaded', function(){
+loadPlannedInterventions();
+});
+
+function safe(v){
+return v || '-';
+}
+
+function formatDate(v){
+if(!v) return '-';
+const d = new Date(v);
+return isNaN(d.getTime()) ? v : d.toLocaleDateString();
+}
+
+function formatDateTime(v){
+if(!v) return '-';
+const d = new Date(v);
+return isNaN(d.getTime()) ? v : d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function loadPlannedInterventions(){
+fetch('/api/method/maintenance_app.api.client_portal_get_planned_interventions', {
+method: 'POST'
+})
+.then(r => r.json())
+.then(r => {
+allInterventions = r.message || [];
+masterInterventions = [...allInterventions];
+updateStats();
+populateFilters();
+renderTable(allInterventions);
+})
+.catch(err => {
+console.error('Error loading interventions:', err);
+document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="empty">Error loading planned interventions</td></tr>';
+});
+}
+
+function updateStats(){
+const now = new Date();
+const thisMonth = allInterventions.filter(m => {
+const d = new Date(m.custom_planned_starttime);
+return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}).length;
+
+const next30 = allInterventions.filter(m => {
+const d = new Date(m.custom_planned_starttime);
+const future = new Date(now);
+future.setDate(future.getDate() + 30);
+return d >= now && d <= future;
+}).length;
+
+document.getElementById('stat-total').textContent = allInterventions.length;
+document.getElementById('stat-this-month').textContent = thisMonth;
+document.getElementById('stat-next-30').textContent = next30;
+}
+
+function populateFilters(){
+const branchSelect = document.getElementById('filter-branch');
+const componentSelect = document.getElementById('filter-component');
+
+const branches = new Set();
+const components = new Set();
+
+masterInterventions.forEach(m => {
+if(m.custom_branch) branches.add(m.custom_branch);
+if(m.custom_target_component_name) components.add(m.custom_target_component_name);
+});
+
+branchSelect.innerHTML = '<option value="">All Branches</option>';
+branches.forEach(b => {
+const o = document.createElement('option');
+o.value = b;
+o.textContent = b;
+branchSelect.appendChild(o);
+});
+
+componentSelect.innerHTML = '<option value="">All Components</option>';
+components.forEach(c => {
+const o = document.createElement('option');
+o.value = c;
+o.textContent = c;
+componentSelect.appendChild(o);
+});
+}
+
+function applyFilters(){
+const branch = document.getElementById('filter-branch').value;
+const type = document.getElementById('filter-type').value;
+const component = document.getElementById('filter-component').value;
+const fromDate = document.getElementById('filter-from').value;
+const toDate = document.getElementById('filter-to').value;
+
+const fd = new FormData();
+if(branch) fd.append('branch', branch);
+if(type) fd.append('mission_type', type);
+if(fromDate) fd.append('date_from', fromDate);
+if(toDate) fd.append('date_to', toDate);
+
+fetch('/api/method/maintenance_app.api.client_portal_get_planned_interventions', {
+method: 'POST',
+body: fd
+})
+.then(r => r.json())
+.then(r => {
+allInterventions = r.message || [];
+const filtered = component ? allInterventions.filter(m => m.custom_target_component_name === component) : allInterventions;
+renderTable(filtered);
+})
+.catch(err => console.error('Filter error:', err));
+}
+
+function getTechniciansDisplay(mission){
+if(!mission.custom_planned_team) return '-';
+// The API should enrich this, so we use technician_display if available
+return mission.technician_display || '-';
+}
+
+function renderTable(interventions){
+const tbody = document.getElementById('table-body');
+
+if(!interventions.length){
+document.getElementById('empty-state').style.display = 'block';
+tbody.innerHTML = '';
+return;
+}
+
+document.getElementById('empty-state').style.display = 'none';
+
+tbody.innerHTML = interventions.map(m => {
+const statusClass = 'badge-' + (m.custom_mission_status || 'scheduled').toLowerCase();
+
+return `
+<tr onclick="showDetail('${m.name}')">
+<td><strong>${formatDate(m.custom_planned_starttime)}</strong></td>
+<td>${safe(m.equipment_display)}</td>
+<td>${safe(m.custom_target_component_name)}</td>
+<td><span style="font-weight:600;">${safe(m.custom_ticket_type)}</span></td>
+<td>${safe(m.custom_branch)}</td>
+<td style="font-size:12px;">${getTechniciansDisplay(m)}</td>
+<td>
+${m.custom_service_ticket ? `<a href="/client-portal/ticket?name=${encodeURIComponent(m.custom_service_ticket)}" style="color:var(--primary);font-weight:bold;text-decoration:none;" onclick="event.stopPropagation();">${m.custom_service_ticket}</a>` : '-'}
+</td>
+<td><span class="badge ${statusClass}">${safe(m.custom_mission_status)}</span></td>
+</tr>
+`;
+}).join('');
+}
+
+function showDetail(missionId){
+const mission = allInterventions.find(m => m.name === missionId);
+if(!mission) return;
+
+document.getElementById('modal-title').textContent = mission.name;
+document.getElementById('modal-subject').textContent = safe(mission.custom_subject);
+document.getElementById('modal-equipment').textContent = safe(mission.equipment_display) + (mission.custom_parent_equipment ? ` (${mission.custom_parent_equipment})` : '');
+document.getElementById('modal-component').textContent = safe(mission.custom_target_component_name);
+document.getElementById('modal-branch').textContent = safe(mission.custom_branch);
+document.getElementById('modal-type').textContent = safe(mission.custom_ticket_type);
+document.getElementById('modal-start').textContent = formatDateTime(mission.custom_planned_starttime);
+document.getElementById('modal-end').textContent = formatDateTime(mission.custom_planned_endtime);
+document.getElementById('modal-technicians').innerHTML = getTechniciansDisplay(mission) === '-' ? '-' : `<div class="technician-item">${getTechniciansDisplay(mission)}</div>`;
+document.getElementById('modal-ticket').textContent = safe(mission.custom_service_ticket);
+
+document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeModal(){
+document.getElementById('detail-modal').classList.remove('open');
+}
+</script>
+
+</body>
+</html>

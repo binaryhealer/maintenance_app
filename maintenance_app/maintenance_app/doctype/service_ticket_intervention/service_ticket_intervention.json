@@ -61,7 +61,7 @@
   },
   {
    "fieldname": "custom_component_item",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Component Item",
    "options": "Item"
@@ -71,7 +71,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-08 13:52:32.792132",
+ "modified": "2026-06-22 13:26:31.050564",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket Intervention",

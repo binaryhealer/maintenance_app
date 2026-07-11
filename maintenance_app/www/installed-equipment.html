@@ -911,7 +911,7 @@ function eqBuildDetail(el, eq) {
     + eqMetaCell("Ownership", eq.custom_ownership || '—')
     + eqMetaCell("Expiry Date", eq.custom_expiry_date || '—')
     + eqMetaCell("Last Service", eq.custom_last_service_date || '—')
-    + eqMetaCell("Next Maintenance", eq.custom_next_maintenance || '—')
+    + eqMetaCell("Next Maintenance", eq.custom_next_maintenance_date || '—')
     + '</div>'
 
     + '<div class="eq-tabs-bar">'
@@ -998,11 +998,18 @@ function eqBuildServiceLogs(logs) {
   logs.forEach(function(r) {
     var outcomeColor = r.custom_work_outcome === "Work Completed" ? "var(--green)" : "var(--amber)";
     html += '<tr>'
-      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (r.custom_service_date || '—') + '</td>'
+      //+ '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (r.custom_service_date || '—') + '</td>'
+      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">'
+      + (r.custom_service_date || r.custom_end_time || r.creation || '—')
+      + '</td>'
       + '<td><span class="eq-event-pill">' + (r.custom_intervention_type || '—') + '</span></td>'
       + '<td>' + (r.custom_technician || '—') + '</td>'
       + '<td style="color:' + outcomeColor + '">' + (r.custom_work_outcome || '—') + '</td>'
       + '<td style="max-width:200px;font-size:12px">' + (r.custom_notes || '—') + '</td>'
+      //+ '<td>' + eqDeskLink("Service Ticket", r.custom_service_ticket) + '</td>'
+      //+ '<td>' + eqDeskLink("Mission Intervention", r.custom_intervention_ref) + '</td>'
+      //+ '<td>' + (r.custom_service_ticket || '—') + '</td>'
+      //+ '<td>' + (r.custom_intervention_ref || '—') + '</td>'
       + '<td>' + eqDeskLink("Service Ticket", r.custom_service_ticket) + '</td>'
       + '<td>' + eqDeskLink("Mission Intervention", r.custom_intervention_ref) + '</td>'
       + '</tr>';
@@ -1054,38 +1061,86 @@ function eqBuildConfigLogs(logs) {
   return html + '</tbody></table>';
 }
 
+
+
 function eqBuildComponents(comps) {
-  if (!comps.length) return '<div class="eq-empty"><div class="eq-empty-icon">🔩</div>No components registered.</div>';
+  if (!comps.length) {
+    return '<div class="eq-empty"><div class="eq-empty-icon">🔩</div>No components registered.</div>';
+  }
 
   var html = '<table class="eq-log-table"><thead><tr>'
-    + '<th>#</th><th>Item</th><th>Group</th><th>Serial</th><th>Brand</th><th>Model</th><th>Status</th>'
+    + '<th>#</th><th>Component</th><th>Group</th><th>Serial</th><th>Brand</th><th>Model</th><th>Status</th><th>Action</th>'
     + '</tr></thead><tbody>';
 
   comps.forEach(function(c, i) {
-    var scls = c.custom_status === "Installed" ? "cs-installed" : c.custom_status === "Replaced" ? "cs-replaced" : "cs-other";
+    var status = c.custom_status || "Installed";
+    if (status === "Active") status = "Installed";
+
+    var scls = status === "Installed"
+      ? "cs-installed"
+      : status === "Replaced"
+        ? "cs-replaced"
+        : "cs-other";
+
+    var componentLabel =
+      c.custom_display_name
+      || c.custom_equipment_type
+      || c.custom_component_item
+      || c.custom_component
+      || c.name
+      || "—";
+
+    var componentGroup =
+      c.custom_component_group
+      || c.custom_item_group
+      || "—";
+
+    var rowId = c.row_id || c.name || "";
+
     html += '<tr>'
       + '<td style="font-family:var(--mono);color:var(--text3)">' + (i + 1) + '</td>'
-      + '<td style="font-weight:500;color:var(--text)">' + (c.custom_component_item || '—') + '</td>'
-      + '<td style="color:var(--text3);font-size:12px">' + (c.custom_item_group || '—') + '</td>'
-      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + (c.custom_serial_number || '—') + '</td>'
-      + '<td>' + (c.custom_brand || '—') + '</td>'
-      + '<td>' + (c.custom_model || '—') + '</td>'
-      + '<td><span class="eq-comp-status ' + scls + '">' + (c.custom_status || '—') + '</span></td>'
+      + '<td style="font-weight:500;color:var(--text)">' + eqEscape(componentLabel) + '</td>'
+      + '<td style="color:var(--text3);font-size:12px">' + eqEscape(componentGroup) + '</td>'
+      + '<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">' + eqEscape(c.custom_serial_number || "—") + '</td>'
+      + '<td>' + eqEscape(c.custom_brand || "—") + '</td>'
+      + '<td>' + eqEscape(c.custom_model || "—") + '</td>'
+      + '<td><span class="eq-comp-status ' + scls + '">' + eqEscape(status) + '</span></td>'
+      + '<td><button class="eq-btn eq-btn-ghost" onclick="eqOpenTicketModal(EQ.state.equipmentId, \'' + eqEscapeAttr(rowId) + '\')">Ticket</button></td>'
       + '</tr>';
   });
 
   return html + '</tbody></table>';
 }
 
-function eqDeskLink(doctype, name) {
+/*function eqDeskLink(doctype, name) {
   if (!name) return '—';
   return '<span class="eq-log-link" onclick="window.location.href=\'/app/' + doctype.toLowerCase().replace(/ /g,'-') + '/' + name + '\'">' + name + '</span>';
+} removed to put safe function for serivce logs*/
+
+function eqDeskLink(doctype, name) {
+  if (!name) return '—';
+
+  var route_map = {
+    "Service Ticket": "service-ticket",
+    "Mission Intervention": "mission-intervention",
+    "Tech Mission": "tech-mission",
+    "Asset Lifecycle Log": "asset-lifecycle-log",
+    "Asset Service Log": "asset-service-log"
+  };
+
+  var route = route_map[doctype] || doctype.toLowerCase().replaceAll(" ", "-");
+
+  return '<a style="color:#38bdf8;font-weight:600;text-decoration:none;" href="/desk/' 
+    + route + '/' + encodeURIComponent(name) 
+    + '" target="_blank">' 
+    + eqEscape(name) 
+    + '</a>';
 }
 
 // ══════════════════════════════════════════════════════════
 // TICKET MODAL
 // ══════════════════════════════════════════════════════════
-function eqOpenTicketModal(eqName) {
+function eqOpenTicketModal(eqName, componentRowId) {
   var bid = EQ.state.branchId;
   var eq = null;
 
@@ -1101,6 +1156,7 @@ function eqOpenTicketModal(eqName) {
   }
 
   EQ.modalEq = eq;
+  EQ.modalComponentRowId = componentRowId || "";
   EQ.createdTicket = null;
   EQ.selectedTechnicians = [];
   eqRenderSelectedTechnicians();
@@ -1108,6 +1164,10 @@ function eqOpenTicketModal(eqName) {
   var label = eq.custom_display_name || eq.custom_asset_name || eq.name;
   if (eq.custom_client_asset_code) {
     label += " - " + eq.custom_client_asset_code;
+  }
+
+  if (EQ.modalComponentRowId) {
+    label += " / Component Ticket";
   }
 
   document.getElementById("eq-modal-eq-label").textContent = label;
@@ -1133,32 +1193,40 @@ function eqCloseModal() {
   EQ.modalEq = null;
   EQ.createdTicket = null;
   EQ.selectedTechnicians = [];
+  EQ.modalComponentRowId = "";
   eqRenderSelectedTechnicians();
   document.getElementById("eq-modal-overlay").dataset.customer = "";
   document.getElementById("eq-modal-overlay").dataset.branch = "";
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+/// ═══════════════════════════════════════════════════════════════════════════
 // REQUEST TYPE -> TICKET TYPE MAPPING (same as Service Ticket form)
 // ═══════════════════════════════════════════════════════════════════════════
 const TICKET_TYPE_BY_REQUEST_TYPE = {
+
     "Breakdown": [
         "Repair",
         "Service"
     ],
+
     "Maintenance Request": [
         "Preventive Maintenance",
         "Service",
-        "Calibration"
+        "Calibration",
+        "Commissioning"
     ],
+
     "General Request": [
         "Installation",
         "Survey",
+        "Training",
+        "Audit",
         "Asset Relocation",
         "Config Change",
         "Swap",
         "Loan",
-        "Service"
+        "Service",
+        "Incident Investigation"
     ]
 };
 
@@ -1170,8 +1238,20 @@ function eqOnRequestTypeChange() {
   var ticketTypeSelect = document.getElementById("eq-m-ticket-type");
 
   var allowedTicketTypes = TICKET_TYPE_BY_REQUEST_TYPE[requestType] || [
-    "Service", "Repair", "Preventive Maintenance", "Installation", 
-    "Survey", "Asset Relocation", "Config Change", "Calibration", "Swap", "Loan"
+    "Service",
+    "Repair",
+    "Preventive Maintenance",
+    "Installation",
+    "Commissioning",
+    "Survey",
+    "Training",
+    "Audit",
+    "Asset Relocation",
+    "Config Change",
+    "Calibration",
+    "Swap",
+    "Loan",
+    "Incident Investigation"
   ];
 
   ticketTypeSelect.innerHTML = "";
@@ -1418,6 +1498,7 @@ function eqSubmitTicket() {
     method: "maintenance_app.api.create_service_ticket_from_equipment",
     args: {
       equipment_name: EQ.modalEq.name,
+      component_row_id: EQ.modalComponentRowId || "",
       request_type: document.getElementById("eq-m-req-type").value,
       ticket_type: document.getElementById("eq-m-ticket-type").value,
       subject: subject,

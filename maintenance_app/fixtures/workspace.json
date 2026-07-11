@@ -6138,6 +6138,70 @@
   "type": "Workspace"
  },
  {
+  "app": "maintenance_app",
+  "charts": [],
+  "content": "[]",
+  "custom_blocks": [],
+  "docstatus": 0,
+  "doctype": "Workspace",
+  "external_link": null,
+  "for_user": null,
+  "hide_custom": 0,
+  "icon": "dialpad",
+  "indicator_color": "green",
+  "is_hidden": 0,
+  "label": "Maintanance Application",
+  "link_to": null,
+  "link_type": "DocType",
+  "links": [],
+  "modified": "2026-06-15 06:16:30.985598",
+  "module": "Maintenance App",
+  "name": "Maintanance Application",
+  "number_cards": [],
+  "parent_page": null,
+  "public": 0,
+  "quick_lists": [],
+  "restrict_to_domain": null,
+  "roles": [
+   {
+    "role": "System Manager"
+   }
+  ],
+  "sequence_id": 0.0,
+  "shortcuts": [
+   {
+    "color": null,
+    "doc_view": "",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Tech App",
+    "link_to": null,
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "URL",
+    "url": "/tech"
+   },
+   {
+    "color": null,
+    "doc_view": "",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "IE",
+    "link_to": null,
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "URL",
+    "url": "installed-equipment"
+   }
+  ],
+  "title": "Maintanance Application",
+  "type": "Workspace"
+ },
+ {
   "app": "erpnext",
   "charts": [
    {

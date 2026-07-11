@@ -10,22 +10,24 @@
   "custom_ticket_title",
   "custom_customer",
   "custom_client_branch",
-  "custom_target_equipment",
-  "custom_opening_date",
-  "custom_applicant",
+  "custom_target_component_name",
+  "custom_parent_equipment",
+  "custom_planning_required",
+  "custom_handling_mode",
   "column_break_jygr",
   "custom_request_type",
+  "custom_ticket_type",
+  "custom_applicant",
   "custom_subject",
   "custom_raised_by",
-  "custom_ticket_type",
-  "custom_planning_required",
-  "custom_component_group",
-  "custom_component_item_code",
+  "custom_opening_date",
   "section_break_dmjb",
   "custom_description",
   "custom_assignment_review",
   "custom_rm_reviewer",
+  "column_break_otsg",
   "custom_priority",
+  "section_break_hdqf",
   "custom_planned_team",
   "section_break_wvlv",
   "custom_rm_notes",
@@ -36,19 +38,26 @@
   "column_break_mqlq",
   "custom_maintenance_contract",
   "custom_sla_rule",
-  "custom_sla_basic",
-  "custom_response_due",
-  "custom_resolution_due",
-  "custom_sla_status",
+  "section_break_myrt",
   "column_break_tmen",
-  "custom_component_item",
   "custom_component_brand",
   "custom_component_model",
-  "custom_component_serial",
+  "custom_target_component",
+  "custom_target_equipment",
   "custom_component_row_id",
+  "column_break_sbqz",
+  "custom_component_group",
+  "custom_component_serial",
+  "custom_component_item_code",
+  "custom_component_item",
+  "section_break_jftu",
+  "custom_response_due",
+  "custom_sla_status",
+  "custom_resolution_due",
   "custom_contact_communication",
   "custom_applicant_role",
   "custom_applicant_phone",
+  "column_break_oesj",
   "custom_applicant_email",
   "custom_ho_contacts",
   "custom_head_office_contacts",
@@ -68,14 +77,21 @@
   "custom_planning_status",
   "custom_primary_mission_ref",
   "custom_resolved_by",
+  "custom_fault_type",
+  "custom_primary_remote_session_ref",
   "column_break_roia",
   "custom_primary_planning_ref",
   "custom_resolution_source_mi",
   "custom_resolution_date",
+  "custom_false_call",
   "section_break_jocs",
   "custom_resolution_details",
   "section_break_ecrg",
   "custom_intervention_history",
+  "custom_history_tech_mission_section",
+  "custom_tech_missions",
+  "custom_remote_session_history_tab",
+  "custom_remote_sessions",
   "section_break_nivr",
   "custom_closed_date",
   "custom_closed_by",
@@ -95,7 +111,10 @@
   "custom_rework_approved",
   "custom_original_ticket",
   "custom_rework_count",
-  "custom_rework_reason"
+  "custom_rework_reason",
+  "hse_incidents_tab",
+  "custom_hse_incident_report",
+  "custom_incidents"
  ],
  "fields": [
   {
@@ -116,6 +135,7 @@
   {
    "fieldname": "custom_target_equipment",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Target Equipment",
    "options": "Installed Equipment"
   },
@@ -195,7 +215,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
   },
   {
    "default": "Billable",
@@ -275,6 +295,7 @@
    "default": "0",
    "fieldname": "custom_planning_required",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Planning Required"
   },
   {
@@ -307,11 +328,6 @@
    "label": "Commercial References",
    "options": "HD Ticket Commercial Reference",
    "read_only": 1
-  },
-  {
-   "fieldname": "custom_sla_basic",
-   "fieldtype": "Section Break",
-   "label": "SLA (basic only)"
   },
   {
    "fieldname": "custom_response_due",
@@ -548,12 +564,14 @@
   },
   {
    "fieldname": "custom_component_group",
-   "fieldtype": "Select",
-   "label": "Component Group"
+   "fieldtype": "Link",
+   "label": "Component Group",
+   "options": "Equipment Component Group"
   },
   {
    "fieldname": "custom_component_item",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Component Item"
   },
   {
@@ -598,9 +616,9 @@
   },
   {
    "fieldname": "custom_actual_component_item",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Actual Component",
-   "options": "Item",
+   "options": "Equipment Component",
    "read_only": 1
   },
   {
@@ -612,7 +630,7 @@
   {
    "fieldname": "custom_component_change_reason",
    "fieldtype": "Small Text",
-   "label": "ComponentChange Reason",
+   "label": "Component Change Reason",
    "read_only": 1
   },
   {
@@ -622,12 +640,119 @@
    "label": "Component Item Code",
    "options": "Item",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sbqz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_myrt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_oesj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_otsg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_hdqf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_target_component",
+   "fieldtype": "Link",
+   "label": "Target Component",
+   "options": "Equipment Component"
+  },
+  {
+   "fieldname": "custom_parent_equipment",
+   "fieldtype": "Data",
+   "label": "Parent Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "section_break_jftu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_target_component_name",
+   "fieldtype": "Data",
+   "label": "Target Component Name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_false_call",
+   "fieldtype": "Check",
+   "label": "False Call",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hse_incidents_tab",
+   "fieldtype": "Tab Break",
+   "label": "HSE / Incidents"
+  },
+  {
+   "fieldname": "custom_incidents",
+   "fieldtype": "Table",
+   "label": "Incidents",
+   "options": "Service Ticket Incident Row"
+  },
+  {
+   "fieldname": "custom_hse_incident_report",
+   "fieldtype": "Link",
+   "label": "Hse Incident Report",
+   "options": "HSE Incident Report",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_fault_type",
+   "fieldtype": "Data",
+   "label": "Fault Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_history_tech_mission_section",
+   "fieldtype": "Section Break",
+   "label": "History Of Tech Mission"
+  },
+  {
+   "fieldname": "custom_tech_missions",
+   "fieldtype": "Table",
+   "label": "Tech Missions",
+   "options": "Service Ticket Mission Row"
+  },
+  {
+   "fieldname": "custom_remote_session_history_tab",
+   "fieldtype": "Section Break",
+   "label": "History of Remote Session"
+  },
+  {
+   "fieldname": "custom_remote_sessions",
+   "fieldtype": "Table",
+   "label": "Remote Session",
+   "options": "Remote Session History"
+  },
+  {
+   "fieldname": "custom_handling_mode",
+   "fieldtype": "Select",
+   "label": "Handling Mode",
+   "options": "Onsite\nRemote"
+  },
+  {
+   "fieldname": "custom_primary_remote_session_ref",
+   "fieldtype": "Link",
+   "label": "Remote Session Reference",
+   "options": "Remote Session"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-07 21:10:37.162487",
+ "modified": "2026-07-11 05:48:28.842046",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "hash",
+ "creation": "2026-06-18 22:07:53.685913",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_relationship",
+  "custom_parent_equipment",
+  "custom_customer",
+  "custom_branch",
+  "column_break_ocsl",
+  "custom_component_group",
+  "custom_equipment_type",
+  "section_break_xghx",
+  "custom_make",
+  "custom_model",
+  "column_break_hcrg",
+  "custom_serial_number",
+  "custom_part_number",
+  "lifecycle_tab_tab",
+  "custom_status",
+  "custom_installation_date",
+  "custom_display_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_relationship",
+   "fieldtype": "Section Break",
+   "label": "RelationShip"
+  },
+  {
+   "fieldname": "custom_parent_equipment",
+   "fieldtype": "Link",
+   "label": "Parent Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "column_break_ocsl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Component Group",
+   "options": "Equipment Component Group"
+  },
+  {
+   "fieldname": "custom_equipment_type",
+   "fieldtype": "Link",
+   "label": "Equipment Type",
+   "options": "Equipment Type"
+  },
+  {
+   "fieldname": "section_break_xghx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_make",
+   "fieldtype": "Data",
+   "label": "Make"
+  },
+  {
+   "fieldname": "custom_model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "column_break_hcrg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_part_number",
+   "fieldtype": "Data",
+   "label": "Part Number"
+  },
+  {
+   "fieldname": "lifecycle_tab_tab",
+   "fieldtype": "Tab Break",
+   "label": "LifeCycle Tab"
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Installed\nFaulty\nReplaced\nRemoved"
+  },
+  {
+   "fieldname": "custom_installation_date",
+   "fieldtype": "Date",
+   "label": "Installation Date"
+  },
+  {
+   "fieldname": "custom_display_name",
+   "fieldtype": "Data",
+   "label": "Display Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_serial_number",
+   "fieldtype": "Data",
+   "label": "Serial Number"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-22 21:02:50.427252",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Equipment Component",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "custom_display_name"
+}

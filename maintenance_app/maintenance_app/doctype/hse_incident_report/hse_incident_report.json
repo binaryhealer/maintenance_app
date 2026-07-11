@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "MI-INR-.#####",
+ "creation": "2026-07-02 09:15:19.619546",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_incident_status",
+  "custom_incident_type_name",
+  "custom_requires_investigation",
+  "custom_photo",
+  "column_break_vhvs",
+  "custom_severity",
+  "custom_incident_datetime",
+  "custom_mi_incident_row",
+  "section_break_kwbl",
+  "custom_description",
+  "column_break_masr",
+  "custom_immediate_action",
+  "section_break_ppbx",
+  "custom_investigation_summary",
+  "custom_references_tab",
+  "custom_service_ticket",
+  "custom_tech_mission",
+  "custom_mission_intervention",
+  "custom_technician",
+  "column_break_dtoi",
+  "custom_customer",
+  "custom_branch",
+  "custom_equipment",
+  "custom_investigation_ticket"
+ ],
+ "fields": [
+  {
+   "default": "Open",
+   "fieldname": "custom_incident_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Incident Status",
+   "options": "Open\nInvestigation Created\nClosed"
+  },
+  {
+   "fieldname": "custom_incident_type_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Incident Type",
+   "options": "HSE Incident Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_severity",
+   "fieldtype": "Data",
+   "label": "Severity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_incident_datetime",
+   "fieldtype": "Datetime",
+   "label": "Incident Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_immediate_action",
+   "fieldtype": "Small Text",
+   "label": "Immediate Action",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_investigation",
+   "fieldtype": "Check",
+   "label": "Requires Investigation"
+  },
+  {
+   "fieldname": "custom_photo",
+   "fieldtype": "Attach Image",
+   "label": "Photo"
+  },
+  {
+   "fieldname": "custom_references_tab",
+   "fieldtype": "Tab Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "label": "Service Ticket",
+   "options": "Service Ticket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_tech_mission",
+   "fieldtype": "Link",
+   "label": "Tech Mission",
+   "options": "Tech Mission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_mission_intervention",
+   "fieldtype": "Link",
+   "label": "Mission Intervention",
+   "options": "Mission Intervention",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Data",
+   "label": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Data",
+   "label": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment",
+   "fieldtype": "Data",
+   "label": "Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vhvs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kwbl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_masr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_mi_incident_row",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Mi Incident Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Data",
+   "label": "Technician",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dtoi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_investigation_ticket",
+   "fieldtype": "Link",
+   "label": "Investigation Ticket",
+   "options": "Service Ticket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ppbx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_investigation_summary",
+   "fieldtype": "Small Text",
+   "label": "Investigation Summary",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-02 22:31:18.879436",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "HSE Incident Report",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1
+}

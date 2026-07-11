@@ -139,13 +139,13 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nAsset Relocation\nConfig Change\nSwap\nLoan\nDisposal\nCalibration"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
   },
   {
    "fieldname": "custom_work_outcome",
    "fieldtype": "Select",
    "label": "Work Outcome",
-   "options": "Work Completed\nContinue Work\nWaiting for Parts\nWaiting for Client\nTo Quote (Billable)\nCould Not Complete"
+   "options": "Work Completed\nContinue Work\nWaiting for Parts\nWaiting for Client\nTo Quote (Billable)\nCould Not Complete\nFalse Call Out"
   },
   {
    "fieldname": "custom_start_time",
@@ -172,18 +172,21 @@
   {
    "fieldname": "custom_component_group",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Component Group",
    "read_only": 1
   },
   {
    "fieldname": "custom_component_item",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Component Item",
    "read_only": 1
   },
   {
    "fieldname": "custom_component_brand",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Component Brand",
    "read_only": 1
   },
@@ -200,13 +203,14 @@
   {
    "fieldname": "custom_component_serial",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Component Serial",
    "read_only": 1
   },
   {
    "fieldname": "custom_component_row_id",
    "fieldtype": "Data",
-   "hidden": 1,
+   "in_list_view": 1,
    "label": "Component Row ID",
    "read_only": 1
   }
@@ -215,7 +219,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-03 18:12:46.154196",
+ "modified": "2026-07-08 15:31:22.801813",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Service Log",

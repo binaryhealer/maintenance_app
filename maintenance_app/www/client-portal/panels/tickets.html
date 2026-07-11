@@ -1,0 +1,43 @@
+<div id="panel-tickets" class="view-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>Service Tickets History</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn-primary" onclick="window.openTicketModal()">➕ Raise New Service Ticket</button>
+            <button id="btn-clear-tk-search" onclick="window.resetTicketFilters()" style="display:none; padding:10px 14px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px; height:38px;">Reset Deep Filters ✕</button>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">FILTER BY BRANCH</label>
+            <select id="tk-filter-branch" onchange="window.filterTickets()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+                <option value="">All Operating Branches</option>
+            </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">TICKET STATUS</label>
+            <select id="tk-filter-status" onchange="window.filterTickets()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+                <option value="">All Tickets</option>
+                <option value="Open" selected>Open Tickets Only</option>
+                <option value="Closed">Closed / Resolved Only</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>Subject Details</th>
+                    <th>Operating Branch</th>
+                    <th>Target System / Component</th>
+                    <th>Status</th>
+                    <th>Opened</th>
+                    <th>Resolved / Closed</th>
+                </tr>
+            </thead>
+            <tbody id="table-tickets-body"></tbody>
+        </table>
+    </div>
+</div>

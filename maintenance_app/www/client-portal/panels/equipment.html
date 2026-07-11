@@ -1,0 +1,54 @@
+<div id="panel-equipment" class="view-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>Your Installed Assets</h3>
+        <button class="btn-primary" onclick="window.openTicketModal()">➕ Raise New Service Ticket</button>
+    </div>
+
+    <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; align-items: flex-end;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">FILTER BY BRANCH</label>
+            <select id="eq-filter-branch" onchange="window.filterEquipment()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+                <option value="">All Operating Branches</option>
+            </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">FILTER BY CATEGORY</label>
+            <select id="eq-filter-category" onchange="window.filterEquipment()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+                <option value="">All Categories</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">MAINTENANCE SCHEDULE FROM</label>
+                <input type="date" id="eq-filter-start-date" onchange="window.filterEquipment()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+            </div>
+            <span style="margin-top: 20px; color: #64748b; font-weight: 600;">to</span>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">MAINTENANCE SCHEDULE TO</label>
+                <input type="date" id="eq-filter-end-date" onchange="window.filterEquipment()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+            </div>
+            <button type="button" onclick="window.clearEquipmentDateFilters()" style="margin-top: 18px; padding: 8px 12px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #475569; cursor: pointer; height: 38px; font-weight: 500;">Clear Range</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;"></th>
+                    <th>Equipment Name</th>
+                    <th>Operating Branch</th>
+                    <th>Category</th>
+                    <th>Model</th>
+                    <th>Status</th>
+                    <th>Health</th>
+                    <th>Next Due Date</th>
+                    <th style="width: 140px; text-align: center;">Quick Links</th>
+                </tr>
+            </thead>
+            <tbody id="table-equipment-body"></tbody>
+        </table>
+    </div>
+</div>

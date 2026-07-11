@@ -1,0 +1,328 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "RS-.YYYY.-.#####",
+ "creation": "2026-07-10 22:24:22.407609",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_session_details_tab",
+  "custom_session_title",
+  "custom_service_ticket",
+  "custom_customer",
+  "custom_branch",
+  "column_break_intt",
+  "custom_equipment",
+  "custom_component",
+  "custom_assigned_engineer",
+  "custom_status",
+  "custom_technical_resolution_tab",
+  "custom_channel",
+  "custom_remote_access_id",
+  "custom_fault_type",
+  "custom_outcome",
+  "column_break_groi",
+  "custom_session_start",
+  "custom_session_end",
+  "custom_duration",
+  "section_break_bhkc",
+  "custom_work_notes",
+  "section_break_fvot",
+  "custom_resolution_summary",
+  "custom_customer_confirmation_tab",
+  "custom_confirmation_status",
+  "custom_confirmation_email",
+  "column_break_qizl",
+  "custom_confirmation_days",
+  "custom_confirmation_expires_on",
+  "section_break_mzxl",
+  "custom_customer_rating",
+  "column_break_gvgc",
+  "custom_resolution_method",
+  "section_break_tncj",
+  "custom_customer_comment",
+  "custom_escalation_tab",
+  "custom_escalated_to_onsite",
+  "custom_created_tech_mission",
+  "custom_escalation_reason",
+  "custom_system_tab",
+  "custom_confirmation_token",
+  "custom_created_by",
+  "custom_created_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_session_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Session Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service Ticket",
+   "options": "Service Ticket"
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "column_break_intt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_equipment",
+   "fieldtype": "Link",
+   "label": "Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_component",
+   "fieldtype": "Data",
+   "label": "Component",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_assigned_engineer",
+   "fieldtype": "Link",
+   "label": "Technician",
+   "options": "User"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "custom_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nScheduled\nIn Progress\nAwaiting Customer Confirmation\nCompleted\nEscalation Required\nEscalated\nCancelled"
+  },
+  {
+   "fieldname": "custom_session_start",
+   "fieldtype": "Datetime",
+   "label": "Session Start",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_session_end",
+   "fieldtype": "Datetime",
+   "label": "Session End",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_duration",
+   "fieldtype": "Float",
+   "label": "Duration",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_session_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Session Details"
+  },
+  {
+   "fieldname": "custom_technical_resolution_tab",
+   "fieldtype": "Tab Break",
+   "label": "Technical Resolution"
+  },
+  {
+   "fieldname": "custom_customer_confirmation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Customer Confirmation"
+  },
+  {
+   "fieldname": "custom_escalation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Escalation"
+  },
+  {
+   "fieldname": "custom_system_tab",
+   "fieldtype": "Tab Break",
+   "label": "System"
+  },
+  {
+   "fieldname": "custom_channel",
+   "fieldtype": "Link",
+   "label": "Channel",
+   "options": "Remote Support Channel"
+  },
+  {
+   "fieldname": "custom_remote_access_id",
+   "fieldtype": "Data",
+   "label": "Remote Access ID"
+  },
+  {
+   "fieldname": "custom_fault_type",
+   "fieldtype": "Link",
+   "label": "Fault Type",
+   "options": "Fault Type"
+  },
+  {
+   "fieldname": "custom_work_notes",
+   "fieldtype": "Small Text",
+   "label": "Work Notes"
+  },
+  {
+   "fieldname": "custom_resolution_summary",
+   "fieldtype": "Small Text",
+   "label": "Resolution Summary"
+  },
+  {
+   "fieldname": "column_break_groi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_bhkc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_fvot",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Not Sent",
+   "fieldname": "custom_confirmation_status",
+   "fieldtype": "Select",
+   "label": "Confirmation Status",
+   "options": "Not Sent\nPending\nConfirmed Resolved\nConfirmed Not Resolved\nExpired - Assumed Resolved\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_confirmation_email",
+   "fieldtype": "Data",
+   "label": "Confirmation Email"
+  },
+  {
+   "fieldname": "column_break_qizl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "3",
+   "fieldname": "custom_confirmation_days",
+   "fieldtype": "Int",
+   "label": "Confirmation Days"
+  },
+  {
+   "fieldname": "custom_confirmation_expires_on",
+   "fieldtype": "Datetime",
+   "label": "Confirmation Expires On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_mzxl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_customer_rating",
+   "fieldtype": "Rating",
+   "label": "Customer Rating"
+  },
+  {
+   "fieldname": "column_break_gvgc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_resolution_method",
+   "fieldtype": "Link",
+   "label": "Resolution Method",
+   "options": "Remote Resolution Method"
+  },
+  {
+   "fieldname": "section_break_tncj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_customer_comment",
+   "fieldtype": "Small Text",
+   "label": "Customer Comment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_confirmation_token",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Confirmation Token",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_escalated_to_onsite",
+   "fieldtype": "Check",
+   "label": "Escalated To Onsite",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_created_tech_mission",
+   "fieldtype": "Link",
+   "label": "Created Tech Mission",
+   "options": "Tech Mission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_escalation_reason",
+   "fieldtype": "Small Text",
+   "label": "Escalation Reason"
+  },
+  {
+   "fieldname": "custom_created_by",
+   "fieldtype": "Data",
+   "label": "Created By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_created_on",
+   "fieldtype": "Datetime",
+   "label": "Created On"
+  },
+  {
+   "fieldname": "custom_outcome",
+   "fieldtype": "Link",
+   "label": "Outcome",
+   "options": "Remote Session Outcome"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-11 05:10:01.222544",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Remote Session",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "custom_session_title",
+ "track_changes": 1
+}

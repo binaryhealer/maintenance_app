@@ -1,0 +1,352 @@
+<!--life cycle for client portal-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asset Lifecycle Ledger</title>
+
+<style>
+:root{
+--primary:#3b82f6;
+--primary-dark:#2563eb;
+--success:#10b981;
+--warning:#f59e0b;
+--danger:#ef4444;
+--gray50:#f9fafb;
+--gray100:#f3f4f6;
+--gray200:#e5e7eb;
+--gray300:#d1d5db;
+--gray500:#6b7280;
+--gray600:#4b5563;
+--gray700:#374151;
+--gray900:#111827;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:var(--gray50); color:var(--gray900); }
+.container{ max-width:1400px; margin:auto; padding:20px; }
+.card{ background:white; border:1px solid var(--gray200); border-radius:8px; padding:20px; margin-bottom:24px; }
+.page-header h1{ margin:0; color:var(--primary); font-size:28px; font-weight:700; margin-bottom:8px; }
+.page-header-subtitle{ font-size:14px; color:var(--gray600); }
+.filters-title{ font-weight:600; margin-bottom:12px; font-size:14px; }
+.filters{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+input,select{ padding:10px; border:1px solid var(--gray200); border-radius:6px; font-size:14px; font-family:inherit; width:100%; }
+input:focus,select:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 2px rgba(59,130,246,0.1); }
+table{ width:100%; border-collapse:collapse; }
+thead{ background:var(--gray50); }
+th{ padding:12px; text-align:left; font-size:12px; text-transform:uppercase; font-weight:600; color:var(--gray700); border-bottom:2px solid var(--gray200); }
+td{ padding:12px; border-bottom:1px solid var(--gray200); font-size:14px; vertical-align:top; }
+tbody tr:hover{ background:var(--gray50); cursor:pointer; }
+.badge{ padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; display:inline-block; }
+.badge-info{ background:#dbeafe; color:#1d4ed8; }
+.badge-success{ background:#d1fae5; color:#065f46; }
+.badge-warning{ background:#fef3c7; color:#92400e; }
+.badge-danger{ background:#fee2e2; color:#991b1b; }
+.log-link{ color:var(--primary); font-weight:bold; text-decoration:none; }
+.log-link:hover{ text-decoration:underline; }
+.empty{ padding:40px; text-align:center; color:var(--gray500); }
+.empty-icon{ font-size:48px; margin-bottom:16px; }
+.loading{ text-align:center; padding:40px; color:var(--gray500); }
+.loader{ display:inline-block; width:20px; height:20px; border:3px solid var(--gray200); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin{ to{transform:rotate(360deg);} }
+
+.modal{ display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
+.modal.open{ display:flex; }
+.modal-content{ background:white; border-radius:8px; padding:24px; max-width:650px; width:90%; max-height:85vh; overflow-y:auto; position:relative; }
+.modal-close{ position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:var(--gray600); }
+.modal-title{ font-size:20px; font-weight:700; margin-bottom:16px; color:var(--primary); }
+.modal-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:12px; }
+.modal-field{ margin-bottom:12px; }
+.modal-field.full-width { grid-column: span 2; }
+.modal-label{ font-size:11px; font-weight:600; color:var(--gray600); text-transform:uppercase; margin-bottom:4px; }
+.modal-value{ font-size:13px; color:var(--gray900); padding:8px 12px; background:var(--gray50); border-radius:4px; border-left:3px solid var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="card page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+            <h1>📜 Asset Lifecycle Matrix</h1>
+            <div class="page-header-subtitle">Chain of custody, structural relocations, and hardware mutations</div>
+        </div>
+        <a href="/client-portal" style="color:var(--primary); font-weight:600; text-decoration:none; padding:8px 16px; border:1px solid var(--gray200); border-radius:6px; display:inline-block; margin-top:4px; transition:all 0.2s;">
+            ← Back to Portal
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="filters-title">🔍 Filter Tracking History</div>
+        <div class="filters">
+            <select id="filter-branch" onchange="handleBranchChange()">
+                <option value="">All Branches</option>
+            </select>
+
+            <select id="filter-equipment" onchange="handleEquipmentChange()">
+                <option value="">All Equipment</option>
+            </select>
+
+            <select id="filter-event" onchange="applyFilters()">
+                <option value="">All Event Types</option>
+                <option value="Commissioned">Commissioned</option>
+                <option value="Relocated">Relocated</option>
+                <option value="Serviced">Serviced</option>
+                <option value="Asset Relocation">Asset Relocation</option>
+                <option value="Hardware Swap">Hardware Swap</option>
+                <option value="Temporary Loan">Temporary Loan</option>
+                <option value="Return from Loan">Return from Loan</option>
+                <option value="Repaired">Repaired</option>
+                <option value="Retired">Retired</option>
+                <option value="Scrapped">Scrapped</option>
+                <option value="Component Replaced">Component Replaced</option>
+                <option value="Sent For Repair">Sent For Repair</option>
+                <option value="Returned From Repair">Returned From Repair</option>
+            </select>
+
+            <input type="date" id="filter-from" onchange="applyFilters()">
+            <input type="date" id="filter-to" onchange="applyFilters()">
+        </div>
+    </div>
+
+    <div id="table-view" class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Equipment Base</th>
+                    <th>Event Log Type</th>
+                    <th>Context Scope Summary</th>
+                    <th>Technician</th>
+                    <th>Billing Status</th>
+                    <th>Reference</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <tr>
+                    <td colspan="7" class="loading"><div class="loader"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="empty-state" class="card empty" style="display:none;">
+        <div class="empty-icon">📭</div>
+        No structural lifecycle events matched this context selection.
+    </div>
+
+</div>
+
+<div class="modal" id="detail-modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <div class="modal-title" id="modal-title">Log Reference Details</div>
+
+        <div class="modal-grid">
+            <div class="modal-field"><div class="modal-label">Base Equipment</div><div class="modal-value" id="modal-equipment">-</div></div>
+            <div class="modal-field"><div class="modal-label">Log Branch Location</div><div class="modal-value" id="modal-branch">-</div></div>
+            <div class="modal-field"><div class="modal-label">Lifecycle Action Event</div><div class="modal-value" id="modal-event">-</div></div>
+            <div class="modal-field"><div class="modal-label">Execution Timeline</div><div class="modal-value" id="modal-date">-</div></div>
+            <div class="modal-field"><div class="modal-label">Responsible Engineer</div><div class="modal-value" id="modal-technician">-</div></div>
+            <div class="modal-field"><div class="modal-label">Billing & SLA Scope</div><div class="modal-value" id="modal-billing">-</div></div>
+            
+            <div class="modal-field full-width"><div class="modal-label">Action Execution Log Notes</div><div class="modal-value" id="modal-action">-</div></div>
+            
+            <div class="modal-field"><div class="modal-label">Asset Swap Replaced In Target</div><div class="modal-value" id="modal-new-asset">-</div></div>
+            <div class="modal-field"><div class="modal-label">Destination Location Path</div><div class="modal-value" id="modal-new-branch">-</div></div>
+            
+            <div class="modal-field"><div class="modal-label">Component Track Ref</div><div class="modal-value" id="modal-comp-old">-</div></div>
+            <div class="modal-field"><div class="modal-label">New Structural Installation Replacement</div><div class="modal-value" id="modal-comp-new">-</div></div>
+        </div>
+
+        <div style="margin-top:24px;display:flex;gap:12px;">
+            <button style="flex:1;padding:10px;background:var(--gray200);border:none;border-radius:4px;cursor:pointer;font-weight:600;" onclick="closeModal()">Dismiss View</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let allLogs = [];
+let masterLogs = [];
+let selectedBranch = "";
+let selectedEquipment = "";
+
+document.addEventListener('DOMContentLoaded', function(){
+    loadLifecycleLogs();
+});
+
+function safe(v) { return v || '-'; }
+
+function formatDate(v){
+    if(!v) return '-';
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? v : d.toLocaleDateString();
+}
+
+function loadLifecycleLogs(){
+    fetch('/api/method/maintenance_app.api.client_portal_get_lifecycle_logs', {
+        method: 'POST'
+    })
+    .then(r => r.json())
+    .then(r => {
+        allLogs = r.message || [];
+        masterLogs = [...allLogs];
+        populateBranchFilter();
+        renderTable(allLogs);
+    })
+    .catch(err => {
+        console.error('Lifecycle sync failure:', err);
+        document.getElementById('table-body').innerHTML = '';
+        document.getElementById('empty-state').style.display = 'block';
+    });
+}
+
+function populateBranchFilter(){
+    const branchSelect = document.getElementById('filter-branch');
+    const branchSet = new Set();
+    
+    masterLogs.forEach(log => {
+        if(log.custom_branch) branchSet.add(log.custom_branch.trim());
+    });
+
+    branchSelect.innerHTML = '<option value="">All Branches</option>';
+    branchSet.forEach(br => {
+        const o = document.createElement('option');
+        o.value = br; o.textContent = br;
+        branchSelect.appendChild(o);
+    });
+
+    updateDependentFilters();
+}
+
+function handleBranchChange() {
+    selectedBranch = document.getElementById('filter-branch').value.trim();
+    selectedEquipment = "";
+    updateDependentFilters();
+    applyFilters();
+}
+
+function handleEquipmentChange() {
+    selectedEquipment = document.getElementById('filter-equipment').value.trim();
+    applyFilters();
+}
+
+function updateDependentFilters() {
+    const equipmentSelect = document.getElementById('filter-equipment');
+    const eqMap = new Map();
+
+    masterLogs.forEach(log => {
+        const logBranch = log.custom_branch ? log.custom_branch.trim() : "";
+        const matchesBranch = !selectedBranch || logBranch === selectedBranch;
+
+        if (matchesBranch && log.equipment_display) {
+            eqMap.set(log.equipment_display.trim(), log.custom_related_asset);
+        }
+    });
+
+    equipmentSelect.innerHTML = '<option value="">All Equipment</option>';
+    eqMap.forEach((assetId, displayName) => {
+        const o = document.createElement('option');
+        o.value = assetId; o.textContent = displayName;
+        if(assetId === selectedEquipment) o.selected = true;
+        equipmentSelect.appendChild(o);
+    });
+}
+
+function applyFilters(){
+    selectedBranch = document.getElementById('filter-branch').value;
+    selectedEquipment = document.getElementById('filter-equipment').value;
+    const eventType = document.getElementById('filter-event').value;
+    const fromDate = document.getElementById('filter-from').value;
+    const toDate = document.getElementById('filter-to').value;
+
+    const fd = new FormData();
+    if(selectedEquipment) fd.append('asset', selectedEquipment);
+    if(selectedBranch) fd.append('branch', selectedBranch);
+    if(eventType) fd.append('event_type', eventType);
+    if(fromDate) fd.append('date_from', fromDate);
+    if(toDate) fd.append('date_to', toDate);
+
+    fetch('/api/method/maintenance_app.api.client_portal_get_lifecycle_logs', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(r => {
+        allLogs = r.message || [];
+        renderTable(allLogs);
+    })
+    .catch(err => console.error('Filter synchronization drop error:', err));
+}
+
+function getEventBadge(event) {
+    if(!event) return '<span class="badge">Unknown</span>';
+    const ev = event.toLowerCase();
+    if(ev.includes('commission') || ev.includes('repaired') || ev.includes('return')) return `<span class="badge badge-success">${event}</span>`;
+    if(ev.includes('relocation') || ev.includes('swap') || ev.includes('move') || ev.includes('replace')) return `<span class="badge badge-info">${event}</span>`;
+    if(ev.includes('loan') || ev.includes('repair')) return `<span class="badge badge-warning">${event}</span>`;
+    if(ev.includes('retired') || ev.includes('scrapped')) return `<span class="badge badge-danger">${event}</span>`;
+    return `<span class="badge badge-info">${event}</span>`;
+}
+
+function renderTable(logs){
+    const tbody = document.getElementById('table-body');
+    if(!logs.length) {
+        document.getElementById('empty-state').style.display = 'block';
+        document.getElementById('table-view').style.display = 'none';
+        return;
+    }
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('table-view').style.display = 'block';
+
+    tbody.innerHTML = logs.map(log => {
+        let contextualSummary = safe(log.custom_action_taken);
+        if(contextualSummary.length > 70) contextualSummary = contextualSummary.substring(0, 67) + '...';
+
+        return `
+            <tr onclick="showLogDetail('${log.name}')">
+                <td><strong>${formatDate(log.custom_date || log.creation)}</strong></td>
+                <td>${safe(log.equipment_display)}</td>
+                <td>${getEventBadge(log.custom_event)}</td>
+                <td style="color:#4b5563; font-size:13px;">${contextualSummary}</td>
+                <td>${safe(log.technician_display)}</td>
+                <td><small style="font-weight:600;">${safe(log.custom_billing_analysis)}</small></td>
+                <td>
+                    ${log.custom_service_ticket ? `<a class="log-link" href="/client-portal/ticket?name=${encodeURIComponent(log.custom_service_ticket)}" onclick="event.stopPropagation();">Ticket</a>` : ''}
+                    ${log.custom_intervention_ref ? `<br><a class="log-link" href="/client-portal/intervention?name=${encodeURIComponent(log.custom_intervention_ref)}" onclick="event.stopPropagation();">MI</a>` : ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function showLogDetail(logId){
+    const log = allLogs.find(l => l.name === logId);
+    if(!log) return;
+
+    document.getElementById('modal-title').textContent = 'Tracking Reference: ' + log.name;
+    document.getElementById('modal-equipment').textContent = safe(log.equipment_display);
+    document.getElementById('modal-branch').textContent = safe(log.custom_branch);
+    document.getElementById('modal-event').textContent = safe(log.custom_event);
+    document.getElementById('modal-date').textContent = formatDate(log.custom_date || log.creation);
+    document.getElementById('modal-technician').textContent = safe(log.technician_display);
+    document.getElementById('modal-billing').textContent = safe(log.custom_billing_analysis);
+    document.getElementById('modal-action').textContent = safe(log.custom_action_taken);
+    
+    document.getElementById('modal-new-asset').textContent = safe(log.custom_new_asset);
+    document.getElementById('modal-new-branch').textContent = safe(log.custom_new_branch);
+    
+    document.getElementById('modal-comp-old').innerHTML = log.custom_component_item ? `${log.custom_component_item} <br><small style="color:#6b7280;">S/N: ${safe(log.custom_component_serial)}</small>` : '-';
+    document.getElementById('modal-comp-new').innerHTML = log.custom_new_component_item ? `${log.custom_new_component_item} <br><small style="color:#6b7280;">S/N: ${safe(log.custom_new_component_serial)}</small>` : '-';
+
+    document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeModal(){
+    document.getElementById('detail-modal').classList.remove('open');
+}
+</script>
+</body>
+</html>

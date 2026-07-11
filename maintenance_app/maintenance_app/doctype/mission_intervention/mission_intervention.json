@@ -10,15 +10,15 @@
   "custom_job_information",
   "custom_parent_customer",
   "custom_branch",
-  "custom_applicant",
-  "custom_asset",
-  "custom_make",
-  "custom_model",
-  "custom_asset_id",
-  "column_break_ohxn",
-  "custom_component_group",
-  "custom_component_item",
   "custom_subject",
+  "custom_applicant",
+  "custom_target_component_name",
+  "custom_parent_equipment",
+  "column_break_ohxn",
+  "custom_model",
+  "custom_make",
+  "custom_component_group",
+  "custom_asset_id",
   "custom_intervention_type",
   "custom_start_date",
   "section_break_pmao",
@@ -38,6 +38,7 @@
   "custom_billable_hours",
   "custom_planning_ref",
   "custom_work_outcome",
+  "custom_fault_type",
   "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
@@ -45,13 +46,15 @@
   "section_break_mewf",
   "custom_intervention_team",
   "section_break_sjux",
-  "custom_equipment_changed",
   "custom_original_equipment",
   "custom_equipment_change_reason",
   "column_break_jxzc",
-  "custom_component_changed",
   "custom_original_component_item",
   "custom_component_change_reason",
+  "section_break_ajjx",
+  "custom_equipment_changed",
+  "column_break_diny",
+  "custom_component_changed",
   "custom_addtional_mi",
   "custom_additional_mi",
   "custom_additional_mi_reason",
@@ -110,6 +113,8 @@
   "custom_component_brand",
   "custom_component_model",
   "custom_component_serial",
+  "custom_asset",
+  "custom_component_item",
   "custom_component_row_id",
   "custom_location_data",
   "custom_checkin_latitude",
@@ -122,7 +127,9 @@
   "custom_client_signed_time",
   "column_break_xcbr",
   "custom_checkout_status",
-  "custom_client_signature_received"
+  "custom_client_signature_received",
+  "custom_hse_section",
+  "custom_incidents"
  ],
  "fields": [
   {
@@ -247,7 +254,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal\nCalibration"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
   },
   {
    "fieldname": "custom_parts_table",
@@ -338,7 +345,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Work Outcome",
-   "options": "Work Completed\nContinue Work\nWaiting for Parts\nWaiting for Client\nTo Quote (Billable)\nCould Not Complete",
+   "options": "Work Completed\nContinue Work\nWaiting for Parts\nWaiting for Client\nTo Quote (Billable)\nCould Not Complete\nFalse Call Out",
    "read_only": 1
   },
   {
@@ -608,6 +615,7 @@
   {
    "fieldname": "custom_component_item",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Component Item"
   },
   {
@@ -679,7 +687,7 @@
    "default": "0",
    "fieldname": "custom_component_changed",
    "fieldtype": "Check",
-   "label": "Compnenet Change"
+   "label": "Component Change"
   },
   {
    "fieldname": "custom_original_component_item",
@@ -782,13 +790,48 @@
    "fieldname": "custom_billable_hours",
    "fieldtype": "Float",
    "label": "Billable Hours"
+  },
+  {
+   "fieldname": "custom_target_component_name",
+   "fieldtype": "Data",
+   "label": "Target Component Name"
+  },
+  {
+   "fieldname": "custom_parent_equipment",
+   "fieldtype": "Data",
+   "label": "Parent Equipment"
+  },
+  {
+   "fieldname": "section_break_ajjx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_diny",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_hse_section",
+   "fieldtype": "Tab Break",
+   "label": "HSE / Incidents"
+  },
+  {
+   "fieldname": "custom_incidents",
+   "fieldtype": "Table",
+   "label": "Incidents",
+   "options": "MI Incident Detail"
+  },
+  {
+   "fieldname": "custom_fault_type",
+   "fieldtype": "Link",
+   "label": "Fault Type",
+   "options": "Fault Type"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-09 12:18:54.862540",
+ "modified": "2026-07-06 20:43:16.631979",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

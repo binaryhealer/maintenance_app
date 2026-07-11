@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-11 05:12:40.457825",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_session_number",
+  "custom_remote_session",
+  "custom_engineer",
+  "custom_sesson_start",
+  "custom_session_end",
+  "custom_duration",
+  "custom_outcome",
+  "custom_status",
+  "custom_confirmation_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_session_number",
+   "fieldtype": "Int",
+   "label": "Session Number"
+  },
+  {
+   "fieldname": "custom_remote_session",
+   "fieldtype": "Link",
+   "label": "Remote Session",
+   "options": "Remote Session"
+  },
+  {
+   "fieldname": "custom_engineer",
+   "fieldtype": "Data",
+   "label": "Technician"
+  },
+  {
+   "fieldname": "custom_sesson_start",
+   "fieldtype": "Datetime",
+   "label": "Session Start"
+  },
+  {
+   "fieldname": "custom_session_end",
+   "fieldtype": "Datetime",
+   "label": "Session End Time"
+  },
+  {
+   "fieldname": "custom_duration",
+   "fieldtype": "Float",
+   "label": "Session Duration"
+  },
+  {
+   "fieldname": "custom_outcome",
+   "fieldtype": "Data",
+   "label": "Session Outcome"
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Data",
+   "label": "Session Status"
+  },
+  {
+   "fieldname": "custom_confirmation_status",
+   "fieldtype": "Data",
+   "label": "Confirmation Status"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-11 05:19:38.964081",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Remote Session History",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

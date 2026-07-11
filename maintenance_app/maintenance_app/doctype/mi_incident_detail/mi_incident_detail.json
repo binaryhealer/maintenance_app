@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "MI-INC-.#####",
+ "creation": "2026-06-30 12:31:41.574909",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_incident_type_name",
+  "custom_severity",
+  "custom_incident_datetime",
+  "custom_description",
+  "custom_immediate_action",
+  "custom_requires_investigation",
+  "custom_photo"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_severity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Severity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_incident_datetime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Incident Date and Time"
+  },
+  {
+   "fieldname": "custom_description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "custom_immediate_action",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Immediate Action Taken"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_investigation",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Requires Investigation"
+  },
+  {
+   "fieldname": "custom_photo",
+   "fieldtype": "Attach Image",
+   "label": "Photo"
+  },
+  {
+   "fieldname": "custom_incident_type_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Incident Type",
+   "options": "HSE Incident Type"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-02 10:54:55.169819",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "MI Incident Detail",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

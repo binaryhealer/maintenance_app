@@ -66,7 +66,7 @@
    "fieldname": "custom_event",
    "fieldtype": "Select",
    "label": "Event Type",
-   "options": "Commissioned\nRelocated\nServiced\nAsset Relocation\nHardware Swap\nTemporary Loan\nReturn from Loan\nRepaired\nRetired\nScrapped\nComponent Replaced\nSent For Repair\nReturned From Repair"
+   "options": "Commissioned\nInstalled\nServiced\nRepaired\nRelocated\nPermanent Swap\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nComponent Replaced\nRetired\nDisposed"
   },
   {
    "fieldname": "custom_asset_lifecycle_log",
@@ -285,7 +285,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-08 06:13:53.348822",
+ "modified": "2026-07-02 13:37:13.755479",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Lifecycle Log",

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Logs</title>
+
+<style>
+:root{
+--primary:#3b82f6;
+--primary-dark:#2563eb;
+--success:#10b981;
+--warning:#f59e0b;
+--danger:#ef4444;
+--gray50:#f9fafb;
+--gray100:#f3f4f6;
+--gray200:#e5e7eb;
+--gray300:#d1d5db;
+--gray500:#6b7280;
+--gray600:#4b5563;
+--gray700:#374151;
+--gray900:#111827;
+}
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+background:var(--gray50);
+color:var(--gray900);
+}
+
+.container{
+max-width:1400px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+border:1px solid var(--gray200);
+border-radius:8px;
+padding:20px;
+margin-bottom:24px;
+}
+
+.page-header h1{
+margin:0;
+color:var(--primary);
+font-size:28px;
+font-weight:700;
+margin-bottom:8px;
+}
+
+.page-header-subtitle{
+font-size:14px;
+color:var(--gray600);
+}
+
+.stats-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:16px;
+margin-bottom:24px;
+}
+
+.stat-card{
+background:white;
+border:1px solid var(--gray200);
+border-radius:8px;
+padding:16px;
+text-align:center;
+}
+
+.stat-value{
+font-size:24px;
+font-weight:700;
+color:var(--primary);
+}
+
+.stat-label{
+font-size:12px;
+color:var(--gray600);
+margin-top:6px;
+text-transform:uppercase;
+}
+
+.filters-title{
+font-weight:600;
+margin-bottom:12px;
+font-size:14px;
+}
+
+.filters{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;
+}
+
+input,select{
+padding:10px;
+border:1px solid var(--gray200);
+border-radius:6px;
+font-size:14px;
+font-family:inherit;
+}
+
+input:focus,select:focus{
+outline:none;
+border-color:var(--primary);
+box-shadow:0 0 0 2px rgba(59,130,246,0.1);
+}
+
+.view-buttons{
+display:flex;
+gap:12px;
+margin-bottom:20px;
+border-bottom:1px solid var(--gray200);
+padding-bottom:12px;
+}
+
+.view-btn{
+padding:10px 16px;
+border:none;
+background:none;
+cursor:pointer;
+font-weight:500;
+color:var(--gray600);
+border-bottom:3px solid transparent;
+transition:all 0.2s;
+}
+
+.view-btn.active{
+color:var(--primary);
+border-bottom-color:var(--primary);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+thead{
+background:var(--gray50);
+}
+
+th{
+padding:12px;
+text-align:left;
+font-size:12px;
+text-transform:uppercase;
+font-weight:600;
+color:var(--gray700);
+border-bottom:2px solid var(--gray200);
+}
+
+td{
+padding:12px;
+border-bottom:1px solid var(--gray200);
+font-size:14px;
+}
+
+tbody tr:hover{
+background:var(--gray50);
+cursor:pointer;
+}
+
+.badge{
+padding:4px 8px;
+border-radius:4px;
+font-size:11px;
+font-weight:bold;
+}
+
+.badge-success{
+background:#d1fae5;
+color:#065f46;
+}
+
+.badge-warning{
+background:#fef3c7;
+color:#92400e;
+}
+
+.badge-info{
+background:#dbeafe;
+color:#1d4ed8;
+}
+
+.log-link{
+color:var(--primary);
+font-weight:bold;
+text-decoration:none;
+}
+
+.log-link:hover{
+text-decoration:underline;
+}
+
+.timeline-item{
+background:white;
+border:1px solid var(--gray200);
+border-left:4px solid var(--primary);
+padding:15px;
+margin-bottom:12px;
+border-radius:6px;
+cursor:pointer;
+transition:all 0.2s;
+}
+
+.timeline-item:hover{
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.timeline-date{
+font-weight:bold;
+color:var(--gray900);
+margin-bottom:4px;
+}
+
+.timeline-meta{
+font-size:12px;
+color:var(--gray600);
+margin-bottom:8px;
+}
+
+.empty{
+padding:40px;
+text-align:center;
+color:var(--gray500);
+}
+
+.empty-icon{
+font-size:48px;
+margin-bottom:16px;
+}
+
+.loading{
+text-align:center;
+padding:40px;
+color:var(--gray500);
+}
+
+.loader{
+display:inline-block;
+width:20px;
+height:20px;
+border:3px solid var(--gray200);
+border-top-color:var(--primary);
+border-radius:50%;
+animation:spin 0.8s linear infinite;
+}
+
+@keyframes spin{
+to{transform:rotate(360deg);}
+}
+
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.5);
+z-index:1000;
+align-items:center;
+justify-content:center;
+}
+
+.modal.open{
+display:flex;
+}
+
+.modal-content{
+background:white;
+border-radius:8px;
+padding:24px;
+max-width:600px;
+width:90%;
+max-height:80vh;
+overflow-y:auto;
+position:relative;
+}
+
+.modal-close{
+position:absolute;
+top:16px;
+right:16px;
+background:none;
+border:none;
+font-size:24px;
+cursor:pointer;
+color:var(--gray600);
+}
+
+.modal-close:hover{
+color:var(--gray900);
+}
+
+.modal-title{
+font-size:20px;
+font-weight:700;
+margin-bottom:16px;
+}
+
+.modal-field{
+margin-bottom:16px;
+}
+
+.modal-label{
+font-size:12px;
+font-weight:600;
+color:var(--gray600);
+text-transform:uppercase;
+margin-bottom:4px;
+}
+
+.modal-value{
+font-size:14px;
+color:var(--gray900);
+padding:8px 12px;
+background:var(--gray50);
+border-radius:4px;
+border-left:3px solid var(--primary);
+}
+
+@media(max-width:768px){
+.filters{
+grid-template-columns:1fr;
+}
+
+table{
+font-size:12px;
+}
+
+th,td{
+padding:8px;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- HEADER -->
+<div class="card page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+<div>
+<h1>📋 Service Logs</h1>
+<div class="page-header-subtitle">Complete maintenance history</div>
+</div>
+<a href="/client-portal" style="color:var(--primary); font-weight:600; text-decoration:none; padding:8px 16px; border:1px solid var(--gray200); border-radius:6px; display:inline-block; margin-top:4px; transition:all 0.2s;">
+← Back to Portal
+</a>
+</div>
+
+<!-- STATS -->
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-value" id="stat-month">0</div>
+<div class="stat-label">This Month</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="stat-equipment">0</div>
+<div class="stat-label">Equipment</div>
+</div>
+</div>
+
+<!-- FILTERS -->
+<div class="card">
+<div class="filters-title">🔍 Filter Logs</div>
+<div class="filters">
+<select id="filter-equipment" onchange="applyFilters()">
+<option value="">All Equipment</option>
+</select>
+
+<select id="filter-branch" onchange="applyFilters()">
+<option value="">All Branches</option>
+</select>
+
+<select id="filter-component" onchange="applyFilters()">
+<option value="">All Components</option>
+</select>
+
+<select id="filter-type" onchange="applyFilters()">
+<option value="">All Types</option>
+<option value="Service">Service</option>
+<option value="Repair">Repair</option>
+<option value="Preventive Maintenance">Preventive Maintenance</option>
+<option value="Installation">Installation</option>
+<option value="Inspection">Inspection</option>
+<option value="Config Change">Config Change</option>
+<option value="Asset Relocation">Asset Relocation</option>
+<option value="Swap">Swap</option>
+<option value="Loan">Loan</option>
+<option value="Retirement">Retirement</option>
+<option value="Disposal">Disposal</option>
+<option value="Calibration">Calibration</option>
+</select>
+
+<input type="date" id="filter-from" onchange="applyFilters()">
+<input type="date" id="filter-to" onchange="applyFilters()">
+</div>
+</div>
+
+<!-- VIEW TABS -->
+<div class="card">
+<div class="view-buttons">
+<button class="view-btn active" onclick="switchView('table')">📊 Table</button>
+<button class="view-btn" onclick="switchView('timeline')">📅 Timeline</button>
+</div>
+</div>
+
+<!-- TABLE VIEW -->
+<div id="table-view" class="card">
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Equipment</th>
+<th>Component</th>
+<th>Type</th>
+<th>Technician</th>
+<th>Duration</th>
+<th>Outcome</th>
+<th>Links</th>
+</tr>
+</thead>
+<tbody id="table-body">
+<tr>
+<td colspan="8" class="loading"><div class="loader"></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- TIMELINE VIEW -->
+<div id="timeline-view" class="card" style="display:none;">
+<div id="timeline-body"></div>
+</div>
+
+<!-- EMPTY STATE -->
+<div id="empty-state" class="card empty" style="display:none;">
+<div class="empty-icon">📭</div>
+No service logs found.
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="detail-modal">
+<div class="modal-content">
+<button class="modal-close" onclick="closeModal()">✕</button>
+<div class="modal-title" id="modal-title">-</div>
+
+<div class="modal-field">
+<div class="modal-label">Equipment</div>
+<div class="modal-value" id="modal-equipment">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Branch</div>
+<div class="modal-value" id="modal-branch">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Component</div>
+<div class="modal-value" id="modal-component">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Service Type</div>
+<div class="modal-value" id="modal-type">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Date & Time</div>
+<div class="modal-value" id="modal-datetime">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Technician</div>
+<div class="modal-value" id="modal-technician">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Duration</div>
+<div class="modal-value" id="modal-duration">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Work Outcome</div>
+<div class="modal-value" id="modal-outcome">-</div>
+</div>
+
+<div class="modal-field">
+<div class="modal-label">Notes</div>
+<div class="modal-value" id="modal-notes">-</div>
+</div>
+
+<div style="margin-top:24px;display:flex;gap:12px;">
+<button style="flex:1;padding:10px;background:var(--gray200);border:none;border-radius:4px;cursor:pointer;" onclick="closeModal()">Close</button>
+</div>
+</div>
+</div>
+
+<script>
+let allLogs=[];
+let currentView='table';
+
+document.addEventListener('DOMContentLoaded',function(){
+loadServiceLogs();
+});
+
+function safe(v){
+return v || '-';
+}
+
+function formatDate(v){
+if(!v) return '-';
+const d=new Date(v);
+return isNaN(d.getTime()) ? v : d.toLocaleDateString();
+}
+
+function formatDateTime(v){
+if(!v) return '-';
+const d=new Date(v);
+return isNaN(d.getTime()) ? v : d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function loadServiceLogs(){
+const params=new URLSearchParams(window.location.search);
+const fd=new FormData();
+
+if(params.get('asset'))
+fd.append('asset',params.get('asset'));
+
+if(params.get('component'))
+fd.append('component',params.get('component'));
+
+if(params.get('component_serial'))
+fd.append('component_serial',params.get('component_serial'));
+
+if(params.get('branch'))
+fd.append('branch',params.get('branch'));
+
+fetch('/api/method/maintenance_app.api.client_portal_get_service_logs',{
+method:'POST',
+body:fd
+})
+.then(r=>r.json())
+.then(r=>{
+allLogs=r.message || [];
+updateStats();
+populateFilters();
+renderLogs(allLogs);
+})
+.catch(err=>{
+console.error('Error loading logs:',err);
+document.getElementById('empty-state').style.display='block';
+});
+}
+
+function updateStats(){
+const now=new Date();
+const thisMonthLogs=allLogs.filter(log=>{
+const logDate=new Date(log.creation);
+return logDate.getMonth()===now.getMonth() && logDate.getFullYear()===now.getFullYear();
+});
+
+const equipmentThisMonth=new Set(thisMonthLogs.map(log=>log.equipment_display).filter(Boolean)).size;
+
+document.getElementById('stat-month').textContent=thisMonthLogs.length;
+document.getElementById('stat-equipment').textContent=equipmentThisMonth;
+}
+
+function populateFilters(){
+const equipment=document.getElementById('filter-equipment');
+const branch=document.getElementById('filter-branch');
+const component=document.getElementById('filter-component');
+const type=document.getElementById('filter-type');
+
+const eqMap=new Map();
+const branchSet=new Set();
+const compSet=new Set();
+const typeSet=new Set();
+
+allLogs.forEach(log=>{
+if(log.equipment_display)
+eqMap.set(log.equipment_display, log.equipment_display);
+
+if(log.custom_branch)
+branchSet.add(log.custom_branch);
+
+if(log.custom_component_item)
+compSet.add(log.custom_component_item);
+
+if(log.custom_intervention_type)
+typeSet.add(log.custom_intervention_type);
+});
+
+eqMap.forEach((label,value)=>{
+const o=document.createElement('option');
+o.value=value;
+o.textContent=label;
+equipment.appendChild(o);
+});
+
+branchSet.forEach(br=>{
+const o=document.createElement('option');
+o.value=br;
+o.textContent=br;
+branch.appendChild(o);
+});
+
+compSet.forEach(comp=>{
+const o=document.createElement('option');
+o.value=comp;
+o.textContent=comp;
+component.appendChild(o);
+});
+
+typeSet.forEach(t=>{
+const o=document.createElement('option');
+o.value=t;
+o.textContent=t;
+type.appendChild(o);
+});
+}
+
+function applyFilters(){
+const equipment=document.getElementById('filter-equipment').value;
+const branch=document.getElementById('filter-branch').value;
+const component=document.getElementById('filter-component').value;
+const type=document.getElementById('filter-type').value;
+const fromDate=document.getElementById('filter-from').value;
+const toDate=document.getElementById('filter-to').value;
+
+const fd=new FormData();
+if(equipment) fd.append('asset',equipment);
+if(branch) fd.append('branch',branch);
+if(component) fd.append('component',component);
+if(fromDate) fd.append('date_from',fromDate);
+if(toDate) fd.append('date_to',toDate);
+
+fetch('/api/method/maintenance_app.api.client_portal_get_service_logs',{
+method:'POST',
+body:fd
+})
+.then(r=>r.json())
+.then(r=>{
+allLogs=r.message || [];
+const filtered=type ? allLogs.filter(log=>log.custom_intervention_type===type) : allLogs;
+renderLogs(filtered);
+})
+.catch(err=>console.error('Filter error:',err));
+}
+
+function componentDisplay(log){
+let txt=log.custom_component_item || '-';
+
+let extras=[];
+if(log.custom_component_group)
+extras.push(log.custom_component_group);
+
+if(log.custom_component_brand)
+extras.push('Brand: '+log.custom_component_brand);
+
+if(log.custom_component_model)
+extras.push('Model: '+log.custom_component_model);
+
+if(log.custom_component_serial)
+extras.push('SN: '+log.custom_component_serial);
+
+if(extras.length){
+txt+='<br><small>'+extras.join(' / ')+'</small>';
+}
+
+return txt;
+}
+
+function renderLogs(logs){
+if(!logs.length){
+document.getElementById('empty-state').style.display='block';
+document.getElementById('table-view').style.display='none';
+document.getElementById('timeline-view').style.display='none';
+return;
+}
+
+document.getElementById('empty-state').style.display='none';
+
+if(currentView==='table'){
+document.getElementById('table-view').style.display='block';
+document.getElementById('timeline-view').style.display='none';
+renderTable(logs);
+}else{
+document.getElementById('table-view').style.display='none';
+document.getElementById('timeline-view').style.display='block';
+renderTimeline(logs);
+}
+}
+
+function renderTable(logs){
+document.getElementById('table-body').innerHTML=logs.map(log=>`
+<tr onclick="showLogDetail('${log.name}')">
+<td>${formatDate(log.creation)}</td>
+<td><strong>${safe(log.equipment_display)}</strong></td>
+<td>${componentDisplay(log)}</td>
+<td><span class="badge badge-info">${safe(log.custom_intervention_type)}</span></td>
+<td>${safe(log.technician_display)}</td>
+<td>${safe(log.custom_duration)} hrs</td>
+<td><span class="badge badge-success">${safe(log.custom_work_outcome)}</span></td>
+<td>
+${log.custom_service_ticket ? `<a class="log-link" href="/client-portal/ticket?name=${encodeURIComponent(log.custom_service_ticket)}">Ticket</a>` : '-'}
+${log.custom_intervention_ref ? `<br><a class="log-link" href="/client-portal/intervention?name=${encodeURIComponent(log.custom_intervention_ref)}">MI</a>` : ''}
+</td>
+</tr>
+`).join('');
+}
+
+function renderTimeline(logs){
+const sorted=[...logs].sort((a,b)=>new Date(b.creation)-new Date(a.creation));
+
+document.getElementById('timeline-body').innerHTML=sorted.map(log=>`
+<div class="timeline-item" onclick="showLogDetail('${log.name}')">
+<div class="timeline-date">${formatDate(log.creation)}</div>
+<div class="timeline-meta">${safe(log.equipment_display)}</div>
+<div><strong>${safe(log.custom_intervention_type)}</strong></div>
+<div style="font-size:12px;color:var(--gray600);margin-top:8px;">
+👤 ${safe(log.technician_display)} • ${safe(log.custom_duration)} hrs
+</div>
+</div>
+`).join('');
+}
+
+function switchView(view){
+currentView=view;
+document.querySelectorAll('.view-btn').forEach(btn=>btn.classList.remove('active'));
+event.target.classList.add('active');
+renderLogs(allLogs);
+}
+
+function showLogDetail(logId){
+const log=allLogs.find(l=>l.name===logId);
+if(!log) return;
+
+let componentText=safe(log.custom_component_item);
+if(log.custom_component_group || log.custom_component_brand || log.custom_component_model || log.custom_component_serial){
+let details=[];
+if(log.custom_component_group)
+details.push(log.custom_component_group);
+if(log.custom_component_brand)
+details.push('Brand: '+log.custom_component_brand);
+if(log.custom_component_model)
+details.push('Model: '+log.custom_component_model);
+if(log.custom_component_serial)
+details.push('SN: '+log.custom_component_serial);
+if(details.length)
+componentText+='<br><small>'+details.join(' / ')+'</small>';
+}
+
+document.getElementById('modal-title').textContent=log.name;
+document.getElementById('modal-equipment').textContent=safe(log.equipment_display);
+document.getElementById('modal-branch').textContent=safe(log.custom_branch);
+document.getElementById('modal-component').innerHTML=componentText;
+document.getElementById('modal-type').textContent=safe(log.custom_intervention_type);
+document.getElementById('modal-datetime').textContent=formatDateTime(log.creation);
+document.getElementById('modal-technician').textContent=safe(log.technician_display);
+document.getElementById('modal-duration').textContent=(log.custom_duration || '-')+' hours';
+document.getElementById('modal-outcome').textContent=safe(log.custom_work_outcome);
+document.getElementById('modal-notes').textContent=safe(log.custom_notes);
+
+document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeModal(){
+document.getElementById('detail-modal').classList.remove('open');
+}
+</script>
+
+</body>
+</html>

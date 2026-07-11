@@ -8,9 +8,8 @@
  "field_order": [
   "custom_parent_customer",
   "custom_branch",
-  "custom_asset",
-  "custom_component_group",
-  "custom_component_item",
+  "custom_target_component_name",
+  "custom_parent_equipment",
   "column_break_sxsg",
   "custom_subject",
   "custom_service_type",
@@ -40,10 +39,13 @@
   "custom_mission_ref",
   "custom_service_ticket",
   "custom_component_brand",
-  "column_break_wged",
   "custom_component_model",
   "custom_component_serial",
+  "column_break_wged",
   "custom_component_row_id",
+  "custom_asset",
+  "custom_component_group",
+  "custom_component_item",
   "section_break_iivs",
   "custom_request_description",
   "custom_reschedule",
@@ -151,7 +153,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nSwap / Loan\nCalibration"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
   },
   {
    "fieldname": "section_break_iivs",
@@ -314,12 +316,22 @@
    "fieldtype": "Data",
    "label": "Component Serial",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_target_component_name",
+   "fieldtype": "Data",
+   "label": "Target Component Name"
+  },
+  {
+   "fieldname": "custom_parent_equipment",
+   "fieldtype": "Data",
+   "label": "Parent Equipment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-03 16:48:18.830276",
+ "modified": "2026-07-02 13:18:50.541165",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Planning",

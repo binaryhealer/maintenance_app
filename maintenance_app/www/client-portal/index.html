@@ -1,33 +1,62 @@
-<h1 style="color:red">TEST HTML CHANGED</h1>
-
 {% extends "templates/web.html" %}
 
 {% block content %}
 <div id="gmao-portal-root">
     
     <div class="sidebar">
-        <div>
-            <div class="sidebar-brand">🔧 GMAO Portal</div>
-            <ul class="sidebar-menu">
-                <li id="menu-dashboard" class="menu-item active" onclick="window.cpGo('dashboard')">📊 Dashboard</li>
-                <li id="menu-branches" class="menu-item" onclick="window.cpGo('branches')">🏢 Branches</li>
-                <li id="menu-equipment" class="menu-item" onclick="window.cpGo('equipment')">🖥️ Equipment</li>
-                <li id="menu-tickets" class="menu-item" onclick="window.cpGo('tickets')">🎫 Tickets</li>
-                <li id="menu-contracts" class="menu-item" onclick="window.cpGo('contracts')">📜 Contracts</li>
-            </ul>
-        </div>
+    <div>
+        <div class="sidebar-brand">🔧 Service Desk</div>
+        <ul class="sidebar-menu">
+            <li id="menu-dashboard" class="menu-item active" onclick="window.cpGo('dashboard')">📊 Dashboard</li>
+            <li id="menu-branches" class="menu-item" onclick="window.cpGo('branches')">🏢 Branches</li>
+            
+            <li id="menu-equipment-parent" class="menu-item" onclick="window.toggleEquipmentSubmenu(event)" style="cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span>🖥️ Equipment</span>
+                    <span id="sidebar-eq-indicator" style="font-size: 12px; font-weight: bold; color: #64748b;">+</span>
+                </div>
+            </li>
+            
+            <div id="sidebar-eq-submenu" style="display: none; padding-left: 16px; margin-bottom: 4px; border-left: 2px solid #e2e8f0;">
+                <li id="menu-equipment" class="menu-item" onclick="window.cpGo('equipment')" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">🖥️ Equipment Inventory</li>
+                <li id="menu-service-logs" class="menu-item" onclick="window.location.href='/client-portal/service-logs'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">📋 Service Logs</li>
+                <li id="menu-lifecycle-logs" class="menu-item" onclick="window.location.href='/client-portal/lifecycle-logs'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">📜 Lifecycle Logs</li>
+            </div>
+            
+            <li id="menu-tickets" class="menu-item" onclick="window.cpGo('tickets')">🎫 Tickets</li>
+            
+            <li id="menu-reports-parent" class="menu-item" onclick="window.toggleReportsSubmenu(event)" style="cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span>📊 Reports</span>
+                    <span id="sidebar-reports-indicator" style="font-size: 12px; font-weight: bold; color: #64748b;">+</span>
+                </div>
+            </li>
+            
+            <div id="sidebar-reports-submenu" style="display: none; padding-left: 16px; margin-bottom: 4px; border-left: 2px solid #e2e8f0;">
+                <li id="menu-planned" class="menu-item" onclick="window.location.href='/client-portal/planned-interventions'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">📅 Planned Interventions</li>
+            </div>
+            
+            <li id="menu-contracts" class="menu-item" onclick="window.cpGo('contracts')">📜 Contracts</li>
+        </ul>
+    </div>
     </div>
 
     <div class="main-wrapper">
-        <div class="top-navbar">
-            <div class="customer-title" id="display-customer">{{ customer_company or "Loading Customer Account..." }}</div>
+        <!-- 🌟 UPDATED FOR MOBILE RESPONSIVENESS -->
+        <div class="top-navbar" style="display: flex; align-items: center; justify-content: space-between;">
+            
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- ☰ Hamburger Toggle Button (Hidden on desktops via CSS) -->
+                <button id="sidebar-toggle-btn" onclick="window.toggleMainSidebar(event)" style="background: #3b82f6; color: white; border: none; padding: 10px 14px; font-size: 18px; border-radius: 6px; cursor: pointer; display: none; font-weight: bold;">☰ Menu</button>
+                <div class="customer-title" id="display-customer">{{ customer_company or "Loading Customer Account..." }}</div>
+            </div>
             
             <div class="user-profile" onclick="window.toggleUserDropdown(event)">
                 <div class="avatar" id="user-avatar">{{ user_full_name[0].upper() if user_full_name else "-" }}</div>
                 <span id="user-fullname">{{ user_full_name or "User" }} ▾</span>
                 
                 <div id="user-dropdown" style="display: none; position: absolute; top: 45px; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 150px; z-index: 1000;">
-                    <a href="/?cmd=frappe.utils.oauth.logout" style="display: block; padding: 12px 16px; color: #ef4444; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 6px;">🚪 Log Out</a>
+                    <a href="/logout" style="display: block; padding: 12px 16px; color: #ef4444; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 6px;">🚪 Log Out</a>
                 </div>
             </div>
         </div>
@@ -35,362 +64,19 @@
         <div class="content-area">
             <div id="portal-status-alert" class="status-msg">Connecting to database ledger...</div>
 
-            <div id="panel-dashboard" class="view-panel active">
-                <div class="stats-grid">
-                    <div class="stat-card" onclick="window.cpGo('equipment')" style="cursor:pointer;">
-                        <div class="stat-num" id="stat-equipment-count">0</div>
-                        <div class="stat-lbl">Registered Assets →</div>
-                    </div>
-                    <div class="stat-card" onclick="window.cpGo('tickets')" style="cursor:pointer;">
-                        <div class="stat-num" id="stat-open-tickets">0</div>
-                        <div class="stat-lbl">Active Open Tickets →</div>
-                    </div>
-                    <div class="stat-card" onclick="window.cpGo('contracts')" style="cursor:pointer;">
-                        <div class="stat-num" id="stat-active-mc">0</div>
-                        <div class="stat-lbl">Active Contracts →</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="panel-branches" class="view-panel">
-                <div style="margin-bottom: 20px;"><h3>Your Registered Operating Branches</h3></div>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>Branch Name</th><th>Address</th><th>Site Type</th></tr></thead>
-                        <tbody id="table-branches-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="panel-equipment" class="view-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>Your Installed Assets</h3>
-                    <button class="btn-primary" onclick="window.openTicketModal()">➕ Raise New Service Ticket</button>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Asset Name</th>
-                                <th>Category</th>
-                                <th>Model</th>
-                                <th>Status</th>
-                                <th>Health</th>
-                                <th>Last Serviced</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-equipment-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="panel-tickets" class="view-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>Service Tickets History</h3>
-                    <button class="btn-primary" onclick="window.openTicketModal()">➕ Raise New Service Ticket</button>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>Ticket ID</th><th>Subject</th><th>Status</th><th>Service Type</th><th>Equipment</th></tr></thead>
-                        <tbody id="table-tickets-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="panel-contracts" class="view-panel">
-                <div style="margin-bottom: 20px;"><h3>Maintenance Service Contracts</h3></div>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>Contract Ref</th><th>Title</th><th>Type</th><th>Valid Until</th><th>Status</th></tr></thead>
-                        <tbody id="table-contracts-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="ticket-modal" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; width: 100%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-            <h3 style="margin-bottom: 20px; color: #1e293b; font-size:18px;">Raise Service Ticket</h3>
-            <form id="create-ticket-form" onsubmit="window.submitServiceTicket(event)">
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; font-size:11px; font-weight:700; margin-bottom:5px; color:#64748b;">SELECT TARGET ASSET *</label>
-                    <select id="modal-equipment-select" required style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:4px; outline:none; background:white; font-size:14px;"></select>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; font-size:11px; font-weight:700; margin-bottom:5px; color:#64748b;">ISSUE SUMMARY/SUBJECT *</label>
-                    <input type="text" id="modal-subject" required placeholder="e.g., Device offline / Fault error" style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:4px; outline:none; font-size:14px;">
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; font-size:11px; font-weight:700; margin-bottom:5px; color:#64748b;">TICKET PRIORITY</label>
-                    <select id="modal-priority" style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:4px; outline:none; background:white; font-size:14px;">
-                        <option value="Low">Low</option>
-                        <option value="Normal" selected>Normal</option>
-                        <option value="High">High</option>
-                        <option value="Urgent">Urgent</option>
-                    </select>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; font-size:11px; font-weight:700; margin-bottom:5px; color:#64748b;">DETAILED PROBLEM DESCRIPTION</label>
-                    <textarea id="modal-description" rows="4" placeholder="Describe the error state..." style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:4px; font-family:inherit; outline:none; font-size:14px; resize:none;"></textarea>
-                </div>
-                <div style="display:flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" onclick="window.closeTicketModal()" style="padding:10px 16px; background:#e2e8f0; color:#1e293b; border:none; border-radius:4px; cursor:pointer; font-weight:500;">Cancel</button>
-                    <button type="submit" style="padding:10px 16px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:600;">Create Ticket</button>
-                </div>
-            </form>
+            <!-- Update your view panels to point here -->
+                {% include "www/client-portal/panels/dashboard.html" %}
+                {% include "www/client-portal/panels/branches.html" %}
+                {% include "www/client-portal/panels/equipment.html" %}
+                {% include "www/client-portal/panels/tickets.html" %}
+                {% include "www/client-portal/panels/contracts.html" %}
         </div>
     </div>
 </div>
 
-<style>
-    /* Safe layout sandboxing context overrides */
-    #gmao-portal-root {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: #f8fafc;
-        display: flex;
-        z-index: 99999;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    }
-
-    #gmao-portal-root * { box-sizing: border-box; margin: 0; padding: 0; }
-    #gmao-portal-root .sidebar { width: 260px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
-    #gmao-portal-root .sidebar-brand { padding: 24px; font-size: 18px; font-weight: bold; color: #3b82f6; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
-    #gmao-portal-root .sidebar-menu { list-style: none !important; padding: 16px 0; flex-grow: 1; margin: 0; }
-    #gmao-portal-root .menu-item { padding: 12px 24px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #64748b; font-weight: 500; transition: all 0.2s; list-style-type: none !important; }
-    #gmao-portal-root .menu-item:hover { background: #f8fafc; color: #1e293b; }
-    #gmao-portal-root .menu-item.active { background: #eff6ff; color: #3b82f6; border-left: 4px solid #3b82f6; }
-    #gmao-portal-root .main-wrapper { flex-grow: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
-    #gmao-portal-root .top-navbar { height: 70px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0; }
-    #gmao-portal-root .customer-title { font-size: 18px; font-weight: 600; color: #1e293b; }
-    #gmao-portal-root .user-profile { display: flex; align-items: center; gap: 10px; position: relative; cursor: pointer; }
-    #gmao-portal-root .avatar { width: 36px; height: 36px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; text-transform: uppercase; }
-    #gmao-portal-root .content-area { padding: 32px; flex-grow: 1; overflow-y: auto; }
-    #gmao-portal-root .view-panel { display: none; }
-    #gmao-portal-root .view-panel.active { display: block; }
-    #gmao-portal-root .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
-    #gmao-portal-root .stat-card { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.15s, box-shadow 0.15s; }
-    #gmao-portal-root .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    #gmao-portal-root .stat-num { font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 4px; }
-    #gmao-portal-root .stat-lbl { font-size: 14px; color: #64748b; font-weight: 500; }
-    #gmao-portal-root .table-container { background: white; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    #gmao-portal-root table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-    #gmao-portal-root th { background: #f8fafc; padding: 14px 20px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-    #gmao-portal-root td { padding: 14px 20px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; }
-    #gmao-portal-root tr:last-child td { border-bottom: none; }
-    #gmao-portal-root .badge { display: inline-flex; padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 50px; text-transform: capitalize; }
-    #gmao-portal-root .badge-success { background: #bbf7d0; color: #166534; }
-    #gmao-portal-root .badge-info { background: #e0f2fe; color: #0369a1; }
-    #gmao-portal-root .badge-warning { background: #fef08a; color: #854d0e; }
-    #gmao-portal-root .status-msg { padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 500; }
-    #gmao-portal-root .alert-error { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
-    #gmao-portal-root button.btn-primary { padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
-    #gmao-portal-root button.btn-primary:hover { background: #2563eb; }
-</style>
+{% include "www/client-portal/style.html" %}
 {% endblock %}
 
 {% block script %}
-<script>
-    // Explicit global window attachment isolates routing functionality from strict wrapper scopes
-    window.PortalApp = {
-        customerName: "{{ customer_company }}", 
-        userEmail: "{{ user }}",
-        cachedEquipment: []
-    };
-
-    frappe.ready(function() {
-        window.addEventListener('click', function() {
-            const drop = document.getElementById('user-dropdown');
-            if(drop) drop.style.display = 'none';
-        });
-
-        if (window.PortalApp.customerName && window.PortalApp.customerName !== "None" && window.PortalApp.customerName !== "") {
-            window.loadPortalData();
-        } else {
-            window.showGlobalError('⚠ Profile Error: No verified Customer account link found for this user account.');
-        }
-    });
-
-    window.toggleUserDropdown = function(event) {
-        event.stopPropagation();
-        const drop = document.getElementById('user-dropdown');
-        if(drop) drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
-    };
-
-    window.cpGo = function(panelId) {
-        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-
-        const targetPanel = document.getElementById('panel-' + panelId);
-        if(targetPanel) targetPanel.classList.add('active');
-
-        const targetMenu = document.getElementById('menu-' + panelId);
-        if(targetMenu) targetMenu.classList.add('active');
-    };
-
-    window.showGlobalError = function(msg) {
-        const el = document.getElementById('portal-status-alert');
-        if(el) {
-            el.textContent = msg;
-            el.className = 'status-msg alert-error';
-            el.style.display = 'block';
-        }
-    };
-
-    window.openTicketModal = function() {
-        const select = document.getElementById('modal-equipment-select');
-        if(!select) return;
-        select.innerHTML = '<option value="">-- Choose Equipment --</option>';
-        window.PortalApp.cachedEquipment.forEach(eq => {
-            select.innerHTML += `<option value="${eq.name}">${eq.custom_display_name || eq.custom_asset_name} (${eq.name})</option>`;
-        });
-        const modal = document.getElementById('ticket-modal');
-        if(modal) modal.style.display = 'flex';
-    };
-
-    window.closeTicketModal = function() {
-        const modal = document.getElementById('ticket-modal');
-        if(modal) modal.style.display = 'none';
-        const form = document.getElementById('create-ticket-form');
-        if(form) form.reset();
-    };
-
-    window.submitServiceTicket = function(event) {
-        event.preventDefault();
-        frappe.call({
-            method: 'maintenance_app.api.create_service_ticket_from_equipment',
-            args: {
-                equipment_name: document.getElementById('modal-equipment-select').value,
-                subject: document.getElementById('modal-subject').value,
-                priority: document.getElementById('modal-priority').value,
-                description: document.getElementById('modal-description').value
-            },
-            freeze: true,
-            callback: function(r) {
-                if(r.message && r.message.ticket) {
-                    frappe.show_alert({ message: `✔ Ticket ${r.message.ticket} raised!`, indicator: 'green' });
-                    window.closeTicketModal();
-                    window.loadPortalData();
-                }
-            }
-        });
-    };
-
-    window.loadPortalData = function() {
-        let loadedCount = 0;
-        const totalRequests = 4;
-        const checkDone = () => {
-            loadedCount++;
-            if(loadedCount === totalRequests) {
-                const alertBox = document.getElementById('portal-status-alert');
-                if(alertBox) alertBox.style.display = 'none';
-            }
-        };
-
-        // 1. Branches API
-        frappe.call({
-            method: 'maintenance_app.api.client_portal_get_branches',
-            args: { customer: window.PortalApp.customerName },
-            callback: function(r) {
-                const tbody = document.getElementById('table-branches-body');
-                if(!tbody) return;
-                tbody.innerHTML = '';
-                const branches = r.message || [];
-                if(branches.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#64748b; padding:30px;">No operating branches found.</td></tr>';
-                }
-                branches.forEach(b => {
-                    tbody.innerHTML += `<tr><td><strong>${b.custom_branch || b.name}</strong></td><td>${b.custom_address || '-'}</td><td><span class="badge badge-info">${b.custom_site_type || 'N/A'}</span></td></tr>`;
-                });
-                checkDone();
-            }
-        });
-
-        // 2. Equipment API
-        frappe.call({
-            method: 'maintenance_app.api.client_portal_get_equipment',
-            args: { customer: window.PortalApp.customerName },
-            callback: function(r) {
-                window.PortalApp.cachedEquipment = r.message || [];
-                const countEl = document.getElementById('stat-equipment-count');
-                if(countEl) countEl.textContent = window.PortalApp.cachedEquipment.length;
-                
-                const tbody = document.getElementById('table-equipment-body');
-                if(!tbody) return;
-                tbody.innerHTML = '';
-                if(window.PortalApp.cachedEquipment.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b; padding:30px;">No asset inventory items linked.</td></tr>';
-                }
-                window.PortalApp.cachedEquipment.forEach(eq => {
-                    let healthClass = ['Excellent', 'Good'].includes(eq.custom_equipment_health) ? 'badge-success' : 'badge-warning';
-                    tbody.innerHTML += `<tr>
-                        <td><strong>${eq.custom_display_name || eq.custom_asset_name}</strong><br><small style="color:#64748b;">${eq.name}</small></td>
-                        <td>${eq.custom_asset_category || '-'}</td>
-                        <td>${eq.custom_model || '-'}</td>
-                        <td><span class="badge badge-info">${eq.custom_asset_status || 'Operational'}</span></td>
-                        <td><span class="badge ${healthClass}">${eq.custom_equipment_health || 'Unknown'}</span></td>
-                        <td>${eq.custom_last_service_date || 'Never'}</td>
-                    </tr>`;
-                });
-                checkDone();
-            }
-        });
-
-        // 3. Tickets API
-        frappe.call({
-            method: 'maintenance_app.api.client_portal_get_tickets',
-            args: { customer: window.PortalApp.customerName },
-            callback: function(r) {
-                const tickets = r.message || [];
-                const openCount = tickets.filter(t => !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status)).length;
-                const openTicketsEl = document.getElementById('stat-open-tickets');
-                if(openTicketsEl) openTicketsEl.textContent = openCount;
-                
-                const tbody = document.getElementById('table-tickets-body');
-                if(!tbody) return;
-                tbody.innerHTML = '';
-                if(tickets.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:30px;">No recorded service ticket entries.</td></tr>';
-                }
-                tickets.forEach(t => {
-                    let statusClass = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status) ? 'badge-success' : 'badge-warning';
-                    tbody.innerHTML += `<tr>
-                        <td><strong>${t.name}</strong></td>
-                        <td>${t.custom_subject || ''}</td>
-                        <td><span class="badge ${statusClass}">${t.custom_ticket_status}</span></td>
-                        <td>${t.custom_service_type || ''}</td>
-                        <td>${t.custom_target_equipment || '-'}</td>
-                    </tr>`;
-                });
-                checkDone();
-            }
-        });
-
-        // 4. Contracts API
-        frappe.call({
-            method: 'maintenance_app.api.client_portal_get_contracts',
-            args: { customer: window.PortalApp.customerName },
-            callback: function(r) {
-                const contracts = r.message || [];
-                const activeMcEl = document.getElementById('stat-active-mc');
-                if(activeMcEl) activeMcEl.textContent = contracts.length;
-                
-                const tbody = document.getElementById('table-contracts-body');
-                if(!tbody) return;
-                tbody.innerHTML = '';
-                if(contracts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:30px;">No active maintenance agreements found.</td></tr>';
-                }
-                contracts.forEach(c => {
-                    tbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td>${c.custom_contract_title || '-'}</td><td>${c.custom_contract_type || ''}</td><td>${c.custom_end_date || '-'}</td><td><span class="badge badge-success">${c.custom_status}</span></td></tr>`;
-                });
-                checkDone();
-            }
-        });
-    };
-</script>
+{% include "www/client-portal/script.html" %}
 {% endblock %}

@@ -1,0 +1,729 @@
+<script>
+    // 1. Core Global State Store Registry Definition
+    window.PortalApp = {
+        customerName: "{{ customer_company }}", 
+        userEmail: "{{ user }}",
+        // Safely stringifies and hydates the frontend application state cache
+        cachedEquipment: {% if preloaded_equipment %}{{ preloaded_equipment | json }}{% else %}[]{% endif %},
+        cachedTickets: [],
+        deepTargetAssetFilter: null,
+        deepTargetCompFilter: null
+    };
+
+    frappe.ready(function() {
+        window.addEventListener('click', function() {
+            const drop = document.getElementById('user-dropdown');
+            if(drop) drop.style.display = 'none';
+        });
+
+        if (window.PortalApp.customerName && window.PortalApp.customerName !== "None" && window.PortalApp.customerName !== "") {
+            window.loadPortalData();
+        } else {
+            window.showGlobalError('⚠ Profile Error: No verified Customer account link found for this user account.');
+        }
+    });
+
+    window.toggleUserDropdown = function(event) {
+        event.stopPropagation();
+        const drop = document.getElementById('user-dropdown');
+        if(drop) drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+    };
+
+    window.cpGo = function(panelId) {
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+
+        const targetPanel = document.getElementById('panel-' + panelId);
+        if(targetPanel) targetPanel.classList.add('active');
+
+        const targetMenu = document.getElementById('menu-' + panelId);
+        if(targetMenu) targetMenu.classList.add('active');
+    };
+
+    window.showGlobalError = function(msg) {
+        const el = document.getElementById('portal-status-alert');
+        if(el) {
+            el.textContent = msg;
+            el.className = 'status-msg alert-error';
+            el.style.display = 'block';
+        }
+    };
+
+    window.openTicketModal = function() {
+        const select = document.getElementById('modal-equipment-select');
+        if(!select) return;
+        select.innerHTML = '<option value="">-- Choose Equipment --</option>';
+        window.PortalApp.cachedEquipment.forEach(eq => {
+            select.innerHTML += `<option value="${eq.name}">${eq.custom_asset_name}</option>`;
+        });
+        const modal = document.getElementById('ticket-modal');
+        if(modal) modal.style.display = 'flex';
+    };
+
+    window.closeTicketModal = function() {
+        const modal = document.getElementById('ticket-modal');
+        if(modal) modal.style.display = 'none';
+        const form = document.getElementById('create-ticket-form');
+        if(form) form.reset();
+    };
+
+    window.submitServiceTicket = function(event) {
+        event.preventDefault();
+        frappe.call({
+            method: 'maintenance_app.api.create_service_ticket_from_equipment',
+            args: {
+                equipment_name: document.getElementById('modal-equipment-select').value,
+                subject: document.getElementById('modal-subject').value,
+                priority: document.getElementById('modal-priority').value,
+                description: document.getElementById('modal-description').value
+            },
+            freeze: true,
+            callback: function(r) {
+                if(r.message && r.message.ticket) {
+                    frappe.show_alert({ message: `✔ Ticket ${r.message.ticket} raised!`, indicator: 'green' });
+                    window.closeTicketModal();
+                    window.loadPortalData();
+                }
+            }
+        });
+    };
+
+    window.toggleAssetDrawer = function(assetId, event) {
+        if(event.target.tagName === 'SELECT' || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.tagName === 'A') return;
+        
+        const drawer = document.getElementById(`drawer-${assetId}`);
+        const indicator = document.getElementById(`ind-${assetId}`);
+        if(!drawer) return;
+
+        if(drawer.style.display === 'none') {
+            drawer.style.display = 'table-row';
+            if(indicator) indicator.textContent = '▾';
+            window.switchWorkspaceTab(assetId, 'logs'); 
+        } else {
+            drawer.style.display = 'none';
+            if(indicator) indicator.textContent = '▸';
+        }
+    };
+
+    window.filterTicketsByComponent = function(componentName) {
+        document.getElementById('tk-filter-branch').value = "";
+        document.getElementById('tk-filter-status').value = ""; 
+        
+        const filtered = window.PortalApp.cachedTickets.filter(t => {
+            return (t.custom_subject && t.custom_subject.includes(componentName)) || 
+                   (t.name && t.name === componentName);
+        });
+        
+        window.renderTicketsTable(filtered);
+        window.cpGo('tickets');
+    };
+
+    window.routeToTicketLedger = function(assetId, componentName) {
+        window.PortalApp.deepTargetAssetFilter = assetId;
+        window.PortalApp.deepTargetCompFilter = componentName || null;
+
+        document.getElementById('tk-filter-branch').value = "";
+        document.getElementById('tk-filter-status').value = ""; 
+
+        const resetBtn = document.getElementById('btn-clear-tk-search');
+        if(resetBtn) resetBtn.style.display = 'inline-block';
+
+        window.filterTickets();
+        window.cpGo('tickets');
+    };
+
+    window.resetTicketFilters = function() {
+        window.PortalApp.deepTargetAssetFilter = null;
+        window.PortalApp.deepTargetCompFilter = null;
+        
+        document.getElementById('tk-filter-status').value = "Open"; 
+        const resetBtn = document.getElementById('btn-clear-tk-search');
+        if(resetBtn) resetBtn.style.display = 'none';
+
+        window.filterTickets();
+    };
+
+    window.shortcutViewTickets = function(assetId, event) {
+        if(event) event.stopPropagation();
+        window.routeToTicketLedger(assetId);
+    };
+
+    window.shortcutViewServiceLogs = function(assetId, assetName, event) {
+        if(event) event.stopPropagation();
+        const logs = window.PortalApp.cachedTickets.filter(t => t.custom_target_equipment === assetId);
+        
+        let logRows = '';
+        if(logs.length === 0) {
+            logRows = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:20px;">No operational intervention summaries recorded.</td></tr>`;
+        } else {
+            logs.forEach(t => {
+                let statusColor = ['Closed', 'Resolved'].includes(t.custom_ticket_status) ? '#10b981' : '#f59e0b';
+                logRows += `
+                    <tr>
+                        <td style="color:#64748b; padding:12px;">${t.custom_opening_date || t.creation.split(' ')[0]}</td>
+                        <td style="padding:12px;"><span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-weight:600; font-size:12px;">Intervention</span></td>
+                        <td style="font-family:monospace; font-size:13px; color:#e2e8f0; padding:12px;">${window.PortalApp.userEmail}</td>
+                        <td style="font-weight:700; color:${statusColor}; padding:12px;">${t.custom_ticket_status}</td>
+                        <td style="color:#e2e8f0; font-size:13px; padding:12px;">${t.custom_subject || '-'}</td>
+                        <td style="padding:12px;"><a href="#" onclick="window.routeToTicketLedger('${assetId}'); document.getElementById('log-modal').remove(); return false;" style="color:#3b82f6; font-weight:600; text-decoration:none;">${t.name}</a></td>
+                    </tr>
+                `;
+            });
+        }
+
+        const modalHtml = `
+            <div id="log-modal" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.4); z-index:99999; display:flex; justify-content:center; align-items:center;">
+                <div style="background:#0f172a; color:#f8fafc; padding:24px; border-radius:12px; width:90%; max-width:960px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3); border:1px solid #334155;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #1e293b; padding-bottom:12px;">
+                        <div>
+                            <h3 style="color:white; font-size:16px;">Service Operational Logs Matrix</h3>
+                            <small style="color:#94a3b8;">Asset Profile: ${assetName} (${assetId})</small>
+                        </div>
+                        <button onclick="document.getElementById('log-modal').remove()" style="background:transparent; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+                    </div>
+                    <div style="overflow-x:auto; max-height:400px; border-radius:6px; background:#1e293b;">
+                        <table style="width:100%; text-align:left; font-size:13px; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#111827; color:#94a3b8; text-transform:uppercase; font-size:11px; letter-spacing:0.5px;">
+                                    <th style="padding:12px;">Date</th><th style="padding:12px;">Type</th><th style="padding:12px;">Technician</th><th style="padding:12px;">Outcome</th><th style="padding:12px;">Notes Summary</th><th style="padding:12px;">Ticket ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>${logRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    };
+
+    window.switchWorkspaceTab = function(assetId, tabId) {
+        const asset = window.PortalApp.cachedEquipment.find(eq => eq.name === assetId);
+        if(!asset) return;
+
+        document.querySelectorAll(`#drawer-${assetId} .workspace-tab-btn`).forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`tab-btn-${tabId}-${assetId}`);
+        if(activeBtn) activeBtn.classList.add('active');
+
+        const displayArea = document.getElementById(`workspace-view-${assetId}`);
+        if(!displayArea) return;
+        displayArea.innerHTML = '';
+
+        if(tabId === 'logs') {
+            const relatedTickets = window.PortalApp.cachedTickets.filter(t => t.custom_target_equipment === assetId);
+            let logRows = '';
+            if(relatedTickets.length === 0) {
+                logRows = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:24px; font-style:italic;">No structural interventions profiles found.</td></tr>`;
+            } else {
+                relatedTickets.forEach(t => {
+                    let statusColor = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status) ? '#10b981' : '#f59e0b';
+                    logRows += `
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:10px; color:#475569;">${t.custom_opening_date || t.creation.split(' ')[0]}</td>
+                            <td style="padding:10px;"><span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600;">Service</span></td>
+                            <td style="padding:10px; color:#334155; font-family:monospace;">${window.PortalApp.userEmail}</td>
+                            <td style="padding:10px; font-weight:700; color:${statusColor};">${t.custom_ticket_status}</td>
+                            <td style="padding:10px; color:#334155; font-size:13px;">${t.custom_subject || '-'}</td>
+                            <td style="padding:10px;"><a href="#" onclick="window.routeToTicketLedger('${assetId}'); return false;" style="color:#3b82f6; font-weight:700; text-decoration:none;">${t.name} →</a></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            displayArea.innerHTML = `
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f8fafc; color:#64748b; text-transform:uppercase; font-size:11px; font-weight:700;">
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Date</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Type</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Technician</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Outcome</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Notes Summary</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Ticket Link</th>
+                            </tr>
+                        </thead>
+                        <tbody>${logRows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        if(tabId === 'config') {
+            displayArea.innerHTML = `
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; padding:8px 0; font-size:13px; color:#475569;">
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">⚙️ <strong>Asset Base Ref:</strong> <span style="font-family:monospace; color:#1e293b; font-weight:600;">${asset.name}</span></div>
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">📜 <strong>Assigned SLA Contract:</strong> <span style="color:#1e293b; font-weight:600;">${asset.custom_maintenance_contract || 'Standard Coverage'}</span></div>
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">🛡️ <strong>Active Warranty Code:</strong> <span style="color:#1e293b; font-weight:600;">${asset.custom_warranty || 'None / Expired'}</span></div>
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">⏳ <strong>Inspections Status:</strong> <span class="badge badge-success" style="font-size:11px;">Validated In Use</span></div>
+                </div>
+            `;
+        }
+
+        if(tabId === 'components') {
+            displayArea.innerHTML = `
+                <div>
+                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px; background: #f8fafc; padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase;">1. System Group</label>
+                            <select id="group-select-${assetId}" onchange="window.handleDrawerGroupChange('${assetId}')" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #1e293b; background: white; font-weight: 600; outline: none; cursor: pointer; min-width: 180px; height: 34px;"></select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase;">2. Equipment Component</label>
+                            <select id="comp-select-${assetId}" onchange="window.handleDrawerComponentChange('${assetId}')" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #1e293b; background: white; font-weight: 600; outline: none; cursor: pointer; min-width: 220px; height: 34px;">
+                                <option value="">All Components</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="component-grid" id="grid-${assetId}"></div>
+                </div>
+            `;
+
+            const groupSelect = document.getElementById(`group-select-${assetId}`);
+            const compSelect = document.getElementById(`comp-select-${assetId}`);
+            const gridEl = document.getElementById(`grid-${assetId}`);
+
+            const components = asset.components || [];
+            if(components.length === 0) {
+                if(groupSelect) groupSelect.parentElement.parentElement.style.display = 'none';
+                if(gridEl) gridEl.innerHTML = '<div style="color:#64748b; font-size:13px; font-style:italic; padding: 5px 0;">No registered component tracking structures assigned to this asset block.</div>';
+                return;
+            }
+
+            const uniqueGroups = [...new Set(components.map(c => c.custom_component_group || 'General / Auxiliary System'))].sort();
+            groupSelect.innerHTML = '';
+            uniqueGroups.forEach(g => {
+                groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
+            });
+
+            gridEl.mapDataset = components;
+            gridEl.parentAssetName = assetId;
+            window.handleDrawerGroupChange(assetId);
+        }
+    };
+
+    window.handleDrawerGroupChange = function(assetId) {
+        const groupSelect = document.getElementById(`group-select-${assetId}`);
+        const compSelect = document.getElementById(`comp-select-${assetId}`);
+        const gridEl = document.getElementById(`grid-${assetId}`);
+        if(!groupSelect || !compSelect || !gridEl || !gridEl.mapDataset) return;
+
+        const selectedGroup = groupSelect.value;
+        const filteredComponents = gridEl.mapDataset.filter(c => (c.custom_component_group || 'General / Auxiliary System') === selectedGroup);
+
+        compSelect.innerHTML = '<option value="">All Components</option>';
+        filteredComponents.forEach(c => {
+            let labelRaw = c.custom_display_name || c.custom_component || 'Unnamed Part';
+            let labelClean = labelRaw.includes(' - ') ? labelRaw.split(' - ').pop() : labelRaw;
+            compSelect.innerHTML += `<option value="${labelRaw}">${labelClean}</option>`;
+        });
+
+        window.handleDrawerComponentChange(assetId);
+    };
+
+    window.handleDrawerComponentChange = function(assetId) {
+        const groupSelect = document.getElementById(`group-select-${assetId}`);
+        const compSelect = document.getElementById(`comp-select-${assetId}`);
+        const gridEl = document.getElementById(`grid-${assetId}`);
+        if(!groupSelect || !compSelect || !gridEl || !gridEl.mapDataset) return;
+
+        const currentGroup = groupSelect.value;
+        const currentCompName = compSelect.value;
+
+        gridEl.innerHTML = '';
+
+        const results = gridEl.mapDataset.filter(c => {
+            const matchesGroup = (c.custom_component_group || 'General / Auxiliary System') === currentGroup;
+            const itemLabel = c.custom_display_name || c.custom_component || '';
+            const matchesComp = !currentCompName || itemLabel === currentCompName;
+            return matchesGroup && matchesComp;
+        });
+
+        results.forEach(item => {
+            let rawTitle = item.custom_display_name || item.custom_component || 'Unnamed Component';
+            let cleanTitle = rawTitle.includes(' - ') ? rawTitle.split(' - ').pop() : rawTitle;
+            
+            let statusBadgeClass = 'badge-success';
+            if(item.custom_status === 'Faulty') statusBadgeClass = 'badge-error';
+            if(['Replaced', 'Removed'].includes(item.custom_status)) statusBadgeClass = 'badge-warning';
+
+            const openCompTickets = window.PortalApp.cachedTickets.filter(t => 
+                t.custom_target_equipment === assetId && 
+                !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status) &&
+                (t.custom_subject && t.custom_subject.toLowerCase().includes(rawTitle.toLowerCase()))
+            ).length;
+
+            const compTicketBadge = openCompTickets > 0 ? 
+                `<span class="badge badge-error" style="font-size:10px; padding:2px 6px;">⚠️ ${openCompTickets} Open</span>` : 
+                `<span style="font-size:11px; color:#94a3b8;">✔ Clear</span>`;
+
+            let partMake = item.custom_brand || '-';
+            let partModel = item.custom_model || '-';
+            let partSerial = item.custom_serial_number || 'N/A';
+
+            gridEl.innerHTML += `
+                <div class="component-item-card" style="background: #f8fafc; flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: flex-start; gap: 12px;">
+                        <div><span style="font-size:15px; font-weight:700; color:#1e293b;">${cleanTitle}</span></div>
+                        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                            <span class="badge ${statusBadgeClass}" style="font-size:11px; padding:2px 8px;">${item.custom_status || 'Installed'}</span>
+                            ${compTicketBadge}
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; width: 100%; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 12px;">
+                        <div style="color: #64748b;">Make: <strong style="color:#334155;">${partMake}</strong></div>
+                        <div style="color: #64748b;">Model: <strong style="color:#334155;">${partModel}</strong></div>
+                        <div style="color: #64748b; grid-column: span 2; border-top: 1px solid #f1f5f9; padding-top: 4px; margin-top: 2px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Serial No: <strong style="color:#334155; font-family: monospace;">${partSerial}</strong></span>
+                            <a href="#" onclick="window.routeToTicketLedger('${assetId}', '${cleanTitle}'); return false;" style="color:#3b82f6; font-weight:700; text-decoration:none; font-size:11px;">View Component Tickets →</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    };
+
+    window.renderEquipmentTable = function(assetsList) {
+        const tbody = document.getElementById('table-equipment-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(assetsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#64748b; padding:30px;">No asset inventory items match these filter configurations.</td></tr>';
+            return;
+        }
+
+        assetsList.forEach(eq => {
+            let healthClass = ['Excellent', 'Good'].includes(eq.custom_equipment_health) ? 'badge-success' : 'badge-warning';
+            let targetDueDate = eq.custom_next_maintenance_date || 'Unscheduled';
+            
+            const parentTicketCount = window.PortalApp.cachedTickets.filter(t => t.custom_target_equipment === eq.name && !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status)).length;
+            const parentTicketBadge = parentTicketCount > 0 ? `<span class="badge badge-error" style="margin-left:6px; padding:2px 6px; font-size:10px;">${parentTicketCount} Active</span>` : '';
+
+            tbody.innerHTML += `
+                <tr class="asset-row" onclick="window.toggleAssetDrawer('${eq.name}', event)">
+                    <td id="ind-${eq.name}" style="color:#64748b; font-weight:bold; text-align:center;">▸</td>
+                    <td><strong>${eq.custom_asset_name}</strong>${parentTicketBadge}</td>
+                    <td><strong>${eq.custom_branch || '-'}</strong></td>
+                    <td>${eq.custom_asset_category || '-'}</td>
+                    <td>${eq.custom_model || '-'}</td>
+                    <td><span class="badge badge-info">${eq.custom_asset_status || 'Operational'}</span></td>
+                    <td><span class="badge ${healthClass}">${eq.custom_equipment_health || 'Unknown'}</span></td>
+                    <td><span style="font-weight: 600; color: ${targetDueDate === 'Unscheduled' ? '#94a3b8' : '#1e293b'};">${targetDueDate}</span></td>
+                    <td style="text-align:center;" onclick="event.stopPropagation();">
+                        <button class="shortcut-btn" onclick="window.routeToTicketLedger('${eq.name}')" title="Cross Filter All Active Asset Tickets" style="font-size:12px; padding:4px 8px;">🎫 Filter Tab</button>
+                    </td>
+                </tr>
+                
+                <tr id="drawer-${eq.name}" style="display: none; background: #f8fafc;">
+                    <td colspan="9" style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0;">
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            <div style="display:flex; gap:10px; margin-bottom: 20px; border-bottom:1px solid #e2e8f0; padding-bottom:12px;">
+                                <button id="tab-btn-logs-${eq.name}" class="workspace-tab-btn active" onclick="window.switchWorkspaceTab('${eq.name}', 'logs')">📜 Service History Logs</button>
+                                <button id="tab-btn-components-${eq.name}" class="workspace-tab-btn" onclick="window.switchWorkspaceTab('${eq.name}', 'components')">📦 Components Sub-Matrix</button>
+                                <button id="tab-btn-config-${eq.name}" class="workspace-tab-btn" onclick="window.switchWorkspaceTab('${eq.name}', 'config')">⚙️ Technical Profile</button>
+                            </div>
+                            <div id="workspace-view-${eq.name}"></div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    };
+
+    window.renderTicketsTable = function(ticketsList) {
+        const tbody = document.getElementById('table-tickets-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(ticketsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:30px;">No service tickets match these filter configurations.</td></tr>';
+            return;
+        }
+
+        ticketsList.forEach(t => {
+            let isClosed = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status);
+            let statusClass = isClosed ? 'badge-success' : 'badge-warning';
+            
+            // Format timestamps cleanly
+            let openDate = t.custom_opening_date || (t.creation ? t.creation.split(' ')[0] : '-');
+            let closeDate = isClosed ? (t.modified ? t.modified.split(' ')[0] : '-') : '-- Active --';
+            
+            // Build out composite target item label info
+            let targetAsset = t.custom_target_equipment || t.custom_parent_equipment || '-';
+            let targetComp = t.custom_target_component_name ? `<br><small style="color:#64748b; font-weight:600;">🧩 Component: ${t.custom_target_component_name}</small>` : '';
+            
+            // Generate resolution preview block row dropdown text
+            let resolutionBlock = t.custom_resolution_details ? 
+                `<br><div style="margin-top:6px; background:#f0fdf4; border:1px solid #bbf7d0; padding:6px 10px; border-radius:4px; font-size:12px; color:#166534;"><strong>Resolution Details:</strong> ${t.custom_resolution_details}</div>` : '';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>
+                        <a href="/client-portal/ticket?name=${encodeURIComponent(t.name)}"
+                           style="color:#3b82f6;font-weight:700;text-decoration:none;">
+                            ${t.name}
+                        </a>
+                    </td>
+                    <td>
+                        <span style="font-weight:600; color:#1e293b;">${t.custom_subject || ''}</span>
+                        ${resolutionBlock}
+                    </td>
+                    <td><strong>${t.custom_client_branch || '-'}</strong></td>
+                    <td>
+                        <strong style="color:#475569;">${targetAsset}</strong>
+                        ${targetComp}
+                    </td>
+                    <td><span class="badge ${statusClass}">${t.custom_ticket_status}</span></td>
+                    <td style="color:#64748b; font-family:monospace;">${openDate}</td>
+                    <td style="color:#64748b; font-family:monospace; font-weight:600;">${closeDate}</td>
+                </tr>
+            `;
+        });
+    };
+
+    window.clearEquipmentDateFilters = function() {
+        document.getElementById('eq-filter-start-date').value = '';
+        document.getElementById('eq-filter-end-date').value = '';
+        window.filterEquipment();
+    };
+
+    window.filterEquipment = function() {
+        const selectedBranch = document.getElementById('eq-filter-branch').value;
+        const selectedCategory = document.getElementById('eq-filter-category').value;
+        const startVal = document.getElementById('eq-filter-start-date').value;
+        const endVal = document.getElementById('eq-filter-end-date').value;
+
+        const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
+        const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+
+        const filteredData = window.PortalApp.cachedEquipment.filter(eq => {
+            const matchesBranch = !selectedBranch || eq.custom_branch === selectedBranch;
+            const matchesCategory = !selectedCategory || eq.custom_asset_category === selectedCategory;
+            
+            let matchesDateRange = true;
+            const nextMaintStr = eq.custom_next_maintenance_date;
+            
+            if (startDate || endDate) {
+                if (!nextMaintStr) {
+                    matchesDateRange = false; 
+                } else {
+                    const maintTime = new Date(nextMaintStr).getTime();
+                    if (startDate && maintTime < startDate) matchesDateRange = false;
+                    if (endDate && maintTime > endDate) matchesDateRange = false;
+                }
+            }
+            return matchesBranch && matchesCategory && matchesDateRange;
+        });
+        window.renderEquipmentTable(filteredData);
+    };
+
+    window.filterTickets = function() {
+        const selectedBranch = document.getElementById('tk-filter-branch').value;
+        const selectedStatusGroup = document.getElementById('tk-filter-status').value;
+
+        const filteredData = window.PortalApp.cachedTickets.filter(t => {
+            if (window.PortalApp.deepTargetAssetFilter) {
+                if (t.custom_target_equipment !== window.PortalApp.deepTargetAssetFilter) return false;
+                if (window.PortalApp.deepTargetCompFilter) {
+                    const subjectMatch = t.custom_subject && t.custom_subject.toLowerCase().includes(window.PortalApp.deepTargetCompFilter.toLowerCase());
+                    if (!subjectMatch) return false;
+                }
+                return true; 
+            }
+
+            const matchesBranch = !selectedBranch || t.custom_client_branch === selectedBranch;
+            let matchesStatus = true;
+            const isClosed = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status);
+            if(selectedStatusGroup === 'Open') {
+                matchesStatus = !isClosed;
+            } else if(selectedStatusGroup === 'Closed') {
+                matchesStatus = isClosed;
+            }
+            return matchesBranch && matchesStatus;
+        });
+        window.renderTicketsTable(filteredData);
+    };
+
+    
+
+window.loadPortalData = function() {
+        let loadedCount = 0;
+        const totalRequests = 4;
+        
+        // Orchestration barrier checking tool
+        const checkDone = () => {
+            loadedCount++;
+            if(loadedCount === totalRequests) {
+                const alertBox = document.getElementById('portal-status-alert');
+                if(alertBox) alertBox.style.display = 'none';
+                
+                // 🌟 CRITICAL FIX: Ensure tables render ONLY after ALL data arrays are hot in memory!
+                window.renderEquipmentTable(window.PortalApp.cachedEquipment);
+                window.filterTickets();
+            }
+        };
+
+        // 1. Branches API
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_branches',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                const tbody = document.getElementById('table-branches-body');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                const branches = r.message || [];
+                if(branches.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#64748b; padding:30px;">No operating branches found.</td></tr>';
+                }
+                branches.forEach(b => {
+                    tbody.innerHTML += `<tr><td><strong>${b.custom_branch || b.name}</strong></td><td>${b.custom_address || '-'}</td><td><span class="badge badge-info">${b.custom_site_type || 'N/A'}</span></td></tr>`;
+                });
+                checkDone();
+            }
+        });
+
+        // 2. Tickets API (Moved up so it populates ahead of table drawings)
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_tickets',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                window.PortalApp.cachedTickets = r.message || [];
+                
+                const openCount = window.PortalApp.cachedTickets.filter(t => !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status)).length;
+                const openTicketsEl = document.getElementById('stat-open-tickets');
+                if(openTicketsEl) openTicketsEl.textContent = openCount;
+                
+                const branchFilterSelect = document.getElementById('tk-filter-branch');
+                if(branchFilterSelect) {
+                    branchFilterSelect.innerHTML = '<option value="">All Operating Branches</option>';
+                    const uniqueBranches = [...new Set(window.PortalApp.cachedTickets.map(t => t.custom_client_branch).filter(Boolean))];
+                    uniqueBranches.sort().forEach(b => {
+                        branchFilterSelect.innerHTML += `<option value="${b}">${b}</option>`;
+                    });
+                }
+                checkDone();
+            }
+        });
+
+        // 3. Equipment API
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_equipment',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                console.log("--- RAW SERVER DATA RECEIVED ---", r.message);
+                window.PortalApp.cachedEquipment = r.message || [];
+                const countEl = document.getElementById('stat-equipment-count');
+                if(countEl) countEl.textContent = window.PortalApp.cachedEquipment.length;
+                
+                const branchFilterSelect = document.getElementById('eq-filter-branch');
+                if(branchFilterSelect) {
+                    branchFilterSelect.innerHTML = '<option value="">All Operating Branches</option>';
+                    const uniqueBranches = [...new Set(window.PortalApp.cachedEquipment.map(eq => eq.custom_branch).filter(Boolean))];
+                    uniqueBranches.sort().forEach(b => {
+                        branchFilterSelect.innerHTML += `<option value="${b}">${b}</option>`;
+                    });
+                }
+
+                const catFilterSelect = document.getElementById('eq-filter-category');
+                if(catFilterSelect) {
+                    catFilterSelect.innerHTML = '<option value="">All Categories</option>';
+                    const uniqueCats = [...new Set(window.PortalApp.cachedEquipment.map(eq => eq.custom_asset_category).filter(Boolean))];
+                    uniqueCats.sort().forEach(c => {
+                        catFilterSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                    });
+                }
+                checkDone();
+            }
+        });
+
+        // 4. Contracts API
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_contracts',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                const contracts = r.message || [];
+                const activeMcEl = document.getElementById('stat-active-mc');
+                if(activeMcEl) activeMcEl.textContent = contracts.length;
+                
+                const tbody = document.getElementById('table-contracts-body');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                if(contracts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:30px;">No active maintenance agreements found.</td></tr>';
+                }
+                contracts.forEach(c => {
+                    tbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td>${c.custom_contract_title || '-'}</td><td>${c.custom_contract_type || ''}</td><td>${c.custom_end_date || '-'}</td><td><span class="badge badge-success">${c.custom_status}</span></td></tr>`;
+                });
+                checkDone();
+            }
+        });
+    };    
+
+window.toggleEquipmentSubmenu = function(event) {
+        if (event) event.stopPropagation();
+        
+        const submenu = document.getElementById('sidebar-eq-submenu');
+        const indicator = document.getElementById('sidebar-eq-indicator');
+        
+        if (!submenu || !indicator) return;
+
+        if (submenu.style.display === 'none') {
+            submenu.style.display = 'block';
+            indicator.textContent = '−'; // Changes to a minus sign when expanded
+        } else {
+            submenu.style.display = 'none';
+            indicator.textContent = '+'; // Changes back to a plus sign when closed
+        }
+    };
+
+window.toggleReportsSubmenu = function(event) {
+    if (event) event.stopPropagation();
+    
+    const submenu = document.getElementById('sidebar-reports-submenu');
+    const indicator = document.getElementById('sidebar-reports-indicator');
+    
+    if (!submenu || !indicator) return;
+
+    if (submenu.style.display === 'none') {
+        submenu.style.display = 'block';
+        indicator.textContent = '−';
+    } else {
+        submenu.style.display = 'none';
+        indicator.textContent = '+';
+    }
+};
+
+// Toggle Sidebar visibility state flag
+    window.toggleMainSidebar = function(event) {
+        if (event) event.stopPropagation();
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('open');
+        }
+    };
+
+    // Close the sidebar drawer if a client taps anywhere outside on the main dashboard wrapper
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        
+        if (sidebar && sidebar.classList.contains('open')) {
+            if (!sidebar.contains(event.target) && event.target !== toggleBtn) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+
+    // Intercept navigation loops to slide the menu shut automatically when clicking items
+    const originalCpGo = window.cpGo;
+    window.cpGo = function(panelId) {
+        if (typeof originalCpGo === 'function') {
+            originalCpGo(panelId);
+        }
+        // Smoothly retract left menu drawer once tab content targets transition
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('open');
+        }
+    };
+</script>

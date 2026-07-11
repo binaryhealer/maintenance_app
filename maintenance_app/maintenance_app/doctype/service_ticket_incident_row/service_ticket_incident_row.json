@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-02 11:28:43.853863",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_hse_incident_report",
+  "custom_incident_type",
+  "custom_severity",
+  "column_break_bcsb",
+  "custom_incident_datetime",
+  "custom_status",
+  "section_break_snbi",
+  "custom_description"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_hse_incident_report",
+   "fieldtype": "Link",
+   "label": "Hse Incident Report",
+   "options": "HSE Incident Report"
+  },
+  {
+   "fieldname": "custom_incident_type",
+   "fieldtype": "Data",
+   "label": "Incident Type"
+  },
+  {
+   "fieldname": "custom_severity",
+   "fieldtype": "Data",
+   "label": "Severity"
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "custom_incident_datetime",
+   "fieldtype": "Datetime",
+   "label": "Incident Datetime"
+  },
+  {
+   "fieldname": "custom_description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_bcsb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_snbi",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-02 11:39:17.054143",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket Incident Row",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

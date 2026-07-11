@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ticket Details</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+        /* HEADER */
+        .ticket-header {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .ticket-title-section h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .ticket-meta {
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .ticket-status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .status-open {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+        }
+
+        .status-in-progress {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .status-resolved {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-closed {
+            background: rgba(107, 114, 128, 0.1);
+            color: var(--gray-600);
+        }
+
+        /* GRID LAYOUT */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .details-grid { grid-template-columns: 1fr; }
+            .ticket-header { flex-direction: column; }
+        }
+
+        /* CARD */
+        .card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* FIELD */
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .field-value {
+            font-size: 14px;
+            color: var(--gray-900);
+            padding: 8px 12px;
+            background: var(--gray-50);
+            border-radius: 4px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .field-value.empty {
+            color: var(--gray-500);
+            font-style: italic;
+        }
+
+        /* PRIORITY BADGE */
+        .priority-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .priority-low { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .priority-medium { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .priority-high { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .priority-urgent { background: #8B0000; color: white; }
+
+        /* INTERVENTIONS */
+        .intervention-item {
+            padding: 16px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            background: var(--gray-50);
+        }
+
+        .intervention-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .intervention-date {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+
+        .intervention-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .intervention-detail {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .intervention-detail-label {
+            color: var(--gray-600);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .intervention-detail-value {
+            color: var(--gray-900);
+        }
+
+        /* EQUIPMENT SECTION */
+        .equipment-badge {
+            display: inline-block;
+            padding: 8px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 4px 4px 4px 0;
+        }
+
+        /* BUTTONS */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        /* TIMELINE */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline-item {
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--gray-300);
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+        }
+
+        .timeline-item.completed::before {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .timeline-label {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-500);
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 16px;
+            border-radius: 6px;
+            border-left: 4px solid var(--danger);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- HEADER -->
+    <div class="ticket-header" id="ticket-header">
+    <div class="ticket-title-section">
+        <h1 id="ticket-id">-</h1>
+        <div class="ticket-meta">
+            <p>Opened: <span id="opening-date">-</span></p>
+            <p>Priority: <span id="priority-display">-</span></p>
+        </div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
+        <a href="/client-portal" style="color: var(--primary); font-weight: 600; text-decoration: none; padding: 8px 16px; border: 1px solid var(--gray-200); border-radius: 6px; display: inline-block; transition: all 0.2s; font-size: 14px;">
+            ← Back to Portal
+        </a>
+        <div class="ticket-status-badge" id="status-badge">-</div>
+    </div>
+</div>
+
+    <!-- TICKET DETAILS -->
+    <div class="details-grid">
+        <!-- LEFT COLUMN -->
+        <div>
+            <!-- TICKET INFO -->
+            <div class="card">
+                <div class="card-title">📋 Ticket Information</div>
+                
+                <div class="field">
+                    <div class="field-label">Subject</div>
+                    <div class="field-value" id="subject">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Description</div>
+                    <div class="field-value" id="description">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Request Type</div>
+                    <div class="field-value" id="request-type">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Status</div>
+                    <div class="field-value" id="status-detail">-</div>
+                </div>
+            </div>
+
+            <!-- APPLICANT INFO -->
+            <div class="card">
+                <div class="card-title">👤 Applicant Information</div>
+                
+                <div class="field">
+                    <div class="field-label">Name</div>
+                    <div class="field-value" id="applicant-name">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Email</div>
+                    <div class="field-value" id="applicant-email">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Phone</div>
+                    <div class="field-value" id="applicant-phone">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+            <!-- EQUIPMENT INFO -->
+            <div class="card">
+                <div class="card-title">⚙️ Equipment Details</div>
+                
+                <div class="field">
+                    <div class="field-label">Equipment</div>
+                    <div class="field-value" id="target-equipment">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Branch</div>
+                    <div class="field-value" id="branch">-</div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">Component</div>
+                    <div class="field-value" id="component">-</div>
+                </div>
+            </div>
+
+            <!-- DATES -->
+            <div class="card">
+                <div class="card-title">📅 Timeline</div>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-label">Opened</div>
+                        <div class="timeline-date" id="timeline-opened">-</div>
+                    </div>
+                    
+                    <div class="timeline-item" id="timeline-resolved-item" style="display: none;">
+                        <div class="timeline-label">Resolved</div>
+                        <div class="timeline-date" id="timeline-resolved">-</div>
+                    </div>
+                    
+                    <div class="timeline-item" id="timeline-closed-item" style="display: none;">
+                        <div class="timeline-label">Closed</div>
+                        <div class="timeline-date" id="timeline-closed">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERVENTIONS -->
+    <div class="card" id="interventions-card">
+        <div class="card-title">🔧 Service Interventions</div>
+        <div id="interventions-list"></div>
+    </div>
+
+    <!-- RESOLUTION DETAILS -->
+    <div class="card" id="resolution-card" style="display: none;">
+        <div class="card-title">✓ Resolution Details</div>
+        <div class="field">
+            <div class="field-label">Resolution Notes</div>
+            <div class="field-value" id="resolution-details">-</div>
+        </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="button-group">
+        <button class="btn-secondary" onclick="history.back()">← Back to Tickets</button>
+        <button class="btn-primary" onclick="printTicket()">🖨 Print</button>
+    </div>
+</div>
+
+<script>
+// Get ticket ID from URL
+function showError(message) {
+    console.error(message);
+
+    let err = document.getElementById("page-error");
+
+    if (err) {
+        err.style.display = "block";
+        err.innerHTML = message;
+    } else {
+        alert(message);
+    }
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const ticketId = urlParams.get("name") || urlParams.get("ticket");
+
+if (!ticketId) {
+    showError("No ticket specified.");
+} else {
+    loadTicketDetails(ticketId);
+}
+
+function loadTicketDetails(ticketId) {
+    const formData = new FormData();
+    formData.append("ticket_name", ticketId);
+
+    fetch("/api/method/maintenance_app.api.client_portal_get_ticket_detail", {
+        method: "POST",
+        body: formData
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        console.log("Ticket detail response:", data);
+
+        if (!data.message) {
+            showError("No ticket data returned. Check console response.");
+            return;
+        }
+
+        renderTicket(data.message.ticket || {});
+        renderInterventions(data.message.interventions || []);
+    })
+    .catch(function(error) {
+        console.error(error);
+        showError("Unable to load ticket.");
+    });
+}
+
+function renderTicket(ticket) {
+    const statusClass = 'status-' + (ticket.custom_ticket_status || 'open').toLowerCase();
+    
+    document.getElementById('ticket-id').textContent = ticket.name;
+    document.getElementById('opening-date').textContent = formatDate(ticket.custom_opening_date);
+    document.getElementById('subject').textContent = ticket.custom_subject || '-';
+    document.getElementById('description').textContent = ticket.custom_description || '-';
+    document.getElementById('request-type').textContent = ticket.custom_request_type || '-';
+    document.getElementById('status-detail').textContent = ticket.custom_ticket_status || '-';
+    document.getElementById('applicant-name').textContent = ticket.custom_applicant || '-';
+    document.getElementById('applicant-email').textContent = ticket.custom_applicant_email || '-';
+    document.getElementById('applicant-phone').textContent = ticket.custom_applicant_phone || '-';
+    document.getElementById('target-equipment').textContent = ticket.target_equipment_display || ticket.custom_target_equipment || '-';
+    document.getElementById('branch').textContent = ticket.custom_client_branch || '-';
+    document.getElementById('component').textContent = ticket.custom_target_component_name || ticket.custom_target_component || '-';
+    
+    // Priority
+    const priorityClass = 'priority-' + (ticket.custom_priority || 'medium').toLowerCase();
+    document.getElementById('priority-display').innerHTML = 
+        `<span class="priority-badge ${priorityClass}">${ticket.custom_priority}</span>`;
+    
+    // Status badge
+    const badge = document.getElementById('status-badge');
+    badge.className = 'ticket-status-badge ' + statusClass;
+    badge.textContent = ticket.custom_ticket_status;
+    
+    // Timeline
+    document.getElementById('timeline-opened').textContent = formatDate(ticket.custom_opening_date);
+    
+    if (ticket.custom_resolution_date) {
+        document.getElementById('timeline-resolved-item').style.display = 'block';
+        document.getElementById('timeline-resolved').textContent = formatDate(ticket.custom_resolution_date);
+    }
+    
+    if (ticket.custom_closed_date) {
+        document.getElementById('timeline-closed-item').style.display = 'block';
+        document.getElementById('timeline-closed').textContent = formatDate(ticket.custom_closed_date);
+    }
+    
+    // Resolution details
+    if (ticket.custom_resolution_details) {
+        document.getElementById('resolution-card').style.display = 'block';
+        document.getElementById('resolution-details').textContent = ticket.custom_resolution_details;
+    }
+}
+
+function renderInterventions(interventions) {
+    const list = document.getElementById('interventions-list');
+    
+    if (!interventions || interventions.length === 0) {
+        list.innerHTML = '<p style="color: var(--gray-500);">No interventions recorded yet</p>';
+        return;
+    }
+    
+    list.innerHTML = interventions.map(intervention => `
+        <div class="intervention-item">
+            <div class="intervention-header">
+                <a href="/client-portal/intervention?name=${encodeURIComponent(intervention.name)}" style="color:#3b82f6;font-weight:700;text-decoration:none;">
+                    🔧 ${intervention.name}
+                </a>
+                <span class="intervention-date">${formatDate(intervention.custom_start_time)}</span>
+            </div>
+            
+            <div class="intervention-details">
+                <div class="intervention-detail">
+                    <div class="intervention-detail-label">Technician</div>
+                    <div class="intervention-detail-value">${intervention.custom_technician || '-'}</div>
+                </div>
+                
+                <div class="intervention-detail">
+                    <div class="intervention-detail-label">Hours Worked</div>
+                    <div class="intervention-detail-value">${intervention.custom_hours_worked || '-'}</div>
+                </div>
+                
+                <div class="intervention-detail">
+                    <div class="intervention-detail-label">Outcome</div>
+                    <div class="intervention-detail-value">${intervention.custom_work_outcome || '-'}</div>
+                </div>
+                
+                <div class="intervention-detail">
+                    <div class="intervention-detail-label">Progress</div>
+                    <div class="intervention-detail-value">${intervention.custom_work_progress || '-'}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+function printTicket() {
+    window.print();
+}
+</script>
+</body>
+</html>

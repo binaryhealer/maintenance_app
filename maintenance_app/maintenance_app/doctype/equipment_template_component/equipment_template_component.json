@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-18 22:50:57.403884",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_component_group",
+  "custom_equipment_type",
+  "custom_qty",
+  "custom_mandatory",
+  "custom_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_component_group",
+   "fieldtype": "Link",
+   "label": "Component Group",
+   "options": "Equipment Component Group"
+  },
+  {
+   "fieldname": "custom_qty",
+   "fieldtype": "Int",
+   "label": "Quantity"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_mandatory",
+   "fieldtype": "Check",
+   "label": "Mandatory"
+  },
+  {
+   "fieldname": "custom_notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "custom_equipment_type",
+   "fieldtype": "Link",
+   "label": "Equipment Type",
+   "options": "Equipment Type"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-19 05:24:16.082013",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Equipment Template Component",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

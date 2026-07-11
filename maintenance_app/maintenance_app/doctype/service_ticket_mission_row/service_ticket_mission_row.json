@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-06 13:04:46.753078",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_tech_mission",
+  "custom_mission_number",
+  "custom_mission_status",
+  "custom_planned_starttime",
+  "custom_planned_endtime",
+  "custom_actual_starttime",
+  "custom_actual_endtime",
+  "custom_work_outcome",
+  "custom_assigned_technicians",
+  "custom_fault_type",
+  "custom_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_tech_mission",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tech Miffision Ref",
+   "options": "Tech Mission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_mission_number",
+   "fieldtype": "Int",
+   "label": "Mission Number"
+  },
+  {
+   "fieldname": "custom_mission_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mission Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_planned_starttime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Planned Starttime",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_planned_endtime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Planned Endtime"
+  },
+  {
+   "fieldname": "custom_work_outcome",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Work Outcome",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_assigned_technicians",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Technicians",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_notes",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Notes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_fault_type",
+   "fieldtype": "Data",
+   "label": "Fault Type"
+  },
+  {
+   "fieldname": "custom_actual_starttime",
+   "fieldtype": "Datetime",
+   "label": "Actual Start Time"
+  },
+  {
+   "fieldname": "custom_actual_endtime",
+   "fieldtype": "Datetime",
+   "label": "Actual Endtime"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-07 06:00:19.905254",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket Mission Row",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

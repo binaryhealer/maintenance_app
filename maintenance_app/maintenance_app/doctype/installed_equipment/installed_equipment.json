@@ -20,6 +20,7 @@
   "custom_asset_id",
   "custom_asset_type",
   "custom_site_id",
+  "custom_equipment_template",
   "section_break_sffk",
   "custom_next_maintenance_date",
   "custom_ownership",
@@ -364,6 +365,12 @@
    "fieldname": "custom_next_maintenance_date",
    "fieldtype": "Date",
    "label": "Next Maintenance Date"
+  },
+  {
+   "fieldname": "custom_equipment_template",
+   "fieldtype": "Link",
+   "label": "Equipment Template",
+   "options": "Equipment Template"
   }
  ],
  "grid_page_length": 50,
@@ -386,7 +393,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-06-15 07:42:33.365241",
+ "modified": "2026-06-19 04:48:50.781544",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

@@ -10,7 +10,8 @@
   "custom_naming_series",
   "custom_parent_customer",
   "custom_branch",
-  "custom_asset",
+  "custom_target_component_name",
+  "custom_parent_equipment",
   "custom_planned_team",
   "custom_requires_parts",
   "custom_mission_status",
@@ -20,7 +21,7 @@
   "custom_count_each_technician",
   "custom_subject",
   "custom_component_group",
-  "custom_component_item",
+  "custom_asset",
   "section_break_lkej",
   "custom_intervention_table",
   "tab_2_tab",
@@ -36,6 +37,7 @@
   "custom_ticket_type",
   "custom_component_brand",
   "custom_component_model",
+  "custom_component_item",
   "column_break_wpxe",
   "custom_total_hours",
   "custom_total_actual_hours",
@@ -248,7 +250,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nInspection\nConfig Change\nAsset Relocation\nSwap\nLoan\nRetirement\nDisposal\nCalibration",
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation",
    "read_only": 1
   },
   {
@@ -320,6 +322,7 @@
   {
    "fieldname": "custom_component_item",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Component Item"
   },
   {
@@ -350,12 +353,22 @@
   {
    "fieldname": "branch_details_column",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_target_component_name",
+   "fieldtype": "Data",
+   "label": "Target Component Name"
+  },
+  {
+   "fieldname": "custom_parent_equipment",
+   "fieldtype": "Data",
+   "label": "Parent Equipment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-08 13:56:50.044355",
+ "modified": "2026-07-02 13:19:58.829546",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

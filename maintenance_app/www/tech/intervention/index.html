@@ -418,6 +418,52 @@
     max-width: 460px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
+
+/* =========================
+   HSE INCIDENTS
+========================= */
+
+.hse-incident-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.hse-incident-row {
+    background: #f9fafb;
+    border: 1px solid #eef0f3;
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.hse-incident-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.hse-severity-pill {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.hse-sev-low { background: #dcfce7; color: #166534; }
+.hse-sev-medium { background: #fef3c7; color: #92400e; }
+.hse-sev-high { background: #fee2e2; color: #991b1b; }
+.hse-sev-critical { background: #7f1d1d; color: #ffffff; }
+.hse-sev-default { background: #e5e7eb; color: #374151; }
+
+.hse-photo-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
 </style>
 
 <div class="container mt-3">
@@ -515,6 +561,21 @@
                         <div class="info-value">{{ mi.custom_asset or "-" }} ›</div>
                     </a>
 
+
+                    <div class="summary-item">
+                        <div class="info-label">Target / Faulty Item</div>
+                        <div class="info-value">
+                            {{ mi.custom_target_component_name or "-" }}
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="info-label">Parent Equipment</div>
+                        <div class="info-value">
+                            {{ mi.custom_parent_equipment or "-" }}
+                        </div>
+                    </div>
+
                     <div class="summary-item">
                         <div class="info-label">Technician</div>
                         <div class="info-value">{{ mi.custom_technician or "-" }}</div>
@@ -556,6 +617,28 @@
                     <div class="info-label">Intervention Type</div>
                     <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
                 </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Intervention Type</div>
+                    <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Component Brand</div>
+                    <div class="info-value">{{ mi.custom_component_brand or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Component Model</div>
+                    <div class="info-value">{{ mi.custom_component_model or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Component Serial</div>
+                    <div class="info-value">{{ mi.custom_component_serial or "-" }}</div>
+                </div>
+
+<!-- existing fields continue below -->
 
                 <a class="summary-item info-link" href="/app/service-ticket/{{ mi.custom_service_ticket }}">
                     <div class="info-label">Service Ticket</div>
@@ -677,6 +760,34 @@
 
 </details>
 
+        <details class="mi-card accordion-card" id="hse-incidents-section">
+            <summary>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="section-title mb-0">⚠️ HSE / Incidents</span>
+                    <span class="muted-small">tap to expand</span>
+                </div>
+            </summary>
+
+            <div class="accordion-body">
+                {% if mi.docstatus == 0 %}
+                    <button class="btn btn-outline-danger action-btn" type="button" onclick="showHSEIncidentModal()">
+                        + Add Incident
+                    </button>
+                    <div class="field-help">
+                        Use this only for incidents noticed onsite, such as spill, injury, near miss, fire, or unsafe condition.
+                    </div>
+                {% else %}
+                    <div class="readonly-box">
+                        Submitted intervention: incident entries are locked.
+                    </div>
+                {% endif %}
+
+                <div id="hse-incident-list" class="hse-incident-list">
+                    Loading incidents...
+                </div>
+            </div>
+        </details>
+
         <details class="mi-card accordion-card" {% if mi.custom_start_time and not mi.custom_work_outcome and mi.docstatus == 0 %}open{% endif %}>
             <summary>
                 <div class="d-flex justify-content-between align-items-center">
@@ -703,7 +814,18 @@
                             <option value="Waiting for Client">Waiting for Client</option>
                             <option value="To Quote (Billable)">To Quote (Billable)</option>
                             <option value="Could Not Complete">Could Not Complete</option>
+                            <option value="False Call Out">False Call Out</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3" id="fault-type-row" style="display:none;">
+                        <label class="form-label"><b>Fault Type</b></label>
+                        <select id="fault_type" class="form-control">
+                            <option value="">Loading fault types...</option>
+                        </select>
+                        <div class="field-help">
+                            Required for completed Repair interventions.
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -726,6 +848,11 @@
                     <div class="summary-item mb-2">
                         <div class="info-label">Work Outcome</div>
                         <div class="info-value">{{ mi.custom_work_outcome or "-" }}</div>
+                    </div>
+
+                    <div class="summary-item mb-2">
+                        <div class="info-label">Fault Type</div>
+                        <div class="info-value">{{ mi.custom_fault_type or "-" }}</div>
                     </div>
 
                     <div class="summary-item">
@@ -768,42 +895,7 @@
                     </div>
                 {% endif %}
 
-                <div class="mb-3">
-                    <label class="form-label"><b>Signatory Name</b></label>
-                    <input id="signatory_name"
-                           class="form-control"
-                           type="text"
-                           value="{{ mi.custom_signatory_name or '' }}"
-                           {% if mi.docstatus == 1 %}readonly{% endif %}>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label"><b>Client Signature</b></label>
-                    <canvas id="client_signature_pad" class="signature-pad"></canvas>
-                    {% if mi.docstatus == 0 %}
-                        <div class="signature-actions">
-                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="clear_signature('client')">Clear</button>
-                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="mark_signature_saved('client')">Confirm</button>
-                        </div>
-                    {% else %}
-                        <div class="readonly-box mt-2">Submitted intervention: signature locked.</div>
-                    {% endif %}
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label"><b>Technician Signature</b></label>
-                    <canvas id="tech_signature_pad" class="signature-pad"></canvas>
-                    {% if mi.docstatus == 0 %}
-                        <div class="signature-actions">
-                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="clear_signature('tech')">Clear</button>
-                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="mark_signature_saved('tech')">Confirm</button>
-                        </div>
-                    {% else %}
-                        <div class="readonly-box mt-2">Submitted intervention: signature locked.</div>
-                    {% endif %}
-                </div>
-
-                <div class="confirmation-grid">
+                <div class="confirmation-grid mb-3">
                     <div>
                         <label class="form-label"><b>Quality Rating</b></label>
                         {% if mi.docstatus == 1 %}
@@ -841,6 +933,41 @@
                             </select>
                         {% endif %}
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><b>Client Signature</b></label>
+                    <canvas id="client_signature_pad" class="signature-pad"></canvas>
+                    {% if mi.docstatus == 0 %}
+                        <div class="signature-actions">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="clear_signature('client')">Clear</button>
+                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="mark_signature_saved('client')">Confirm</button>
+                        </div>
+                    {% else %}
+                        <div class="readonly-box mt-2">Submitted intervention: signature locked.</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><b>Signatory Name</b></label>
+                    <input id="signatory_name"
+                           class="form-control"
+                           type="text"
+                           value="{{ mi.custom_signatory_name or '' }}"
+                           {% if mi.docstatus == 1 %}readonly{% endif %}>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><b>Technician Signature</b></label>
+                    <canvas id="tech_signature_pad" class="signature-pad"></canvas>
+                    {% if mi.docstatus == 0 %}
+                        <div class="signature-actions">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="clear_signature('tech')">Clear</button>
+                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="mark_signature_saved('tech')">Confirm</button>
+                        </div>
+                    {% else %}
+                        <div class="readonly-box mt-2">Submitted intervention: signature locked.</div>
+                    {% endif %}
                 </div>
 
                 {% if mi.docstatus == 0 %}
@@ -978,6 +1105,50 @@
     </div>
 </div>
 
+
+<div id="hse-incident-modal" class="custom-modal" style="display:none;">
+    <div class="custom-modal-box">
+        <h4>Add HSE Incident</h4>
+
+        <label class="form-label"><b>Incident Type</b></label>
+        <select id="hse_incident_type" class="form-control" onchange="onHSEIncidentTypeChange()">
+            <option value="">Loading incident types...</option>
+        </select>
+
+        <label class="form-label mt-3"><b>Severity</b></label>
+        <input id="hse_severity" class="form-control" readonly>
+
+        <div class="form-check mt-3">
+            <input id="hse_requires_investigation" class="form-check-input" type="checkbox">
+            <label class="form-check-label" for="hse_requires_investigation">
+                Requires Investigation
+            </label>
+        </div>
+
+        <label class="form-label mt-3"><b>Incident Date / Time</b></label>
+        <input id="hse_incident_datetime" class="form-control" type="datetime-local">
+
+        <label class="form-label mt-3"><b>Description</b></label>
+        <textarea id="hse_description" class="form-control" rows="3" placeholder="What happened?"></textarea>
+
+        <label class="form-label mt-3"><b>Immediate Action</b></label>
+        <textarea id="hse_immediate_action" class="form-control" rows="3" placeholder="What action was taken immediately?"></textarea>
+
+        <label class="form-label mt-3"><b>Photo</b></label>
+        <input id="hse_photo" class="form-control" type="file" accept="image/*">
+
+        <div class="mt-3 d-flex gap-2">
+            <button type="button" class="btn btn-danger action-btn" onclick="submitHSEIncident('{{ mi.name }}')">
+                Save Incident
+            </button>
+
+            <button type="button" class="btn btn-outline-secondary action-btn" onclick="closeHSEIncidentModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 function reload_page() {
     window.location.reload();
@@ -1035,12 +1206,24 @@ function check_in(mi_name) {
 function save_work_outcome(mi_name) {
     let outcome_el = document.getElementById("checkout_outcome");
     let notes_el = document.getElementById("checkout_notes");
+    let fault_el = document.getElementById("fault_type");
 
     let outcome = outcome_el ? outcome_el.value : "";
     let notes = notes_el ? notes_el.value : "";
+    let fault_type = fault_el ? fault_el.value : "";
+    let intervention_type = "{{ mi.custom_intervention_type or '' }}";
 
     if (!outcome) {
         frappe.msgprint("Please select final outcome.");
+        return;
+    }
+
+    if (
+        intervention_type === "Repair" &&
+        outcome === "Work Completed" &&
+        !fault_type
+    ) {
+        frappe.msgprint("Please select Fault Type for completed Repair work.");
         return;
     }
 
@@ -1063,22 +1246,13 @@ function save_work_outcome(mi_name) {
             let doc = r.message;
             doc.custom_work_outcome = outcome;
             doc.custom_work_progress = notes;
+            doc.custom_fault_type = fault_type || "";
 
-            if (outcome === "Work Completed") {
-                if (!doc.custom_completed_time) {
-                    doc.custom_completed_time = frappe.datetime.now_datetime();
-                }
-                doc.custom_checkout_status = "Work Completed";
-            } else {
-                // Non-completed outcomes are valid, but Checkout Status cannot use
-                // Continue Work / Waiting for Parts / Waiting for Client / To Quote.
-                // Keep the current valid checkout status until client signs/checks out.
-                doc.custom_completed_time = "";
-
-                if (!doc.custom_checkout_status || doc.custom_checkout_status === "Not Started") {
-                    doc.custom_checkout_status = "Checked In";
-                }
+            if (!doc.custom_completed_time) {
+                doc.custom_completed_time = frappe.datetime.now_datetime();
             }
+
+            doc.custom_checkout_status = "Work Completed";
 
             frappe.call({
                 method: "frappe.client.save",
@@ -1196,9 +1370,11 @@ function submit_mi(mi_name) {
                     doc.custom_completed_time = doc.custom_end_time || frappe.datetime.now_datetime();
                 }
             } else {
-                // Continue Work / Waiting for Parts / Waiting for Client / To Quote / Could Not Complete
-                // are allowed to submit, but must not have completed time.
-                doc.custom_completed_time = "";
+                // Continue Work / Waiting for Parts / Waiting for Client / To Quote / Could Not Complete / False Call Out
+                // are allowed to submit. Keep completed_time so the workflow can be submitted.
+                if (!doc.custom_completed_time) {
+                    doc.custom_completed_time = doc.custom_end_time || frappe.datetime.now_datetime();
+                }
             }
 
             frappe.confirm(
@@ -1493,6 +1669,57 @@ function normalize_rating_for_select(value) {
     return "";
 }
 
+function toggle_fault_type_visibility() {
+    let row = document.getElementById("fault-type-row");
+    if (!row) return;
+
+    let intervention_type = "{{ mi.custom_intervention_type or '' }}";
+    row.style.display = intervention_type === "Repair" ? "block" : "none";
+}
+
+function loadFaultTypes() {
+    let select = document.getElementById("fault_type");
+    if (!select) return;
+
+    frappe.call({
+        method: "frappe.client.get_list",
+        args: {
+            doctype: "Fault Type",
+            filters: {
+                custom_active: 1
+            },
+            fields: ["name", "custom_fault_name"],
+            limit_page_length: 500,
+            order_by: "custom_fault_name asc"
+        },
+        callback: function(r) {
+            let rows = r.message || [];
+            let current_fault = "{{ mi.custom_fault_type or '' }}";
+
+            select.innerHTML = '<option value="">Select Fault Type</option>';
+
+            rows.forEach(function(row) {
+                let value = row.name || row.custom_fault_name;
+                let label = row.custom_fault_name || row.name;
+                if (!value) return;
+
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+
+                if (current_fault && current_fault === value) {
+                    option.selected = true;
+                }
+
+                select.appendChild(option);
+            });
+        },
+        error: function() {
+            select.innerHTML = '<option value="">Could not load Fault Types</option>';
+        }
+    });
+}
+
 function init_client_confirmation() {
 
     let quality = document.getElementById("quality_score");
@@ -1505,8 +1732,11 @@ function init_client_confirmation() {
     setup_signature_pad("tech_signature_pad", "tech", EXISTING_TECH_SIGNATURE);
 
     loadPhotos("{{ mi.name }}");
+    loadHSEIncidents("{{ mi.name }}");
     loadItemsForParts();
     loadParts("{{ mi.name }}");
+    toggle_fault_type_visibility();
+    loadFaultTypes();
 }
 
 if (document.readyState === "loading") {
@@ -1617,6 +1847,269 @@ function uploadPhotos(mi_name) {
         .catch(function(error) {
             console.log(error);
             frappe.msgprint("Photo upload failed.");
+        });
+    });
+}
+
+
+let HSE_INCIDENT_TYPES = [];
+
+function hseSeverityClass(severity) {
+    let s = (severity || "").toLowerCase();
+    if (s === "low") return "hse-sev-low";
+    if (s === "medium") return "hse-sev-medium";
+    if (s === "high") return "hse-sev-high";
+    if (s === "critical") return "hse-sev-critical";
+    return "hse-sev-default";
+}
+
+function loadHSEIncidents(mi_name) {
+    let container = document.getElementById("hse-incident-list");
+    if (!container) return;
+
+    frappe.call({
+        method: "frappe.client.get",
+        args: {
+            doctype: "Mission Intervention",
+            name: mi_name
+        },
+        callback: function(r) {
+            if (!r.message) return;
+
+            let incidents = r.message.custom_incidents || [];
+            container.innerHTML = "";
+
+            if (!incidents.length) {
+                container.innerHTML = '<div class="placeholder-box">No HSE incidents recorded.</div>';
+                return;
+            }
+
+            incidents.forEach(function(row) {
+                let severity = row.custom_severity || "—";
+                let photo = row.custom_photo
+                    ? `<a class="hse-photo-link" href="${row.custom_photo}" target="_blank">View Photo</a>`
+                    : "";
+
+                container.innerHTML += `
+                    <div class="hse-incident-row">
+                        <div class="hse-incident-head">
+                            <div>
+                                <div class="info-label">${row.custom_incident_datetime || ""}</div>
+                                <div class="info-value">${row.custom_incident_type_name || "Incident"}</div>
+                            </div>
+                            <span class="hse-severity-pill ${hseSeverityClass(severity)}">${severity}</span>
+                        </div>
+
+                        <div class="muted-small mt-2">
+                            ${row.custom_requires_investigation ? "Requires Investigation" : "No investigation flag"}
+                        </div>
+
+                        <div class="mt-2" style="font-size:13px;">
+                            <b>Description:</b><br>
+                            ${row.custom_description || "—"}
+                        </div>
+
+                        <div class="mt-2" style="font-size:13px;">
+                            <b>Immediate Action:</b><br>
+                            ${row.custom_immediate_action || "—"}
+                        </div>
+
+                        ${photo}
+                    </div>
+                `;
+            });
+        },
+        error: show_error
+    });
+}
+
+function loadHSEIncidentTypes(callback) {
+    frappe.call({
+        method: "frappe.client.get_list",
+        args: {
+            doctype: "HSE Incident Type",
+            fields: [
+                "name",
+                "custom_incident_type_name",
+                "custom_default_severity",
+                "custom_requires_investigation_by_default"
+            ],
+            limit_page_length: 200
+        },
+        callback: function(r) {
+            HSE_INCIDENT_TYPES = r.message || [];
+            if (callback) callback();
+        },
+        error: show_error
+    });
+}
+
+function populateHSEIncidentTypes() {
+    let select = document.getElementById("hse_incident_type");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Select incident type</option>';
+
+    HSE_INCIDENT_TYPES.forEach(function(row) {
+        let option = document.createElement("option");
+        option.value = row.name;
+        option.textContent = row.custom_incident_type_name || row.name;
+        option.setAttribute("data-severity", row.custom_default_severity || "");
+        option.setAttribute("data-investigation", row.custom_requires_investigation_by_default ? "1" : "0");
+        select.appendChild(option);
+    });
+}
+
+function onHSEIncidentTypeChange() {
+    let select = document.getElementById("hse_incident_type");
+    let selected = select ? select.options[select.selectedIndex] : null;
+
+    document.getElementById("hse_severity").value = selected ? (selected.getAttribute("data-severity") || "") : "";
+    document.getElementById("hse_requires_investigation").checked = selected ? (selected.getAttribute("data-investigation") === "1") : false;
+}
+
+function showHSEIncidentModal() {
+    function open_modal() {
+        populateHSEIncidentTypes();
+
+        document.getElementById("hse_incident_type").value = "";
+        document.getElementById("hse_severity").value = "";
+        document.getElementById("hse_requires_investigation").checked = false;
+        document.getElementById("hse_description").value = "";
+        document.getElementById("hse_immediate_action").value = "";
+        document.getElementById("hse_photo").value = "";
+
+        let dt = frappe.datetime.now_datetime();
+        document.getElementById("hse_incident_datetime").value = dt ? dt.replace(" ", "T").slice(0, 16) : "";
+
+        document.getElementById("hse-incident-modal").style.display = "flex";
+    }
+
+    if (!HSE_INCIDENT_TYPES.length) {
+        loadHSEIncidentTypes(open_modal);
+    } else {
+        open_modal();
+    }
+}
+
+function closeHSEIncidentModal() {
+    document.getElementById("hse-incident-modal").style.display = "none";
+}
+
+function uploadHSEIncidentPhoto(mi_name, callback) {
+    let input = document.getElementById("hse_photo");
+
+    if (!input || !input.files || !input.files.length) {
+        callback("");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", input.files[0]);
+    formData.append("is_private", "0");
+    formData.append("doctype", "Mission Intervention");
+    formData.append("docname", mi_name);
+    formData.append("folder", "Home/Attachments");
+
+    fetch("/api/method/upload_file", {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Frappe-CSRF-Token": frappe.csrf_token
+        }
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.exc) {
+            console.log(data);
+            frappe.msgprint("Incident photo upload failed.");
+            callback("");
+            return;
+        }
+
+        let file_url = "";
+        if (data.message && data.message.file_url) {
+            file_url = data.message.file_url;
+        }
+
+        callback(file_url);
+    })
+    .catch(function(error) {
+        console.log(error);
+        frappe.msgprint("Incident photo upload failed.");
+        callback("");
+    });
+}
+
+function submitHSEIncident(mi_name) {
+    let incident_type = document.getElementById("hse_incident_type").value;
+    let severity = document.getElementById("hse_severity").value;
+    let requires_investigation = document.getElementById("hse_requires_investigation").checked ? 1 : 0;
+    let incident_datetime = document.getElementById("hse_incident_datetime").value;
+    let description = document.getElementById("hse_description").value;
+    let immediate_action = document.getElementById("hse_immediate_action").value;
+
+    if (!incident_type) {
+        frappe.msgprint("Please select incident type.");
+        return;
+    }
+
+    if (!description || !description.trim()) {
+        frappe.msgprint("Please enter incident description.");
+        return;
+    }
+
+    if (!immediate_action || !immediate_action.trim()) {
+        frappe.msgprint("Please enter immediate action taken.");
+        return;
+    }
+
+    uploadHSEIncidentPhoto(mi_name, function(photo_url) {
+        frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "Mission Intervention",
+                name: mi_name
+            },
+            freeze: true,
+            freeze_message: "Saving incident...",
+            callback: function(r) {
+                if (!r.message) return;
+
+                let doc = r.message;
+
+                if (!doc.custom_incidents) {
+                    doc.custom_incidents = [];
+                }
+
+                doc.custom_incidents.push({
+                    custom_incident_type_name: incident_type,
+                    custom_severity: severity,
+                    custom_incident_datetime: incident_datetime ? incident_datetime.replace("T", " ") : frappe.datetime.now_datetime(),
+                    custom_description: description,
+                    custom_immediate_action: immediate_action,
+                    custom_requires_investigation: requires_investigation,
+                    custom_photo: photo_url
+                });
+
+                frappe.call({
+                    method: "frappe.client.save",
+                    args: { doc: doc },
+                    callback: function() {
+                        frappe.show_alert({
+                            message: "HSE incident saved",
+                            indicator: "green"
+                        });
+
+                        closeHSEIncidentModal();
+                        loadHSEIncidents(mi_name);
+                    },
+                    error: show_error
+                });
+            },
+            error: show_error
         });
     });
 }
