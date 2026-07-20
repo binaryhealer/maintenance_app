@@ -57,8 +57,8 @@
   "custom_component_changed",
   "custom_addtional_mi",
   "custom_additional_mi",
-  "custom_additional_mi_reason",
   "custom_contact_communicatio",
+  "custom_additional_mi_reason",
   "custom_applicant_role",
   "column_break_cbyk",
   "custom_applicant_email",
@@ -84,13 +84,20 @@
   "custom_new_make",
   "custom_new_model",
   "custom_loan_approved",
+  "custom_company_workshop",
+  "custom_equipment_name_action",
   "column_break_eoke",
   "custom_new_serial",
   "custom_new_asset",
+  "custom_current_site_position",
+  "custom_replacement_site_position",
   "custom_asset_change_reason",
+  "custom_new_current_equipment_name",
+  "custom_new_replacement_equipment_name",
   "custom_component_swap_section",
   "custom_new_component_item",
   "custom_new_component_brand",
+  "custom_new_equipment_component",
   "custom_new_component_model",
   "column_break_jlnm",
   "custom_new_component_serial",
@@ -106,8 +113,8 @@
   "custom_parent_mission",
   "custom_planned_starttime",
   "custom_planned_endtime",
-  "column_break_wndv",
   "custom_technician",
+  "column_break_wndv",
   "amended_from",
   "custom_service_type",
   "custom_component_brand",
@@ -116,6 +123,7 @@
   "custom_asset",
   "custom_component_item",
   "custom_component_row_id",
+  "custom_equipment_component",
   "custom_location_data",
   "custom_checkin_latitude",
   "custom_checkin_longitude",
@@ -336,6 +344,7 @@
   {
    "fieldname": "custom_swap_classification",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Swap Type",
    "options": "Commissioned\nInstalled\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nRetired\nDisposed\nPermanent Swap",
    "read_only": 1
@@ -352,7 +361,7 @@
    "fieldname": "custom_new_make",
    "fieldtype": "Link",
    "label": "New Make",
-   "options": "Maintenance Item"
+   "options": "Brand"
   },
   {
    "fieldname": "custom_new_model",
@@ -450,7 +459,7 @@
    "fieldname": "custom_removed_asset_outcome",
    "fieldtype": "Select",
    "label": "Removed Asset Outcome",
-   "options": "Sent for Repair\nReturned to Stock\nRetired\nScrapped"
+   "options": "Workshop for Repair\nReturned to Stock\nInstalled at another Site\nScrapped\nRetired\nSwapped Within Same Site"
   },
   {
    "fieldname": "custom_subject",
@@ -794,6 +803,8 @@
   {
    "fieldname": "custom_target_component_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Target Component Name"
   },
   {
@@ -825,13 +836,60 @@
    "fieldtype": "Link",
    "label": "Fault Type",
    "options": "Fault Type"
+  },
+  {
+   "fieldname": "custom_company_workshop",
+   "fieldtype": "Link",
+   "label": "Workshop",
+   "options": "Company Workshop"
+  },
+  {
+   "fieldname": "custom_current_site_position",
+   "fieldtype": "Data",
+   "label": "Current Site Position"
+  },
+  {
+   "fieldname": "custom_replacement_site_position",
+   "fieldtype": "Data",
+   "label": "Replacement Site Position"
+  },
+  {
+   "fieldname": "custom_equipment_name_action",
+   "fieldtype": "Select",
+   "label": "Equipment Name Action",
+   "options": "Keep Existing Names\nExchange Names\nReplacement Takes Current Name\nSet Names Manually"
+  },
+  {
+   "fieldname": "custom_new_current_equipment_name",
+   "fieldtype": "Data",
+   "label": "New Name for Current Equipment"
+  },
+  {
+   "fieldname": "custom_new_replacement_equipment_name",
+   "fieldtype": "Data",
+   "label": "New Name for Replacement Equipment"
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Equipment Component",
+   "options": "Equipment Component",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_new_equipment_component",
+   "fieldtype": "Link",
+   "label": "New Equipment Component",
+   "options": "Equipment Component"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-06 20:43:16.631979",
+ "modified": "2026-07-19 22:19:35.398534",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

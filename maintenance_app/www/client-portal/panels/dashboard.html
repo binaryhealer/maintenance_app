@@ -1,16 +1,51 @@
 <div id="panel-dashboard" class="view-panel active">
-    <div class="stats-grid">
-        <div class="stat-card" onclick="window.cpGo('equipment')" style="cursor:pointer;">
-            <div class="stat-num" id="stat-equipment-count">0</div>
-            <div class="stat-lbl">Registered Assets →</div>
+    <!-- KPI Summary Header -->
+    <div style="margin-bottom: 24px;">
+        <h2 style="font-size: 18px; font-weight: 600; color: #1e293b; margin: 0 0 12px;">Monthly KPI Summary</h2>
+        <p style="color: #64748b; font-size: 13px; margin: 0;">Current month performance metrics</p>
+    </div>
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px;">
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('equipment')">
+            <div class="stat-num" id="stat-equipment-count" style="font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 8px;">0</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Registered Assets →</div>
         </div>
-        <div class="stat-card" onclick="window.cpGo('tickets')" style="cursor:pointer;">
-            <div class="stat-num" id="stat-open-tickets">0</div>
-            <div class="stat-lbl">Active Open Tickets →</div>
+
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('tickets')">
+            <div class="stat-num" id="stat-open-tickets" style="font-size: 28px; font-weight: 700; color: #f59e0b; margin-bottom: 8px;">0</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Active Open Tickets →</div>
         </div>
-        <div class="stat-card" onclick="window.cpGo('contracts')" style="cursor:pointer;">
-            <div class="stat-num" id="stat-active-mc">0</div>
-            <div class="stat-lbl">Active Contracts →</div>
+
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('contracts')">
+            <div class="stat-num" id="stat-active-mc" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">0</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Active Contracts →</div>
+        </div>
+
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-sla-compliance" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">92%</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">SLA Compliance</div>
+        </div>
+
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-mttr" style="font-size: 28px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px;">8.5h</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Avg MTTR</div>
+        </div>
+
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-downtime" style="font-size: 28px; font-weight: 700; color: #ef4444; margin-bottom: 8px;">18.5h</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Total Downtime</div>
+        </div>
+    </div>
+
+    <!-- Quick Links Section -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+        <h3 style="font-size: 14px; font-weight: 600; color: #1e293b; margin: 0 0 16px;">Quick Actions</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+            <button onclick="window.cpGo('equipment')" style="padding: 12px 16px; background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🖥️ View Equipment</button>
+            <button onclick="window.cpGo('tickets')" style="padding: 12px 16px; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🎫 View Tickets</button>
+            <button onclick="window.openTicketModal()" style="padding: 12px 16px; background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">➕ Raise Ticket</button>
+            <button onclick="window.cpGo('contracts')" style="padding: 12px 16px; background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">📜 Contracts</button>
         </div>
     </div>
 </div>

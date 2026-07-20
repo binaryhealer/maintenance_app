@@ -50,6 +50,7 @@
   "custom_component_serial",
   "custom_component_item_code",
   "custom_component_item",
+  "custom_equipment_component",
   "section_break_jftu",
   "custom_response_due",
   "custom_sla_status",
@@ -101,6 +102,7 @@
   "custom_component_error_source",
   "custom_wrong_component_reported",
   "custom_component_change_reason",
+  "custom_actual_ticket_type",
   "column_break_tfht",
   "custom_actual_equipment",
   "custom_equipment_error_source",
@@ -215,7 +217,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
   },
   {
    "default": "Billable",
@@ -747,12 +749,25 @@
    "fieldtype": "Link",
    "label": "Remote Session Reference",
    "options": "Remote Session"
+  },
+  {
+   "fieldname": "custom_actual_ticket_type",
+   "fieldtype": "Data",
+   "label": "Actual Ticket Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "label": "Equipment Component",
+   "options": "Equipment Component",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-11 05:48:28.842046",
+ "modified": "2026-07-16 15:59:31.264356",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

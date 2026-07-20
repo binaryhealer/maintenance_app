@@ -16,6 +16,7 @@
   "custom_related_asset",
   "custom_technician",
   "custom_work_outcome",
+  "custom_equipment_component",
   "section_break_onel",
   "custom_notes",
   "custom_reference",
@@ -213,13 +214,21 @@
    "in_list_view": 1,
    "label": "Component Row ID",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Equipment Component",
+   "options": "Equipment Component",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-08 15:31:22.801813",
+ "modified": "2026-07-16 13:42:18.896350",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Service Log",

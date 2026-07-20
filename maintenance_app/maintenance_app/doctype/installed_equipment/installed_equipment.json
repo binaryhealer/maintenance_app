@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_events_in_timeline": 1,
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "SITE-ASSET-.#####",
  "creation": "2026-03-23 13:24:46.192912",
@@ -15,6 +16,7 @@
   "custom_item_code",
   "custom_make",
   "custom_model",
+  "custom_company_workshop",
   "column_break_afnw",
   "custom_asset_category",
   "custom_asset_id",
@@ -26,6 +28,7 @@
   "custom_ownership",
   "custom_asset_status",
   "custom_create_warranty_inline",
+  "custom_operational_status",
   "column_break_vyja",
   "custom_warranty",
   "custom_maint_frequency",
@@ -89,7 +92,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Equipment Status",
-   "options": "Installed\nUnder Repair\nIn Transit\nIn Workshop\nLoaned\nReturned\nRetired\nScrapped\nLost\nIn Use"
+   "options": "Installed\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost"
   },
   {
    "fieldname": "custom_maint_frequency",
@@ -294,7 +297,6 @@
   {
    "fieldname": "custom_display_name",
    "fieldtype": "Data",
-   "hidden": 1,
    "in_filter": 1,
    "in_list_view": 1,
    "in_preview": 1,
@@ -371,6 +373,18 @@
    "fieldtype": "Link",
    "label": "Equipment Template",
    "options": "Equipment Template"
+  },
+  {
+   "fieldname": "custom_company_workshop",
+   "fieldtype": "Link",
+   "label": "Company Workshop",
+   "options": "Company Workshop"
+  },
+  {
+   "fieldname": "custom_operational_status",
+   "fieldtype": "Select",
+   "label": "Operational Status",
+   "options": "Operational\nDegraded\nOut of Service\nAwaiting Component"
   }
  ],
  "grid_page_length": 50,
@@ -393,7 +407,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-06-19 04:48:50.781544",
+ "modified": "2026-07-15 13:12:41.835596",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

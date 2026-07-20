@@ -17,6 +17,10 @@
   "amended_from",
   "custom_event_source",
   "custom_removed_asset_outcome",
+  "custom_equipment_component",
+  "custom_company_workshop",
+  "section_break_nqmv",
+  "custom_previous_branch",
   "section_break_vzqv",
   "custom_action_taken",
   "custom_reference_billing",
@@ -37,7 +41,9 @@
   "custom_previous_make",
   "custom_previous_model",
   "custom_previous_serial",
-  "custom_previous_branch",
+  "custom_previous_site_position",
+  "custom_new_site_position",
+  "custom_related_equipment",
   "custom_component_history_tab",
   "custom_component_item",
   "custom_component_serial",
@@ -47,7 +53,9 @@
   "custom_new_component_item",
   "custom_new_component_serial",
   "custom_new_component_brand",
-  "custom_new_component_model"
+  "custom_new_component_model",
+  "section_break_qcoe",
+  "custom_new_equipment_component"
  ],
  "fields": [
   {
@@ -66,7 +74,7 @@
    "fieldname": "custom_event",
    "fieldtype": "Select",
    "label": "Event Type",
-   "options": "Commissioned\nInstalled\nServiced\nRepaired\nRelocated\nPermanent Swap\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nComponent Replaced\nRetired\nDisposed"
+   "options": "Commissioned\nInstalled\nServiced\nRepaired\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nComponent Installed\nComponent Removed\nComponent Moved\nComponent Replaced\nComponent Repaired\nComponent Retired\nComponent Scrapped\nRetired\nDisposed\nScrapped"
   },
   {
    "fieldname": "custom_asset_lifecycle_log",
@@ -201,7 +209,7 @@
    "fieldname": "custom_removed_asset_outcome",
    "fieldtype": "Select",
    "label": "Removed Asset Outcome",
-   "options": "\nSent for Repair\nReturned to Stock\nRetired\nScrapped"
+   "options": "\nWorkshop for Repair\nReturned to Stock\nInstalled at another Site\nScrapped\nRetired\nSwapped Within Same Site"
   },
   {
    "fieldname": "custom_component_history_tab",
@@ -279,13 +287,57 @@
    "fieldname": "custom_asset_change_reason",
    "fieldtype": "Small Text",
    "label": "Change Reason"
+  },
+  {
+   "fieldname": "custom_company_workshop",
+   "fieldtype": "Link",
+   "label": "Workshop",
+   "options": "Company Workshop"
+  },
+  {
+   "fieldname": "custom_previous_site_position",
+   "fieldtype": "Data",
+   "label": "Previous Site Position"
+  },
+  {
+   "fieldname": "custom_new_site_position",
+   "fieldtype": "Data",
+   "label": "New Site Position"
+  },
+  {
+   "fieldname": "custom_related_equipment",
+   "fieldtype": "Link",
+   "label": "Related Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Equipment Component",
+   "options": "Equipment Component",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_qcoe",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_new_equipment_component",
+   "fieldtype": "Link",
+   "label": "New Equipment Component",
+   "options": "Equipment Component"
+  },
+  {
+   "fieldname": "section_break_nqmv",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-02 13:37:13.755479",
+ "modified": "2026-07-16 15:38:24.417156",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Lifecycle Log",

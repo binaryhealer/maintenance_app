@@ -425,7 +425,7 @@ def open_or_create_mi(mission_name):
     return {"intervention": result.get("intervention")}
 
 
-def _populate_mi_from_mission(mi, mission, asset_name):
+'''def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_parent_mission = mission.name
     mi.custom_service_ticket = mission.get("custom_service_ticket")
     mi.custom_planning_ref = mission.get("custom_tech_planning")
@@ -452,6 +452,86 @@ def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_applicant_role = mission.get("custom_applicant_role")
     mi.custom_applicant_email = mission.get("custom_applicant_email")
     mi.custom_applicant_phone = mission.get("custom_applicant_phone")
+
+    for row in mission.get("custom_branch_contacts") or []:
+        mi.append("custom_branch_contacts", {
+            "custom_contact": row.get("custom_contact"),
+            "custom_contact_role": row.get("custom_contact_role"),
+            "custom_phone": row.get("custom_phone"),
+            "custom_email": row.get("custom_email")
+        })
+
+    for row in mission.get("custom_head_office_contacts") or []:
+        mi.append("custom_head_office_contacts", {
+            "custom_contact": row.get("custom_contact"),
+            "custom_contact_role": row.get("custom_contact_role"),
+            "custom_phone": row.get("custom_phone"),
+            "custom_email": row.get("custom_email")
+        })
+
+    _fill_equipment_snapshot(mi)
+    _copy_team_to_intervention(mission, mi)'''
+
+###############################################################################
+# fucnction populates the fields in mi when created from tech mission         #
+###############################################################################
+
+
+def _populate_mi_from_mission(mi, mission, asset_name):
+    mi.custom_parent_mission = mission.name
+    mi.custom_service_ticket = mission.get("custom_service_ticket")
+    mi.custom_planning_ref = mission.get("custom_tech_planning")
+    mi.custom_parent_customer = mission.get("custom_parent_customer")
+    mi.custom_branch = mission.get("custom_branch")
+    mi.custom_asset = asset_name
+
+    mi.custom_component_group = mission.get("custom_component_group")
+    mi.custom_component_item = mission.get("custom_component_item")
+    mi.custom_component_row_id = mission.get("custom_component_row_id")
+    mi.custom_component_serial = mission.get("custom_component_serial")
+    mi.custom_component_brand = mission.get("custom_component_brand")
+    mi.custom_component_model = mission.get("custom_component_model")
+    mi.custom_target_component_name = mission.get("custom_target_component_name")
+    mi.custom_parent_equipment = mission.get("custom_parent_equipment")
+
+    mi.custom_service_type = mission.get("custom_service_type")
+    mi.custom_planned_starttime = mission.get("custom_planned_starttime")
+    mi.custom_planned_endtime = mission.get("custom_planned_endtime")
+    mi.custom_vehicle = mission.get("custom_vehicle")
+    mi.custom_intervention_type = mission.get("custom_ticket_type") or "Service"
+    mi.custom_work_outcome = ""
+
+    mi.custom_subject = mission.get("custom_subject")
+    mi.custom_applicant = mission.get("custom_applicant")
+    mi.custom_applicant_role = mission.get("custom_applicant_role")
+    mi.custom_applicant_email = mission.get("custom_applicant_email")
+    mi.custom_applicant_phone = mission.get("custom_applicant_phone")
+
+    # Copy the permanent component ID from the Service Ticket
+    # only when this MI is for the mission's original equipment.
+    is_original_equipment = (
+        asset_name
+        and mission.get("custom_asset")
+        and asset_name == mission.get("custom_asset")
+    )
+
+    if (
+        is_original_equipment
+        and mission.get("custom_service_ticket")
+        and mi.meta.has_field("custom_equipment_component")
+    ):
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mission.custom_service_ticket
+        )
+
+        component_name = (
+            ticket.get("custom_equipment_component")
+            or ticket.get("custom_target_component")
+        )
+
+        if component_name:
+            mi.custom_equipment_component = component_name
 
     for row in mission.get("custom_branch_contacts") or []:
         mi.append("custom_branch_contacts", {
@@ -2652,10 +2732,7 @@ def client_portal_get_contracts(customer):
 # Build installed Equipment components
 # ============================================================
 
-
-
-
-@frappe.whitelist()
+'''@frappe.whitelist()
 def build_components_for_equipment(equipment_name):
     equipment = frappe.get_doc("Installed Equipment", equipment_name)
 
@@ -2670,11 +2747,9 @@ def build_components_for_equipment(equipment_name):
     created = 0
 
     for row in template.get("custom_components") or []:
-
         qty = row.get("custom_qty") or 1
 
         for i in range(qty):
-
             component = frappe.new_doc("Equipment Component")
 
             component.custom_parent_equipment = equipment.name
@@ -2692,20 +2767,12 @@ def build_components_for_equipment(equipment_name):
 
             if qty > 1:
                 component.custom_display_name = (
-                    f"{equipment.get('custom_display_name') or equipment.name} - {type_name} {i + 1}"
+                    f"{equipment.get('custom_display_name') or equipment.name} - "
+                    f"{type_name} {i + 1}"
                 )
 
             component.insert(ignore_permissions=True)
 
-            '''equipment.append("custom_installed_components", {
-                "custom_component": component.name,
-                "custom_component_group": component.custom_component_group,
-                "custom_equipment_type": component.custom_equipment_type,
-                "custom_brand": component.get("custom_make"),
-                "custom_model": component.get("custom_model"),
-                "custom_serial_number": component.get("custom_serial_number"),
-                "custom_status": "Installed"
-            })'''
             equipment.append("custom_installed_components", {
                 "custom_component": component.name,
                 "custom_display_name": component.custom_display_name,
@@ -2714,8 +2781,9 @@ def build_components_for_equipment(equipment_name):
                 "custom_brand": component.get("custom_make"),
                 "custom_model": component.get("custom_model"),
                 "custom_serial_number": component.get("custom_serial_number"),
-                "custom_status": "Installed"
+                "custom_status": "Active"
             })
+
             created += 1
 
     equipment.save(ignore_permissions=True)
@@ -2723,9 +2791,115 @@ def build_components_for_equipment(equipment_name):
 
     return {
         "created": created
-    }
+    }'''
 
 @frappe.whitelist()
+def build_components_for_equipment(equipment_name):
+    equipment = frappe.get_doc("Installed Equipment", equipment_name)
+
+    if not equipment.get("custom_equipment_template"):
+        frappe.throw("Please select Equipment Template first.")
+
+    # Prevent duplicate component creation.
+    existing_rows = equipment.get("custom_installed_components") or []
+
+    if existing_rows:
+        frappe.throw(
+            "Components have already been built for this equipment. "
+            "Remove or correct the existing components before building again."
+        )
+
+    template = frappe.get_doc(
+        "Equipment Template",
+        equipment.custom_equipment_template
+    )
+
+    template_rows = template.get("custom_components") or []
+
+    if not template_rows:
+        frappe.throw("The selected Equipment Template has no components.")
+
+    created = 0
+    created_components = []
+
+    for template_row in template_rows:
+        qty = int(template_row.get("custom_qty") or 1)
+
+        if qty < 1:
+            continue
+
+        component_group = template_row.get("custom_component_group")
+        component_type = template_row.get("custom_equipment_type")
+        type_name = component_type or "Component"
+
+        for index in range(qty):
+            # -----------------------------------------
+            # 1. Create the permanent component master
+            # -----------------------------------------
+            component = frappe.new_doc("Equipment Component")
+
+            component.custom_parent_equipment = equipment.name
+            component.custom_customer = equipment.get(
+                "custom_parent_customer"
+            )
+            component.custom_branch = equipment.get("custom_branch")
+            component.custom_component_group = component_group
+            component.custom_equipment_type = component_type
+            component.custom_status = "Installed"
+
+            display_name = (
+                (equipment.get("custom_display_name") or equipment.name)
+                + " - "
+                + type_name
+            )
+
+            if qty > 1:
+                display_name = (
+                    (equipment.get("custom_display_name") or equipment.name)
+                    + " - "
+                    + type_name
+                    + " "
+                    + str(index + 1)
+                )
+
+            component.custom_display_name = display_name
+
+            # Saving generates the permanent COMP-xxxxx ID.
+            component.insert(ignore_permissions=True)
+
+            # -----------------------------------------
+            # 2. Create the current IE component row
+            # -----------------------------------------
+            equipment.append(
+                "custom_installed_components",
+                {
+                    # Permanent link to Equipment Component
+                    "custom_equipment_component": component.name,
+
+                    "custom_display_name": component.custom_display_name,
+                    "custom_component_group": component.custom_component_group,
+                    "custom_equipment_type": component.custom_equipment_type,
+                    "custom_brand": component.get("custom_make"),
+                    "custom_model": component.get("custom_model"),
+                    "custom_serial_number": (
+                        component.get("custom_serial_number")
+                        or component.get("custom_serial")
+                    ),
+                    "custom_status": "Installed"
+                }
+            )
+
+            created_components.append(component.name)
+            created += 1
+
+    equipment.save(ignore_permissions=True)
+
+    return {
+        "created": created,
+        "components": created_components
+    }
+
+'''@frappe.whitelist()
 def create_component_ticket(equipment_name, component_name, request_type, subject):
     equipment = frappe.get_doc("Installed Equipment", equipment_name)
     component = frappe.get_doc("Equipment Component", component_name)
@@ -2757,7 +2931,50 @@ def create_component_ticket(equipment_name, component_name, request_type, subjec
     ticket.insert(ignore_permissions=True)
     frappe.db.commit()
 
-    return {"ticket": ticket.name}    
+    return {"ticket": ticket.name}'''
+
+@frappe.whitelist()
+def create_component_ticket(equipment_name, component_name, request_type, subject):
+    equipment = frappe.get_doc("Installed Equipment", equipment_name)
+    component = frappe.get_doc("Equipment Component", component_name)
+
+    ticket = frappe.new_doc("Service Ticket")
+
+    ticket.custom_customer = equipment.get("custom_parent_customer")
+    ticket.custom_client_branch = equipment.get("custom_branch")
+    ticket.custom_parent_equipment = equipment.name
+    ticket.custom_target_equipment = equipment.name
+
+    # Existing component reference
+    ticket.custom_target_component = component.name
+
+    # New permanent Equipment Component ID link
+    if ticket.meta.has_field("custom_equipment_component"):
+        ticket.custom_equipment_component = component.name
+
+    if ticket.meta.has_field("custom_target_component_name"):
+        ticket.custom_target_component_name = (
+            component.get("custom_display_name")
+            or component.name
+        )
+
+    ticket.custom_component_group = component.get("custom_component_group")
+    ticket.custom_component_brand = component.get("custom_make")
+    ticket.custom_component_model = component.get("custom_model")
+    ticket.custom_component_serial = component.get("custom_serial_number")
+
+    ticket.custom_request_type = request_type
+    ticket.custom_subject = subject
+    ticket.custom_ticket_status = "Open"
+    ticket.custom_commercial_status = "N/A"
+
+    if ticket.meta.has_field("custom_raised_by"):
+        ticket.custom_raised_by = _current_user_display_name()
+
+    ticket.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {"ticket": ticket.name}  
 
 # ============================================================
 # 🖥️ DEDICATED CLIENT PORTAL WORKSPACE API ENDPOINTS

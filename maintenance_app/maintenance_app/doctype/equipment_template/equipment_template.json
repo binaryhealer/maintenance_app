@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:custom_template_name",
  "creation": "2026-06-18 23:03:42.046891",
@@ -44,7 +45,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-18 23:07:18.436700",
+ "modified": "2026-07-11 12:48:17.731838",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Template",
@@ -69,5 +70,6 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "title_field": "custom_template_name"
+ "title_field": "custom_template_name",
+ "track_changes": 1
 }
