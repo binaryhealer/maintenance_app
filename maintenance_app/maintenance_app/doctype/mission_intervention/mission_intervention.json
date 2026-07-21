@@ -42,7 +42,6 @@
   "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
-  "custom_removed_asset_outcome",
   "section_break_mewf",
   "custom_intervention_team",
   "section_break_sjux",
@@ -74,6 +73,7 @@
   "custom_parts_table",
   "custom_asset_change",
   "custom_component_replaced",
+  "custom_removed_asset_outcome",
   "column_break_bbev",
   "custom_loan_return",
   "column_break_jwyc",
@@ -723,7 +723,7 @@
   },
   {
    "fieldname": "custom_new_component_item",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "New Component Item",
    "options": "Item"
   },
@@ -889,7 +889,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-19 22:19:35.398534",
+ "modified": "2026-07-21 08:17:08.309912",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

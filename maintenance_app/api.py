@@ -829,95 +829,12 @@ def get_components_for_equipment_group(
 
        
     return results
-'''@frappe.whitelist()
-def change_mi_component(mi_name, component_row_id, reason):
 
-    mi = frappe.get_doc("Mission Intervention", mi_name)
+###################################################################
+#the following fucntion helps change a wrongly logged component   #
+###################################################################
 
-    if mi.docstatus != 0:
-        frappe.throw("Cannot change component on submitted intervention.")
 
-    if not mi.custom_asset:
-        frappe.throw("No equipment linked to this intervention.")
-
-    equipment = frappe.get_doc(
-        "Installed Equipment",
-        mi.custom_asset
-    )
-
-    selected_component = None
-
-    for row in equipment.custom_installed_components or []:
-
-        if row.name == component_row_id:
-            selected_component = row
-            break
-
-    if not selected_component:
-        frappe.throw(
-            f"Component row {component_row_id} not found..."
-        )
-
-    # Store original value once
-    if not mi.custom_original_component_item:
-        mi.custom_original_component_item = mi.custom_component_item
-
-    mi.custom_component_changed = 1
-    mi.custom_component_change_reason = reason
-
-    mi.custom_component_item = selected_component.custom_component_item
-    mi.custom_component_group = selected_component.custom_item_group
-    mi.custom_component_row_id = selected_component.name
-    mi.custom_component_serial = selected_component.custom_serial_number
-    mi.custom_component_brand = selected_component.custom_brand
-    mi.custom_component_model = selected_component.custom_model
-
-    mi.save(ignore_permissions=True)
-
-    # Update Tech Mission
-    if mi.custom_parent_mission:
-
-        mission = frappe.get_doc(
-            "Tech Mission",
-            mi.custom_parent_mission
-        )
-
-        mission.custom_component_item = mi.custom_component_item
-        mission.custom_component_group = mi.custom_component_group
-        mission.custom_component_row_id = mi.custom_component_row_id
-        mission.custom_component_serial = mi.custom_component_serial
-        mission.custom_component_brand = mi.custom_component_brand
-        mission.custom_component_model = mi.custom_component_model
-
-        mission.save(ignore_permissions=True)
-
-    
-    # Update Service Ticket
-    ticket_name = mi.get("custom_service_ticket")
-
-    if ticket_name:
-        ticket = frappe.get_doc("Service Ticket", ticket_name)
-
-        ticket.custom_wrong_component_reported = 1
-        ticket.custom_actual_component_item = mi.get("custom_component_item")
-        ticket.custom_component_change_reason = reason
-
-        for row in ticket.get("custom_intervention_history") or []:
-            if row.get("custom_mission_intervention") == mi.name:
-                row.custom_component_item = mi.get("custom_component_item")
-                break
-
-        ticket.save(ignore_permissions=True)
-        
-        #ticket.save(ignore_permissions=True)
-
-    frappe.db.commit()
-
-    return {
-        "status": "success"
-    }
-
-'''
 @frappe.whitelist()
 def change_mi_component(mi_name, component_row_id, reason):
     if not mi_name:
@@ -926,66 +843,91 @@ def change_mi_component(mi_name, component_row_id, reason):
     if not component_row_id:
         frappe.throw("Actual component is required.")
 
+    if not reason:
+        frappe.throw("Reason is required.")
+
     mi = frappe.get_doc("Mission Intervention", mi_name)
 
     if mi.docstatus != 0:
-        frappe.throw("Cannot change component on submitted intervention.")
+        frappe.throw(
+            "Cannot change component on a submitted intervention."
+        )
 
     if not mi.get("custom_asset"):
-        frappe.throw("No equipment linked to this intervention.")
+        frappe.throw(
+            "No equipment linked to this intervention."
+        )
 
-    equipment = frappe.get_doc("Installed Equipment", mi.custom_asset)
+    equipment = frappe.get_doc(
+        "Installed Equipment",
+        mi.custom_asset
+    )
 
+    selected_row = None
 
-    selected_component = None
-    for row in equipment.get("custom_installed_components") or []:
+    for row in equipment.get(
+        "custom_installed_components"
+    ) or []:
         if row.name == component_row_id:
-            selected_component = row
+            selected_row = row
             break
 
-    if not selected_component:
-        frappe.throw("Selected component not found on this equipment.")
+    if not selected_row:
+        frappe.throw(
+            "Selected component was not found on this equipment."
+        )
 
-    selected_component = frappe.get_doc("Installed Equipment Component", component_row_id)
-    fselected_component = frappe.get_doc("Installed Equipment Component", component_row_id)
+    component_name = selected_row.get(
+        "custom_equipment_component"
+    )
 
-    '''frappe.throw(f"""
-    Row ID:
-    {component_row_id}
+    if not component_name:
+        frappe.throw(
+            "The selected installed component row is not linked "
+            "to an Equipment Component master."
+        )
 
-    Display Name:
-    {selected_component.get("custom_display_name")}
-
-    Equipment Type:
-    {selected_component.get("custom_equipment_type")}
-
-    Brand:
-    {selected_component.get("custom_brand")}
-
-    Model:
-    {selected_component.get("custom_model")}
-
-    Serial:
-    {selected_component.get("custom_serial_number")}
-    """)'''
-
-    #frappe.throw(str(selected_component.as_dict()))
+    component = frappe.get_doc(
+        "Equipment Component",
+        component_name
+    )
 
     component_label = (
-        selected_component.get("custom_display_name")
-        or selected_component.get("custom_equipment_type")
-        or selected_component.get("custom_component")
-        or selected_component.name
+        component.get("custom_display_name")
+        or selected_row.get("custom_display_name")
+        or component.get("custom_equipment_type")
+        or component.name
+    )
+
+    component_item = (
+        component.get("custom_component_item")
+        or component.get("custom_equipment_type")
+        or selected_row.get("custom_equipment_type")
+        or component_label
     )
 
     component_group = (
-        selected_component.get("custom_component_group")
-        or selected_component.get("custom_item_group")
+        component.get("custom_component_group")
+        or selected_row.get("custom_component_group")
+        or selected_row.get("custom_item_group")
     )
 
-    component_serial = selected_component.get("custom_serial_number")
-    component_brand = selected_component.get("custom_brand")
-    component_model = selected_component.get("custom_model")
+    component_serial = (
+        component.get("custom_serial_number")
+        or component.get("custom_serial")
+        or selected_row.get("custom_serial_number")
+    )
+
+    component_brand = (
+        component.get("custom_make")
+        or component.get("custom_brand")
+        or selected_row.get("custom_brand")
+    )
+
+    component_model = (
+        component.get("custom_model")
+        or selected_row.get("custom_model")
+    )
 
     if not mi.get("custom_original_component_item"):
         mi.custom_original_component_item = (
@@ -997,40 +939,214 @@ def change_mi_component(mi_name, component_row_id, reason):
     mi.custom_component_changed = 1
     mi.custom_component_change_reason = reason
 
-    mi.custom_target_component_name = component_label
-    mi.custom_component_item = component_label
-    mi.custom_component_row_id = selected_component.name
-    mi.custom_component_group = component_group
-    mi.custom_component_serial = component_serial
-    mi.custom_component_brand = component_brand
-    mi.custom_component_model = component_model
+    if mi.meta.has_field("custom_equipment_component"):
+        mi.custom_equipment_component = component.name
+
+    if mi.meta.has_field("custom_target_component_name"):
+        mi.custom_target_component_name = component_label
+
+    if mi.meta.has_field("custom_component_item"):
+        mi.custom_component_item = component_item
+
+    if mi.meta.has_field("custom_component_row_id"):
+        mi.custom_component_row_id = selected_row.name
+
+    if mi.meta.has_field("custom_component_group"):
+        mi.custom_component_group = component_group
+
+    if mi.meta.has_field("custom_component_serial"):
+        mi.custom_component_serial = component_serial
+
+    if mi.meta.has_field("custom_component_brand"):
+        mi.custom_component_brand = component_brand
+
+    if mi.meta.has_field("custom_component_model"):
+        mi.custom_component_model = component_model
 
     mi.save(ignore_permissions=True)
 
     if mi.get("custom_parent_mission"):
-        mission = frappe.get_doc("Tech Mission", mi.custom_parent_mission)
+        mission = frappe.get_doc(
+            "Tech Mission",
+            mi.custom_parent_mission
+        )
 
+        if mission.meta.has_field(
+            "custom_target_component_name"
+        ):
+            mission.custom_target_component_name = (
+                component_label
+            )
 
-        mission.custom_target_component_name = component_label
-        mission.custom_component_item = component_label
-        mission.custom_component_row_id = selected_component.name
-        mission.custom_component_group = component_group
-        mission.custom_component_serial = component_serial
-        mission.custom_component_brand = component_brand
-        mission.custom_component_model = component_model
+        if mission.meta.has_field("custom_component_item"):
+            mission.custom_component_item = component_item
+
+        if mission.meta.has_field(
+            "custom_component_row_id"
+        ):
+            mission.custom_component_row_id = (
+                selected_row.name
+            )
+
+        if mission.meta.has_field(
+            "custom_component_group"
+        ):
+            mission.custom_component_group = (
+                component_group
+            )
+
+        if mission.meta.has_field(
+            "custom_component_serial"
+        ):
+            mission.custom_component_serial = (
+                component_serial
+            )
+
+        if mission.meta.has_field(
+            "custom_component_brand"
+        ):
+            mission.custom_component_brand = (
+                component_brand
+            )
+
+        if mission.meta.has_field(
+            "custom_component_model"
+        ):
+            mission.custom_component_model = (
+                component_model
+            )
 
         mission.save(ignore_permissions=True)
 
+    '''if mi.get("custom_service_ticket"):
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mi.custom_service_ticket
+        )
+
+        if ticket.meta.has_field(
+            "custom_wrong_component_reported"
+        ):
+            ticket.custom_wrong_component_reported = 1
+
+        if ticket.meta.has_field(
+            "custom_equipment_component"
+        ):
+            ticket.custom_equipment_component = (
+                component.name
+            )
+
+        if ticket.meta.has_field(
+            "custom_target_component"
+        ):
+            ticket.custom_target_component = (
+                component.name
+            )
+
+        if ticket.meta.has_field(
+            "custom_target_component_name"
+        ):
+            ticket.custom_target_component_name = (
+                component_label
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_row_id"
+        ):
+            ticket.custom_component_row_id = (
+                selected_row.name
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_group"
+        ):
+            ticket.custom_component_group = (
+                component_group
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_item"
+        ):
+            ticket.custom_component_item = (
+                component_item
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_serial"
+        ):
+            ticket.custom_component_serial = (
+                component_serial
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_brand"
+        ):
+            ticket.custom_component_brand = (
+                component_brand
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_model"
+        ):
+            ticket.custom_component_model = (
+                component_model
+            )
+
+        if ticket.meta.has_field(
+            "custom_actual_component_item"
+        ):
+            ticket.custom_actual_component_item = (
+                component_item
+            )
+
+        if ticket.meta.has_field(
+            "custom_component_change_reason"
+        ):
+            ticket.custom_component_change_reason = (
+                reason
+            )'''
     if mi.get("custom_service_ticket"):
-        ticket = frappe.get_doc("Service Ticket", mi.custom_service_ticket)
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mi.custom_service_ticket
+        )
 
-        ticket.custom_wrong_component_reported = 1
-        ticket.custom_actual_equipment = component_label
-        ticket.custom_component_change_reason = reason
+    # Keep the original reported component unchanged.
+    # Only record that the report was wrong and what the technician found.
 
-        for row in ticket.get("custom_intervention_history") or []:
-            if row.get("custom_mission_intervention") == mi.name:
-                row.custom_component_item = component_label
+        if ticket.meta.has_field("custom_wrong_component_reported"):
+            ticket.custom_wrong_component_reported = 1
+
+        if ticket.meta.has_field("custom_actual_component_item"):
+            ticket.custom_actual_component_item = component_item
+
+        if ticket.meta.has_field("custom_component_change_reason"):
+            ticket.custom_component_change_reason = reason
+
+        ticket.save(ignore_permissions=True)
+
+
+        for row in ticket.get(
+            "custom_intervention_history"
+        ) or []:
+            if (
+                row.get("custom_mission_intervention")
+                == mi.name
+            ):
+                if row.meta.has_field(
+                    "custom_component_item"
+                ):
+                    row.custom_component_item = (
+                        component_item
+                    )
+
+                if row.meta.has_field(
+                    "custom_component_serial"
+                ):
+                    row.custom_component_serial = (
+                        component_serial
+                    )
+
                 break
 
         ticket.save(ignore_permissions=True)
@@ -1039,8 +1155,10 @@ def change_mi_component(mi_name, component_row_id, reason):
 
     return {
         "status": "success",
-        "component_row_id": component_row_id,
+        "component_row_id": selected_row.name,
+        "equipment_component": component.name,
         "actual_component": component_label,
+        "component_item": component_item,
         "component_group": component_group,
         "component_brand": component_brand,
         "component_model": component_model,
@@ -3848,3 +3966,139 @@ def get_mi_technicians(mi):
 
     return ", ".join(names)
 
+
+###########################################
+# component filtering for same site swap  #
+###########################################
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_same_site_replacement_components(
+    doctype,
+    txt,
+    searchfield,
+    start,
+    page_len,
+    filters
+):
+    filters = filters or {}
+
+    current_equipment = filters.get("current_equipment")
+    outgoing_component = filters.get("outgoing_component")
+
+    if not current_equipment or not outgoing_component:
+        return []
+
+    current_equipment_values = frappe.db.get_value(
+        "Installed Equipment",
+        current_equipment,
+        [
+            "custom_parent_customer",
+            "custom_branch",
+            "custom_asset_type",
+            "custom_asset_category"
+        ],
+        as_dict=True
+    )
+
+    if not current_equipment_values:
+        return []
+
+    outgoing_values = frappe.db.get_value(
+        "Equipment Component",
+        outgoing_component,
+        [
+            "custom_component_group",
+            "custom_equipment_type"
+        ],
+        as_dict=True
+    )
+
+    if not outgoing_values:
+        return []
+
+    return frappe.db.sql(
+        """
+        SELECT
+            ec.name,
+            ec.custom_display_name,
+            ec.custom_serial_number,
+            ec.custom_parent_equipment
+        FROM `tabEquipment Component` ec
+
+        INNER JOIN `tabInstalled Equipment` parent_equipment
+            ON parent_equipment.name = ec.custom_parent_equipment
+
+        WHERE
+            ec.name != %(outgoing_component)s
+
+            AND ec.custom_parent_equipment IS NOT NULL
+            AND ec.custom_parent_equipment != %(current_equipment)s
+
+            AND ec.custom_customer = %(customer)s
+            AND ec.custom_branch = %(branch)s
+
+            AND ec.custom_status = 'Installed'
+
+            AND (
+                %(component_group)s IS NULL
+                OR %(component_group)s = ''
+                OR ec.custom_component_group = %(component_group)s
+            )
+
+            AND (
+                %(equipment_type)s IS NULL
+                OR %(equipment_type)s = ''
+                OR ec.custom_equipment_type = %(equipment_type)s
+            )
+
+            AND (
+                %(asset_type)s IS NULL
+                OR %(asset_type)s = ''
+                OR parent_equipment.custom_asset_type = %(asset_type)s
+            )
+
+            AND (
+                %(asset_category)s IS NULL
+                OR %(asset_category)s = ''
+                OR parent_equipment.custom_asset_category = %(asset_category)s
+            )
+
+            AND (
+                ec.name LIKE %(txt)s
+                OR ec.custom_display_name LIKE %(txt)s
+                OR ec.custom_serial_number LIKE %(txt)s
+                OR ec.custom_parent_equipment LIKE %(txt)s
+            )
+
+        ORDER BY
+            ec.custom_display_name,
+            ec.custom_parent_equipment
+
+        LIMIT %(page_len)s OFFSET %(start)s
+        """,
+        {
+            "current_equipment": current_equipment,
+            "outgoing_component": outgoing_component,
+            "customer": current_equipment_values.get(
+                "custom_parent_customer"
+            ),
+            "branch": current_equipment_values.get("custom_branch"),
+            "asset_type": current_equipment_values.get(
+                "custom_asset_type"
+            ),
+            "asset_category": current_equipment_values.get(
+                "custom_asset_category"
+            ),
+            "component_group": outgoing_values.get(
+                "custom_component_group"
+            ),
+            "equipment_type": outgoing_values.get(
+                "custom_equipment_type"
+            ),
+            "txt": "%" + txt + "%",
+            "page_len": page_len,
+            "start": start
+        }
+    )

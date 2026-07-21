@@ -55,6 +55,7 @@
   "column_break_blst",
   "custom_replacement_date",
   "custom_commissioned_date",
+  "custom_installed_date",
   "custom_info",
   "custom_display_name",
   "custom_component_overview",
@@ -385,6 +386,11 @@
    "fieldtype": "Select",
    "label": "Operational Status",
    "options": "Operational\nDegraded\nOut of Service\nAwaiting Component"
+  },
+  {
+   "fieldname": "custom_installed_date",
+   "fieldtype": "Date",
+   "label": "Installed Date"
   }
  ],
  "grid_page_length": 50,
@@ -407,7 +413,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-07-15 13:12:41.835596",
+ "modified": "2026-07-20 12:57:27.416127",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",
