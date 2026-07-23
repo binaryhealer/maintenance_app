@@ -227,6 +227,8 @@
   {
    "fieldname": "custom_location_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Current Location Status",
    "options": "Client Site\nWorkshop\nVan\nWarehouse\nIn Transit"
   },
@@ -413,7 +415,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-07-20 12:57:27.416127",
+ "modified": "2026-07-23 09:10:17.264257",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

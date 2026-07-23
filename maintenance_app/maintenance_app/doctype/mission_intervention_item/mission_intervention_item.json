@@ -9,10 +9,15 @@
   "custom_item_code",
   "custom_item_name",
   "custom_brand",
-  "custom_is_billed",
-  "column_break_kczk",
   "custom_warehouse",
-  "custom_qty"
+  "column_break_kczk",
+  "custom_qty",
+  "custom_equipment_component",
+  "custom_serial_no",
+  "custom_stock_entry",
+  "custom_is_component_replacement",
+  "custom_stock_issued",
+  "custom_is_billed"
  ],
  "fields": [
   {
@@ -33,6 +38,7 @@
    "default": "0",
    "fieldname": "custom_is_billed",
    "fieldtype": "Check",
+   "hidden": 1,
    "in_list_view": 1,
    "label": "Is Billed?"
   },
@@ -59,13 +65,43 @@
    "in_list_view": 1,
    "label": "Brand",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_is_component_replacement",
+   "fieldtype": "Check",
+   "label": "Component Replacement"
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "label": "Equipment Component",
+   "options": "Equipment Component"
+  },
+  {
+   "fieldname": "custom_serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "custom_stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_stock_issued",
+   "fieldtype": "Check",
+   "label": "Stock Issued"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-08 14:00:24.531861",
+ "modified": "2026-07-22 08:59:15.772987",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention Item",

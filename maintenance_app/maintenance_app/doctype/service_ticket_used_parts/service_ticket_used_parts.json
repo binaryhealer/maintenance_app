@@ -14,7 +14,12 @@
   "column_break_mjwv",
   "custom_warehouse",
   "custom_qty",
-  "custom_mission_intervention"
+  "custom_mission_intervention",
+  "custom_serial_no",
+  "custom_equipment_component",
+  "custom_is_component_replacement",
+  "custom_stock_entry",
+  "custom_stock_issued"
  ],
  "fields": [
   {
@@ -60,6 +65,7 @@
    "default": "0",
    "fieldname": "custom_billed",
    "fieldtype": "Check",
+   "hidden": 1,
    "in_list_view": 1,
    "label": "Billed?",
    "read_only": 1
@@ -74,13 +80,43 @@
    "in_list_view": 1,
    "label": "Equipment",
    "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "label": "Equipment Component",
+   "options": "Equipment Component"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_is_component_replacement",
+   "fieldtype": "Check",
+   "label": "Component Replacemen"
+  },
+  {
+   "fieldname": "custom_stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_stock_issued",
+   "fieldtype": "Check",
+   "label": "Stock Issued"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-08 13:55:41.200829",
+ "modified": "2026-07-22 08:16:31.054726",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket Used Parts",

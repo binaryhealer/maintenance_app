@@ -42,6 +42,7 @@
   "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
+  "custom_component_installation",
   "section_break_mewf",
   "custom_intervention_team",
   "section_break_sjux",
@@ -74,6 +75,9 @@
   "custom_asset_change",
   "custom_component_replaced",
   "custom_removed_asset_outcome",
+  "custom_replacement_source",
+  "custom_replacement_source_branch",
+  "custom_replacement_warehouse",
   "column_break_bbev",
   "custom_loan_return",
   "column_break_jwyc",
@@ -459,7 +463,7 @@
    "fieldname": "custom_removed_asset_outcome",
    "fieldtype": "Select",
    "label": "Removed Asset Outcome",
-   "options": "Workshop for Repair\nReturned to Stock\nInstalled at another Site\nScrapped\nRetired\nSwapped Within Same Site"
+   "options": "Workshop for Repair\nReturned to Stock\nInstalled at another Site\nScrapped\nRetired"
   },
   {
    "fieldname": "custom_subject",
@@ -883,13 +887,37 @@
    "fieldtype": "Link",
    "label": "New Equipment Component",
    "options": "Equipment Component"
+  },
+  {
+   "fieldname": "custom_replacement_source",
+   "fieldtype": "Select",
+   "label": "Replacement Source",
+   "options": "Stock\nWorkshop\nSame Site\nAnother Site\nNew Asset\nCustomer Supplied\nNew Component"
+  },
+  {
+   "fieldname": "custom_replacement_source_branch",
+   "fieldtype": "Link",
+   "label": "Replacement Branch Source",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_replacement_warehouse",
+   "fieldtype": "Link",
+   "label": "Replacement Source Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_component_installation",
+   "fieldtype": "Check",
+   "label": "Component Installation Only"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-21 08:17:08.309912",
+ "modified": "2026-07-23 05:38:01.053436",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

@@ -10,6 +10,7 @@
   "custom_parent_equipment",
   "custom_customer",
   "custom_branch",
+  "custom_company_workshop",
   "column_break_ocsl",
   "custom_component_group",
   "custom_equipment_type",
@@ -23,7 +24,8 @@
   "lifecycle_tab_tab",
   "custom_status",
   "custom_installation_date",
-  "custom_display_name"
+  "custom_display_name",
+  "custom_item"
  ],
  "fields": [
   {
@@ -102,7 +104,7 @@
    "fieldname": "custom_status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Installed\nFaulty\nRepaired\nRetired\nScrapped\nLost"
+   "options": "Installed\nAvailable\nFaulty\nUnder Repair\nRepaired\nRetired\nScrapped\nLost"
   },
   {
    "fieldname": "custom_installation_date",
@@ -127,12 +129,24 @@
    "fieldtype": "Select",
    "label": "Naming Series",
    "options": "COMP-.#####"
+  },
+  {
+   "fieldname": "custom_item",
+   "fieldtype": "Link",
+   "label": "ErpNext ITem",
+   "options": "Item"
+  },
+  {
+   "fieldname": "custom_company_workshop",
+   "fieldtype": "Link",
+   "label": "Company Workshop",
+   "options": "Company Workshop"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-17 22:55:30.711384",
+ "modified": "2026-07-23 06:16:53.145491",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Component",
