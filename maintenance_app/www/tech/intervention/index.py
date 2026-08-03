@@ -1,9 +1,174 @@
+import json
+
 import frappe
+from frappe.utils import add_days, get_datetime, now_datetime, today
 
 no_cache = 1
 
 
+def _has_field(doc, fieldname):
+    return bool(doc.meta.has_field(fieldname))
+
+
+def _set_if_field(doc, fieldname, value):
+    if _has_field(doc, fieldname):
+        doc.set(fieldname, value)
+
+
+def _user_full_name(user):
+    if not user:
+        return ""
+    return (
+        frappe.db.get_value("User", user, "full_name")
+        or user
+    )
+
+
+
+def _normalise_email(value):
+    return (value or "").strip().lower()
+
+
+def _unique_emails(values):
+    result = []
+    seen = set()
+
+    for value in values or []:
+        email = (value or "").strip()
+
+        if not email:
+            continue
+
+        key = email.lower()
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        result.append(email)
+
+    return result
+
+
+def _get_report_email_defaults(service_ticket_name):
+    """
+    Email destination rule:
+      To  = Service Ticket applicant email
+      CC  = all other emails in Service Ticket branch contacts
+
+    Applicant email is removed from CC to prevent duplication.
+    """
+    result = {
+        "to": [],
+        "cc": [],
+    }
+
+    if not service_ticket_name:
+        return result
+
+    ticket = frappe.get_doc(
+        "Service Ticket",
+        service_ticket_name,
+    )
+
+    applicant_email = (
+        ticket.get("custom_applicant_email") or ""
+    ).strip()
+
+    # Fallback to the linked Contact when the snapshot email is empty.
+    if (
+        not applicant_email
+        and ticket.get("custom_applicant")
+    ):
+        contact_email = frappe.db.get_value(
+            "Contact Email",
+            {
+                "parent": ticket.custom_applicant,
+                "is_primary": 1,
+            },
+            "email_id",
+        )
+
+        if not contact_email:
+            contact_email = frappe.db.get_value(
+                "Contact Email",
+                {
+                    "parent": ticket.custom_applicant,
+                },
+                "email_id",
+                order_by="idx asc",
+            )
+
+        applicant_email = (
+            contact_email or ""
+        ).strip()
+
+    if applicant_email:
+        result["to"] = [applicant_email]
+
+    branch_emails = []
+
+    for row in (
+        ticket.get("custom_branch_contacts") or []
+    ):
+        email = (row.get("custom_email") or "").strip()
+
+        if email:
+            branch_emails.append(email)
+
+    applicant_key = _normalise_email(applicant_email)
+
+    result["cc"] = [
+        email
+        for email in _unique_emails(branch_emails)
+        if _normalise_email(email) != applicant_key
+    ]
+
+    return result
+
+
+def _equipment_display(equipment_name):
+    if not equipment_name:
+        return ""
+
+    values = frappe.db.get_value(
+        "Installed Equipment",
+        equipment_name,
+        [
+            "custom_display_name",
+            "custom_asset_name",
+            "custom_client_asset_code",
+            "custom_asset_id",
+            "custom_make",
+            "custom_model",
+        ],
+        as_dict=True,
+    ) or {}
+
+    return (
+        values.get("custom_display_name")
+        or values.get("custom_asset_name")
+        or values.get("custom_client_asset_code")
+        or values.get("custom_asset_id")
+        or " - ".join(
+            [
+                value
+                for value in [
+                    values.get("custom_make"),
+                    values.get("custom_model"),
+                ]
+                if value
+            ]
+        )
+        or equipment_name
+    )
+
+
 def get_context(context):
+    if not frappe.session.user or frappe.session.user == "Guest":
+        frappe.local.flags.redirect_to = "/login"
+        raise frappe.PermissionError("Not logged in")
+
     mi_name = frappe.form_dict.get("name")
 
     if not mi_name:
@@ -11,5 +176,313 @@ def get_context(context):
 
     mi = frappe.get_doc("Mission Intervention", mi_name)
 
+    ticket_type = ""
+    request_type = ""
+
+    if mi.get("custom_service_ticket"):
+        ticket_values = frappe.db.get_value(
+            "Service Ticket",
+            mi.custom_service_ticket,
+            ["custom_ticket_type", "custom_request_type"],
+            as_dict=True,
+        ) or {}
+
+        ticket_type = ticket_values.get("custom_ticket_type") or ""
+        request_type = ticket_values.get("custom_request_type") or ""
+
     context.mi = mi
     context.page_title = "MI " + mi.name
+    context.ticket_type = ticket_type
+    context.request_type = request_type
+    context.equipment_display = _equipment_display(mi.get("custom_asset"))
+    context.technician_display = _user_full_name(
+        mi.get("custom_technician")
+    )
+    context.current_user_full_name = _user_full_name(
+        frappe.session.user
+    )
+    context.technician_signatory_display = _user_full_name(
+        mi.get("custom_technician_signatory")
+    )
+
+    report_email_defaults = _get_report_email_defaults(
+        mi.get("custom_service_ticket")
+    )
+
+    context.report_email_to = ", ".join(
+        report_email_defaults.get("to") or []
+    )
+    context.report_email_cc = ", ".join(
+        report_email_defaults.get("cc") or []
+    )
+
+
+@frappe.whitelist()
+def create_follow_up_mi(
+    source_mi_name,
+    follow_up_date=None,
+    reason=None,
+):
+    if not source_mi_name:
+        frappe.throw("Source Mission Intervention is required.")
+
+    source = frappe.get_doc(
+        "Mission Intervention",
+        source_mi_name,
+    )
+
+    if source.docstatus != 1:
+        frappe.throw(
+            "Submit the current intervention before creating a follow-up."
+        )
+
+    allowed_outcomes = [
+        "Continue Work",
+        "Waiting for Parts",
+        "Waiting for Client",
+        "Could Not Complete",
+        "To Quote (Billable)",
+    ]
+
+    if source.get("custom_work_outcome") not in allowed_outcomes:
+        frappe.throw(
+            "A follow-up MI is only available for ongoing or waiting work."
+        )
+
+    if not source.get("custom_parent_mission"):
+        frappe.throw("The intervention is not linked to a Tech Mission.")
+
+    existing_draft = frappe.db.get_value(
+        "Mission Intervention",
+        {
+            "custom_parent_mission": source.custom_parent_mission,
+            "docstatus": 0,
+            "name": ["!=", source.name],
+        },
+        "name",
+        order_by="creation desc",
+    )
+
+    if existing_draft:
+        return {
+            "created": False,
+            "intervention": existing_draft,
+            "message": "An open draft MI already exists.",
+        }
+
+    follow_up = frappe.new_doc("Mission Intervention")
+
+    copy_fields = [
+        "custom_service_ticket",
+        "custom_parent_mission",
+        "custom_parent_customer",
+        "custom_branch",
+        "custom_asset",
+        "custom_parent_equipment",
+        "custom_equipment_component",
+        "custom_target_component_name",
+        "custom_component_item",
+        "custom_component_serial",
+        "custom_component_brand",
+        "custom_component_model",
+        "custom_subject",
+        "custom_intervention_type",
+        "custom_service_type",
+        "custom_priority",
+        "custom_response_due",
+        "custom_resolution_due",
+        "custom_technician",
+    ]
+
+    for fieldname in copy_fields:
+        if _has_field(follow_up, fieldname):
+            follow_up.set(
+                fieldname,
+                source.get(fieldname),
+            )
+
+    _set_if_field(
+        follow_up,
+        "custom_mi_purpose",
+        "Follow-up",
+    )
+    _set_if_field(
+        follow_up,
+        "custom_previous_intervention",
+        source.name,
+    )
+    _set_if_field(
+        follow_up,
+        "custom_continuation_reason",
+        reason or source.get("custom_work_progress") or "",
+    )
+
+    if _has_field(follow_up, "custom_follow_up_sequence"):
+        previous_sequence = (
+            source.get("custom_follow_up_sequence") or 0
+        )
+        follow_up.custom_follow_up_sequence = (
+            int(previous_sequence) + 1
+        )
+
+    if reason and _has_field(follow_up, "custom_subject"):
+        base_subject = source.get("custom_subject") or source.name
+        follow_up.custom_subject = (
+            f"Follow-up: {base_subject}"
+        )
+
+    if follow_up_date:
+        follow_up_datetime = get_datetime(
+            f"{follow_up_date} 08:00:00"
+        )
+
+        _set_if_field(
+            follow_up,
+            "custom_planned_starttime",
+            follow_up_datetime,
+        )
+        _set_if_field(
+            follow_up,
+            "custom_planned_endtime",
+            follow_up_datetime.replace(hour=17),
+        )
+
+    follow_up.insert(ignore_permissions=True)
+
+    mission = frappe.get_doc(
+        "Tech Mission",
+        source.custom_parent_mission,
+    )
+
+    if follow_up_date:
+        mission.custom_planned_starttime = get_datetime(
+            f"{follow_up_date} 08:00:00"
+        )
+        mission.custom_planned_endtime = get_datetime(
+            f"{follow_up_date} 17:00:00"
+        )
+
+    if mission.meta.has_field("custom_mission_status"):
+        mission.custom_mission_status = "Ongoing"
+
+    if mission.meta.has_field("custom_latest_intervention"):
+        mission.custom_latest_intervention = follow_up.name
+
+    if mission.meta.has_field("custom_open_work_remaining"):
+        mission.custom_open_work_remaining = 1
+
+    mission.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "created": True,
+        "intervention": follow_up.name,
+    }
+
+
+@frappe.whitelist()
+def send_mi_report(
+    mi_name,
+    recipients,
+    cc=None,
+):
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc(
+        "Mission Intervention",
+        mi_name,
+    )
+
+    if mi.docstatus != 1:
+        frappe.throw(
+            "Submit the intervention before emailing the report."
+        )
+
+    to_list = frappe.parse_json(recipients) if recipients else []
+    cc_list = frappe.parse_json(cc) if cc else []
+
+    if isinstance(to_list, str):
+        to_list = [to_list]
+
+    if isinstance(cc_list, str):
+        cc_list = [cc_list]
+
+    to_list = [
+        email.strip()
+        for email in to_list
+        if email and email.strip()
+    ]
+    cc_list = [
+        email.strip()
+        for email in cc_list
+        if email and email.strip()
+    ]
+
+    if not to_list:
+        frappe.throw("At least one email recipient is required.")
+
+    attachment = frappe.attach_print(
+        "Mission Intervention",
+        mi.name,
+        print_format=None,
+        file_name=f"{mi.name}.pdf",
+    )
+
+    subject = (
+        f"Intervention Report {mi.name}"
+        f" - {mi.get('custom_parent_customer') or ''}"
+    )
+
+    message = f"""
+        <p>Hello,</p>
+        <p>Please find attached the intervention report
+        <strong>{frappe.utils.escape_html(mi.name)}</strong>.</p>
+        <p>
+            <strong>Customer:</strong>
+            {frappe.utils.escape_html(mi.get('custom_parent_customer') or '-')}<br>
+            <strong>Branch:</strong>
+            {frappe.utils.escape_html(mi.get('custom_branch') or '-')}<br>
+            <strong>Outcome:</strong>
+            {frappe.utils.escape_html(mi.get('custom_work_outcome') or '-')}
+        </p>
+        <p>Kind regards,<br>GoTech</p>
+    """
+
+    frappe.sendmail(
+        recipients=to_list,
+        cc=cc_list,
+        subject=subject,
+        message=message,
+        attachments=[attachment],
+        reference_doctype="Mission Intervention",
+        reference_name=mi.name,
+        now=False,
+    )
+
+    if mi.meta.has_field("custom_email_status"):
+        frappe.db.set_value(
+            "Mission Intervention",
+            mi.name,
+            "custom_email_status",
+            "Queued",
+            update_modified=False,
+        )
+
+    if mi.meta.has_field("custom_email_sent_by"):
+        frappe.db.set_value(
+            "Mission Intervention",
+            mi.name,
+            "custom_email_sent_by",
+            frappe.session.user,
+            update_modified=False,
+        )
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "status": "Queued",
+        "recipients": to_list,
+        "cc": cc_list,
+    }

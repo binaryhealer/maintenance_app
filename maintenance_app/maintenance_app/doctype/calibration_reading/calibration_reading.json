@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-29 13:09:41.797488",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_test_point",
+  "custom_expected_value",
+  "custom_before_reading",
+  "custom_after_reading",
+  "custom_tolerance",
+  "custom_unit",
+  "custom_error_before",
+  "error_after",
+  "custom_result",
+  "custom_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_test_point",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Test point"
+  },
+  {
+   "fieldname": "custom_expected_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Expected Value"
+  },
+  {
+   "fieldname": "custom_before_reading",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Before Reading"
+  },
+  {
+   "fieldname": "custom_after_reading",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "After Reading"
+  },
+  {
+   "fieldname": "custom_tolerance",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Tolerance"
+  },
+  {
+   "fieldname": "custom_unit",
+   "fieldtype": "Data",
+   "label": "Unit"
+  },
+  {
+   "fieldname": "custom_error_before",
+   "fieldtype": "Float",
+   "label": "Error Before"
+  },
+  {
+   "fieldname": "error_after",
+   "fieldtype": "Float",
+   "label": "Error After"
+  },
+  {
+   "fieldname": "custom_result",
+   "fieldtype": "Select",
+   "label": "Result",
+   "options": "Pass\nFail\nAdjusted\nNot Tested"
+  },
+  {
+   "fieldname": "custom_remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-29 13:20:27.744005",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Calibration Reading",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

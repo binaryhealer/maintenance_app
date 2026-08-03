@@ -66,6 +66,7 @@ def create_mission_from_planning(planning_name):
     _copy_planned_team(planning, mission)
 
     mission.insert(ignore_permissions=True)
+    _sync_service_ticket_planning_from_mission(mission)
 
     planning.custom_mission_ref = mission.name
     planning.custom_planning_status = "Planned"
@@ -146,6 +147,7 @@ def replan_mission_from_planning(planning_name):
         _copy_planned_team(planning, mission)
 
     mission.save(ignore_permissions=True)
+    _sync_service_ticket_planning_from_mission(mission)
 
     planning.custom_reschedule_count = (planning.get("custom_reschedule_count") or 0) + 1
     planning.custom_reschedule_required = 0
@@ -500,6 +502,16 @@ def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_vehicle = mission.get("custom_vehicle")
     mi.custom_intervention_type = mission.get("custom_ticket_type") or "Service"
     mi.custom_work_outcome = ""
+
+    # Technician-facing priority and SLA deadlines
+    if mi.meta.has_field("custom_priority"):
+        mi.custom_priority = mission.get("custom_priority")
+
+    if mi.meta.has_field("custom_response_due"):
+        mi.custom_response_due = mission.get("custom_response_due")
+
+    if mi.meta.has_field("custom_resolution_due"):
+        mi.custom_resolution_due = mission.get("custom_resolution_due")
 
     mi.custom_subject = mission.get("custom_subject")
     mi.custom_applicant = mission.get("custom_applicant")
@@ -5176,3 +5188,904 @@ def update_equipment_workshop_status(
             "company_workshop": previous_workshop
         }
     }
+
+# ============================================================
+# TECH MISSION REASSIGNMENT / RESCHEDULING
+# ============================================================
+
+@frappe.whitelist()
+def update_tech_mission_assignment_and_schedule(
+    mission_name,
+    action,
+    reason,
+    old_technician=None,
+    new_technician=None,
+    planned_start=None,
+    planned_end=None,
+    vehicle=None
+):
+    """
+    Shared server method for Tech Mission changes.
+
+    Supported actions:
+      - Replace Technician
+      - Add Technician
+      - Remove Technician
+      - Reschedule Mission
+      - Reassign and Reschedule
+
+    The method:
+      1. Saves the previous mission values in custom_change_history.
+      2. Updates custom_planned_team and/or planned dates/vehicle.
+      3. Closes ToDos for removed technicians.
+      4. Creates ToDos for newly assigned technicians.
+      5. Synchronizes any draft Mission Intervention.
+      6. Preserves submitted Mission Interventions.
+    """
+
+    if not mission_name:
+        frappe.throw("Tech Mission is required.")
+
+    if not action:
+        frappe.throw("Action is required.")
+
+    if not reason:
+        frappe.throw("Change Reason is required.")
+
+    allowed_actions = [
+        "Replace Technician",
+        "Add Technician",
+        "Remove Technician",
+        "Reschedule Mission",
+        "Reassign and Reschedule"
+    ]
+
+    if action not in allowed_actions:
+        frappe.throw("Invalid Tech Mission change action.")
+
+    mission = frappe.get_doc("Tech Mission", mission_name)
+
+    if mission.get("custom_mission_status") in [
+        "Completed",
+        "Closed",
+        "Cancelled"
+    ]:
+        frappe.throw(
+            "Completed, Closed, or Cancelled missions cannot be changed."
+        )
+
+    previous_start = mission.get("custom_planned_starttime")
+    previous_end = mission.get("custom_planned_endtime")
+    previous_vehicle = mission.get("custom_vehicle")
+
+    previous_technicians = _get_mission_technicians(mission)
+    updated_technicians = list(previous_technicians)
+
+    technician_action = action in [
+        "Replace Technician",
+        "Add Technician",
+        "Remove Technician",
+        "Reassign and Reschedule"
+    ]
+
+    schedule_action = action in [
+        "Reschedule Mission",
+        "Reassign and Reschedule"
+    ]
+
+    # -------------------------
+    # Technician validation
+    # -------------------------
+    if action in ["Replace Technician", "Reassign and Reschedule"]:
+        if not old_technician:
+            frappe.throw("Current Technician is required.")
+
+        if not new_technician:
+            frappe.throw("New Technician is required.")
+
+        if old_technician == new_technician:
+            frappe.throw(
+                "New Technician must be different from Current Technician."
+            )
+
+        if old_technician not in updated_technicians:
+            frappe.throw(
+                "The selected Current Technician is not assigned to this mission."
+            )
+
+        updated_technicians = [
+            tech for tech in updated_technicians
+            if tech != old_technician
+        ]
+
+        if new_technician not in updated_technicians:
+            updated_technicians.append(new_technician)
+
+    elif action == "Add Technician":
+        if not new_technician:
+            frappe.throw("New Technician is required.")
+
+        if new_technician in updated_technicians:
+            frappe.throw(
+                "This technician is already assigned to the mission."
+            )
+
+        updated_technicians.append(new_technician)
+
+    elif action == "Remove Technician":
+        if not old_technician:
+            frappe.throw("Technician to remove is required.")
+
+        if old_technician not in updated_technicians:
+            frappe.throw(
+                "The selected technician is not assigned to this mission."
+            )
+
+        updated_technicians = [
+            tech for tech in updated_technicians
+            if tech != old_technician
+        ]
+
+    if technician_action and not updated_technicians:
+        frappe.throw(
+            "At least one technician must remain assigned to the Tech Mission."
+        )
+
+    # -------------------------
+    # Schedule validation
+    # -------------------------
+    new_start = previous_start
+    new_end = previous_end
+    new_vehicle = previous_vehicle
+
+    if schedule_action:
+        if not planned_start:
+            frappe.throw("New Planned Start is required.")
+
+        if not planned_end:
+            frappe.throw("New Planned End is required.")
+
+        new_start = frappe.utils.get_datetime(planned_start)
+        new_end = frappe.utils.get_datetime(planned_end)
+
+        if new_end <= new_start:
+            frappe.throw(
+                "New Planned End must be after New Planned Start."
+            )
+
+        # A blank vehicle is allowed and clears the existing vehicle.
+        new_vehicle = vehicle or None
+
+    # -------------------------
+    # Add audit/history row
+    # -------------------------
+    if mission.meta.has_field("custom_change_history"):
+        mission.append(
+            "custom_change_history",
+            {
+                "custom_change_type": _get_mission_change_type(action),
+                "custom_previous_start": previous_start,
+                "custom_previous_end": previous_end,
+                "custom_previous_vehicle": previous_vehicle,
+                "custom_previous_technicians": ", ".join(
+                    previous_technicians
+                ),
+                "custom_change_reason": reason,
+                "custom_changed_on": frappe.utils.now_datetime(),
+                "custom_changed_by": frappe.session.user
+            }
+        )
+
+    # -------------------------
+    # Update live mission values
+    # -------------------------
+    if technician_action:
+        mission.set("custom_planned_team", [])
+
+        for technician in updated_technicians:
+            mission.append(
+                "custom_planned_team",
+                {
+                    "custom_technician": technician
+                }
+            )
+
+    if schedule_action:
+        mission.custom_planned_starttime = new_start
+        mission.custom_planned_endtime = new_end
+        mission.custom_vehicle = new_vehicle
+
+    # Keep Scheduled before work starts; otherwise keep Ongoing.
+    if _mission_has_started_work(mission.name):
+        mission.custom_mission_status = "Ongoing"
+    elif mission.get("custom_mission_status") not in ["Ongoing", "On Hold"]:
+        mission.custom_mission_status = "Scheduled"
+
+    mission.save(ignore_permissions=True)
+    _sync_service_ticket_planning_from_mission(mission)
+
+    # -------------------------
+    # Synchronize ToDos
+    # -------------------------
+    removed_technicians = [
+        tech for tech in previous_technicians
+        if tech not in updated_technicians
+    ]
+
+    added_technicians = [
+        tech for tech in updated_technicians
+        if tech not in previous_technicians
+    ]
+
+    for technician in removed_technicians:
+        _close_mission_todos_for_technician(
+            mission,
+            technician,
+            reason,
+            action
+        )
+
+    # If only the schedule changed, refresh all current ToDos.
+    if schedule_action:
+        for technician in updated_technicians:
+            _refresh_mission_todo(
+                mission,
+                technician,
+                reason,
+                action
+            )
+
+    # Create ToDos for newly added technicians.
+    for technician in added_technicians:
+        _create_mission_todo_for_technician(
+            mission,
+            technician,
+            reason,
+            action
+        )
+
+    # -------------------------
+    # Synchronize draft MI only
+    # -------------------------
+    _sync_draft_mi_from_mission(mission)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "mission": mission.name,
+        "action": action,
+        "previous_technicians": previous_technicians,
+        "current_technicians": updated_technicians,
+        "planned_start": mission.get("custom_planned_starttime"),
+        "planned_end": mission.get("custom_planned_endtime"),
+        "vehicle": mission.get("custom_vehicle"),
+        "mission_status": mission.get("custom_mission_status")
+    }
+
+
+def _get_mission_technicians(mission):
+    technicians = []
+
+    for row in mission.get("custom_planned_team") or []:
+        technician = row.get("custom_technician")
+
+        if technician and technician not in technicians:
+            technicians.append(technician)
+
+    return technicians
+
+
+def _get_mission_change_type(action):
+    mapping = {
+        "Replace Technician": "Technician Reassigned",
+        "Add Technician": "Technician Added",
+        "Remove Technician": "Technician Removed",
+        "Reschedule Mission": "Schedule Changed",
+        "Reassign and Reschedule": "Schedule and Technician Changed"
+    }
+
+    return mapping.get(action, action)
+
+
+def _mission_has_started_work(mission_name):
+    return bool(
+        frappe.db.exists(
+            "Mission Intervention",
+            {
+                "custom_parent_mission": mission_name
+            }
+        )
+    )
+
+
+def _close_mission_todos_for_technician(
+    mission,
+    technician,
+    reason,
+    action
+):
+    todo_names = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "Tech Mission",
+            "reference_name": mission.name,
+            "allocated_to": technician,
+            "status": "Open"
+        },
+        pluck="name"
+    )
+
+    note = (
+        "<br><br><b>Assignment changed.</b>"
+        "<br><b>Action:</b> " + str(action)
+        + "<br><b>Reason:</b> " + str(reason)
+        + "<br><b>Changed By:</b> " + str(frappe.session.user)
+        + "<br><b>Changed On:</b> "
+        + str(frappe.utils.now_datetime())
+    )
+
+    for todo_name in todo_names:
+        todo = frappe.get_doc("ToDo", todo_name)
+        todo.status = "Closed"
+        todo.description = (todo.description or "") + note
+        todo.save(ignore_permissions=True)
+
+
+def _create_mission_todo_for_technician(
+    mission,
+    technician,
+    reason=None,
+    action=None
+):
+    exists = frappe.db.exists(
+        "ToDo",
+        {
+            "reference_type": "Tech Mission",
+            "reference_name": mission.name,
+            "allocated_to": technician,
+            "status": "Open"
+        }
+    )
+
+    if exists:
+        return exists
+
+    ticket = None
+
+    if mission.get("custom_service_ticket"):
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mission.custom_service_ticket
+        )
+
+    todo = frappe.new_doc("ToDo")
+    todo.allocated_to = technician
+    todo.assigned_by = frappe.session.user
+    todo.reference_type = "Tech Mission"
+    todo.reference_name = mission.name
+    todo.status = "Open"
+    todo.priority = _get_ticket_priority_from_mission(mission)
+    todo.date = getdate(
+        mission.get("custom_planned_starttime")
+        or frappe.utils.nowdate()
+    )
+    todo.description = _build_direct_todo_description(
+        mission,
+        ticket
+    )
+
+    if reason:
+        todo.description += (
+            "<br><br><b>Assignment Update:</b> "
+            + str(action or "Mission Updated")
+            + "<br><b>Reason:</b> "
+            + str(reason)
+        )
+
+    todo.insert(ignore_permissions=True)
+    return todo.name
+
+
+def _refresh_mission_todo(
+    mission,
+    technician,
+    reason,
+    action
+):
+    todo_name = frappe.db.get_value(
+        "ToDo",
+        {
+            "reference_type": "Tech Mission",
+            "reference_name": mission.name,
+            "allocated_to": technician,
+            "status": "Open"
+        },
+        "name"
+    )
+
+    if not todo_name:
+        return _create_mission_todo_for_technician(
+            mission,
+            technician,
+            reason,
+            action
+        )
+
+    ticket = None
+
+    if mission.get("custom_service_ticket"):
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mission.custom_service_ticket
+        )
+
+    todo = frappe.get_doc("ToDo", todo_name)
+    todo.date = getdate(
+        mission.get("custom_planned_starttime")
+        or frappe.utils.nowdate()
+    )
+    todo.priority = _get_ticket_priority_from_mission(mission)
+    todo.description = _build_direct_todo_description(
+        mission,
+        ticket
+    )
+    todo.description += (
+        "<br><br><b>Schedule Updated:</b> "
+        + str(action)
+        + "<br><b>Reason:</b> "
+        + str(reason)
+    )
+    todo.save(ignore_permissions=True)
+
+    return todo.name
+
+
+def _sync_draft_mi_from_mission(mission):
+    draft_mis = frappe.get_all(
+        "Mission Intervention",
+        filters={
+            "custom_parent_mission": mission.name,
+            "docstatus": 0
+        },
+        pluck="name"
+    )
+
+    current_technicians = _get_mission_technicians(mission)
+
+    for mi_name in draft_mis:
+        mi = frappe.get_doc(
+            "Mission Intervention",
+            mi_name
+        )
+
+        if mi.meta.has_field("custom_planned_starttime"):
+            mi.custom_planned_starttime = mission.get(
+                "custom_planned_starttime"
+            )
+
+        if mi.meta.has_field("custom_planned_endtime"):
+            mi.custom_planned_endtime = mission.get(
+                "custom_planned_endtime"
+            )
+
+        if mi.meta.has_field("custom_vehicle"):
+            mi.custom_vehicle = mission.get("custom_vehicle")
+
+        if mi.meta.has_field("custom_intervention_team"):
+            mi.set("custom_intervention_team", [])
+
+            for technician in current_technicians:
+                mi.append(
+                    "custom_intervention_team",
+                    {
+                        "custom_technician": technician
+                    }
+                )
+
+        if mi.meta.has_field("custom_technician"):
+            mi.custom_technician = (
+                current_technicians[0]
+                if current_technicians
+                else None
+            )
+
+        mi.save(ignore_permissions=True)
+
+def _sync_service_ticket_planning_from_mission(mission):
+    """
+    Copy the current Tech Mission planning summary to its Service Ticket.
+
+    The Service Ticket fields are current-summary fields and are overwritten
+    whenever the linked Tech Mission is created, rescheduled, or reassigned.
+    Mission change history remains on Tech Mission.
+    """
+
+    ticket_name = mission.get("custom_service_ticket")
+
+    if not ticket_name:
+        return
+
+    ticket = frappe.get_doc("Service Ticket", ticket_name)
+    technicians = _get_mission_technicians(mission)
+
+    if ticket.meta.has_field("custom_primary_mission_ref"):
+        ticket.custom_primary_mission_ref = mission.name
+
+    if ticket.meta.has_field("custom_planned_starttime"):
+        ticket.custom_planned_starttime = mission.get(
+            "custom_planned_starttime"
+        )
+
+    if ticket.meta.has_field("custom_planned_endtime"):
+        ticket.custom_planned_endtime = mission.get(
+            "custom_planned_endtime"
+        )
+
+    if ticket.meta.has_field("custom_planned_vehicle"):
+        ticket.custom_planned_vehicle = mission.get("custom_vehicle")
+
+    if ticket.meta.has_field("custom_planned_technicians"):
+        ticket.custom_planned_technicians = ", ".join(technicians)
+
+    ticket.save(ignore_permissions=True)
+
+# ============================================================
+# CREATE SERVICE TICKET FROM INSTALLED EQUIPMENT / COMPONENT
+# ============================================================
+
+@frappe.whitelist()
+def create_ticket_from_installed_equipment(
+    equipment_name,
+    subject,
+    description,
+    request_type,
+    ticket_type,
+    priority,
+    technicians=None,
+    work_type="Quick Intervention",
+    component_name=None
+):
+    """
+    Create one Service Ticket from an Installed Equipment record.
+
+    When component_name is supplied, the ticket targets that permanent
+    Equipment Component while retaining the parent Installed Equipment.
+    """
+
+    if not equipment_name:
+        frappe.throw("Installed Equipment is required.")
+
+    if not subject:
+        frappe.throw("Subject is required.")
+
+    if not description:
+        frappe.throw("Description is required.")
+
+    if not request_type:
+        frappe.throw("Request Type is required.")
+
+    if not ticket_type:
+        frappe.throw("Ticket Type is required.")
+
+    if not priority:
+        frappe.throw("Priority is required.")
+
+    allowed_ticket_types = {
+        "Breakdown": ["Repair", "Service"],
+        "Maintenance Request": [
+            "Preventive Maintenance",
+            "Service",
+            "Calibration",
+            "Commissioning"
+        ],
+        "General Request": [
+            "Installation",
+            "Survey",
+            "Training",
+            "Audit",
+            "Incident Investigation",
+            "Asset Relocation",
+            "Config Change",
+            "Swap",
+            "Loan",
+            "Service"
+        ]
+    }
+
+    if request_type not in allowed_ticket_types:
+        frappe.throw("Invalid Request Type.")
+
+    if ticket_type not in allowed_ticket_types[request_type]:
+        frappe.throw(
+            "Ticket Type {0} is not valid for Request Type {1}.".format(
+                ticket_type,
+                request_type
+            )
+        )
+
+    allowed_work_types = ["Quick Intervention", "Tech Mission"]
+
+    if work_type not in allowed_work_types:
+        frappe.throw("Invalid Work Type.")
+
+    technician_list = frappe.parse_json(technicians) if technicians else []
+
+    if not isinstance(technician_list, list):
+        technician_list = [technician_list]
+
+    technician_list = list(dict.fromkeys(
+        [tech for tech in technician_list if tech]
+    ))
+
+    if not technician_list:
+        frappe.throw("Please select at least one technician.")
+
+    equipment = frappe.get_doc("Installed Equipment", equipment_name)
+    component = None
+
+    if component_name:
+        component = frappe.get_doc("Equipment Component", component_name)
+
+        if component.get("custom_parent_equipment") != equipment.name:
+            frappe.throw(
+                "The selected component is not installed on this equipment."
+            )
+
+    ticket = frappe.new_doc("Service Ticket")
+
+    ticket.custom_customer = equipment.get("custom_parent_customer")
+    ticket.custom_client_branch = equipment.get("custom_branch")
+    ticket.custom_target_equipment = equipment.name
+    ticket.custom_request_type = request_type
+    ticket.custom_ticket_type = ticket_type
+    ticket.custom_priority = priority
+    ticket.custom_subject = subject
+    ticket.custom_description = description
+    ticket.custom_ticket_status = "Open"
+    ticket.custom_commercial_status = "N/A"
+    ticket.custom_work_type = work_type
+
+    if work_type == "Tech Mission":
+        ticket.custom_planning_required = 1
+        ticket.custom_planning_status = "Required"
+    else:
+        ticket.custom_planning_required = 0
+        ticket.custom_planning_status = "Not Required"
+
+    if ticket.meta.has_field("custom_parent_equipment"):
+        ticket.custom_parent_equipment = (
+            equipment.name if component else ""
+        )
+
+    if component:
+        ticket.custom_target_component = component.name
+
+        if ticket.meta.has_field("custom_equipment_component"):
+            ticket.custom_equipment_component = component.name
+
+        if ticket.meta.has_field("custom_target_component_name"):
+            ticket.custom_target_component_name = (
+                component.get("custom_display_name")
+                or component.get("custom_equipment_type")
+                or component.name
+            )
+
+        if ticket.meta.has_field("custom_component_group"):
+            ticket.custom_component_group = component.get(
+                "custom_component_group"
+            )
+
+        if ticket.meta.has_field("custom_component_brand"):
+            ticket.custom_component_brand = component.get("custom_make")
+
+        if ticket.meta.has_field("custom_component_model"):
+            ticket.custom_component_model = component.get("custom_model")
+
+        if ticket.meta.has_field("custom_component_serial"):
+            ticket.custom_component_serial = (
+                component.get("custom_serial_number")
+                or component.get("custom_serial")
+            )
+    else:
+        if ticket.meta.has_field("custom_target_component_name"):
+            ticket.custom_target_component_name = (
+                equipment.get("custom_display_name")
+                or equipment.get("custom_asset_name")
+                or equipment.name
+            )
+
+    if ticket.meta.has_field("custom_maintenance_contract"):
+        ticket.custom_maintenance_contract = equipment.get(
+            "custom_maintenance_contract"
+        )
+
+    if ticket.meta.has_field("custom_sla_rule"):
+        ticket.custom_sla_rule = equipment.get("custom_sla_rule")
+
+    if ticket.meta.has_field("custom_raised_by"):
+        ticket.custom_raised_by = _current_user_display_name()
+
+    if ticket.meta.has_field("custom_planned_team"):
+        for technician in technician_list:
+            ticket.append(
+                "custom_planned_team",
+                {"custom_technician": technician}
+            )
+
+    ticket.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "ticket": ticket.name,
+        "target_type": "Component" if component else "Equipment"
+    }
+
+# ============================================================
+# CREATE INSTALLATION TICKET FROM EQUIPMENT COMPONENT
+# ============================================================
+
+@frappe.whitelist()
+def create_installation_ticket_from_component(
+    component_name,
+    destination_equipment,
+    subject,
+    description,
+    priority,
+    technicians=None,
+    work_type="Quick Intervention"
+):
+    """
+    Create an Installation Service Ticket for an Equipment Component.
+
+    Supports:
+      - a standalone component with no current parent equipment;
+      - a component already linked to equipment but being installed,
+        reinstalled, or transferred to the selected destination equipment.
+
+    Important:
+      The Equipment Component master is not moved or marked Installed here.
+      Its customer, branch, parent equipment, and status must only be updated
+      after the Installation MI is successfully submitted.
+    """
+
+    if not component_name:
+        frappe.throw("Equipment Component is required.")
+
+    if not destination_equipment:
+        frappe.throw("Destination Installed Equipment is required.")
+
+    if not subject:
+        frappe.throw("Subject is required.")
+
+    if not description:
+        frappe.throw("Description is required.")
+
+    if not priority:
+        frappe.throw("Priority is required.")
+
+    if work_type not in ["Quick Intervention", "Tech Mission"]:
+        frappe.throw("Invalid Work Type.")
+
+    technician_list = frappe.parse_json(technicians) if technicians else []
+
+    if not isinstance(technician_list, list):
+        technician_list = [technician_list]
+
+    technician_list = list(dict.fromkeys(
+        [technician for technician in technician_list if technician]
+    ))
+
+    if not technician_list:
+        frappe.throw("Please select at least one technician.")
+
+    component = frappe.get_doc(
+        "Equipment Component",
+        component_name
+    )
+
+    equipment = frappe.get_doc(
+        "Installed Equipment",
+        destination_equipment
+    )
+
+    customer = equipment.get("custom_parent_customer")
+    branch = equipment.get("custom_branch")
+
+    if not customer:
+        frappe.throw(
+            "The destination Installed Equipment has no Customer."
+        )
+
+    if not branch:
+        frappe.throw(
+            "The destination Installed Equipment has no Branch."
+        )
+
+    ticket = frappe.new_doc("Service Ticket")
+
+    ticket.custom_customer = customer
+    ticket.custom_client_branch = branch
+    ticket.custom_target_equipment = equipment.name
+    ticket.custom_request_type = "General Request"
+    ticket.custom_ticket_type = "Installation"
+    ticket.custom_priority = priority
+    ticket.custom_subject = subject
+    ticket.custom_description = description
+    ticket.custom_ticket_status = "Open"
+    ticket.custom_commercial_status = "N/A"
+    ticket.custom_work_type = work_type
+
+    if work_type == "Tech Mission":
+        ticket.custom_planning_required = 1
+        ticket.custom_planning_status = "Required"
+    else:
+        ticket.custom_planning_required = 0
+        ticket.custom_planning_status = "Not Required"
+
+    if ticket.meta.has_field("custom_target_component"):
+        ticket.custom_target_component = component.name
+
+    if ticket.meta.has_field("custom_equipment_component"):
+        ticket.custom_equipment_component = component.name
+
+    if ticket.meta.has_field("custom_parent_equipment"):
+        ticket.custom_parent_equipment = equipment.name
+
+    if ticket.meta.has_field("custom_target_component_name"):
+        ticket.custom_target_component_name = (
+            component.get("custom_display_name")
+            or component.get("custom_equipment_type")
+            or component.name
+        )
+
+    if ticket.meta.has_field("custom_component_group"):
+        ticket.custom_component_group = component.get(
+            "custom_component_group"
+        )
+
+    if ticket.meta.has_field("custom_component_brand"):
+        ticket.custom_component_brand = component.get("custom_make")
+
+    if ticket.meta.has_field("custom_component_model"):
+        ticket.custom_component_model = component.get("custom_model")
+
+    if ticket.meta.has_field("custom_component_serial"):
+        ticket.custom_component_serial = (
+            component.get("custom_serial_number")
+            or component.get("custom_serial")
+        )
+
+    if ticket.meta.has_field("custom_maintenance_contract"):
+        ticket.custom_maintenance_contract = equipment.get(
+            "custom_maintenance_contract"
+        )
+
+    if ticket.meta.has_field("custom_sla_rule"):
+        ticket.custom_sla_rule = equipment.get("custom_sla_rule")
+
+    if ticket.meta.has_field("custom_raised_by"):
+        ticket.custom_raised_by = _current_user_display_name()
+
+    if ticket.meta.has_field("custom_planned_team"):
+        for technician in technician_list:
+            ticket.append(
+                "custom_planned_team",
+                {
+                    "custom_technician": technician
+                }
+            )
+
+    ticket.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "ticket": ticket.name,
+        "component": component.name,
+        "destination_equipment": equipment.name,
+        "customer": customer,
+        "branch": branch
+    }
+

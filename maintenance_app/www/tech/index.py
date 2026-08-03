@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import today, getdate, add_days, formatdate
 
-no_cache = 1
+no_cache = True
 
 
 def _safe_int(value):
@@ -13,98 +13,151 @@ def _safe_int(value):
         return None
 
 
+def _get_current_missions_for_user(user):
+    """
+    Return only Tech Missions where the logged-in user exists in the
+    CURRENT custom_planned_team child table.
+
+    Uses a direct SQL join instead of historical ToDos or a broad child-table
+    lookup, so removed technicians disappear immediately after refresh.
+    """
+
+    return frappe.db.sql(
+        """
+        SELECT DISTINCT
+            tm.name,
+            tm.custom_parent_customer,
+            tm.custom_branch,
+            tm.custom_asset,
+            tm.custom_mission_status,
+            tm.custom_planned_starttime,
+            tm.custom_planned_endtime,
+            tm.modified
+        FROM `tabTech Mission` tm
+        INNER JOIN `tabPlanned Technicians` pt
+            ON pt.parent = tm.name
+            AND pt.parenttype = 'Tech Mission'
+            AND pt.parentfield = 'custom_planned_team'
+        WHERE
+            pt.custom_technician = %(user)s
+        ORDER BY
+            tm.custom_planned_starttime ASC,
+            tm.modified DESC
+        """,
+        {"user": user},
+        as_dict=True
+    )
+
+
 def get_context(context):
+    if not frappe.session.user or frappe.session.user == "Guest":
+        frappe.local.flags.redirect_to = "/login"
+        raise frappe.PermissionError("Not logged in")
+
     user = frappe.session.user
     selected_filter = frappe.form_dict.get("filter") or "today"
     selected_month = (frappe.form_dict.get("month") or "").strip()
     selected_year = (frappe.form_dict.get("year") or "").strip()
 
-    open_todos = frappe.get_all(
-        "ToDo",
-        filters={
-            "allocated_to": user,
-            "status": "Open",
-            "reference_type": "Tech Mission"
-        },
-        fields=["name", "reference_name", "description", "date"],
-        order_by="date asc"
-    )
+    context.no_cache = 1
 
-    all_todos = frappe.get_all(
-        "ToDo",
-        filters={
-            "allocated_to": user,
-            "reference_type": "Tech Mission"
-        },
-        fields=["reference_name"]
-    )
+    # Current Tech Mission team is the only visibility source.
+    missions = _get_current_missions_for_user(user)
 
-    # Do not rely only on ToDo.
-    # Some missions may have no ToDo, or the ToDo may be closed/deleted.
-    # Also include missions where this user is in the planned technician table.
-    team_rows = frappe.get_all(
-        "Planned Technicians",
-        filters={
-            "parenttype": "Tech Mission",
-            "custom_technician": user
-        },
-        fields=["parent"]
-    )
+    mission_names = [
+        mission.name
+        for mission in missions
+        if mission.name
+    ]
 
-    mission_names = list(set(
-        [t.reference_name for t in all_todos if t.reference_name] +
-        [r.parent for r in team_rows if r.parent]
-    ))
+    mission_by_name = {
+        mission.name: mission
+        for mission in missions
+    }
 
-    missions = []
+    # Only open ToDos belonging to missions where the user is still
+    # currently assigned.
+    open_todos = []
+
     if mission_names:
-        missions = frappe.get_all(
-            "Tech Mission",
-            filters={"name": ["in", mission_names]},
+        open_todos = frappe.get_all(
+            "ToDo",
+            filters={
+                "allocated_to": user,
+                "status": "Open",
+                "reference_type": "Tech Mission",
+                "reference_name": ["in", mission_names]
+            },
             fields=[
                 "name",
-                "custom_parent_customer",
-                "custom_branch",
-                "custom_asset",
-                "custom_mission_status",
-                "custom_planned_starttime",
-                "custom_planned_endtime",
-                "modified"
+                "reference_name",
+                "description",
+                "date"
             ],
-            order_by="custom_planned_starttime asc"
+            order_by="date asc"
         )
+
+    # Display the live mission schedule, never an old ToDo date.
+    for todo in open_todos:
+        mission = mission_by_name.get(todo.reference_name)
+
+        if mission and mission.custom_planned_starttime:
+            todo.date = mission.custom_planned_starttime
+
+    open_todos.sort(
+        key=lambda row: (
+            row.date is None,
+            str(row.date or "")
+        )
+    )
 
     today_date = getdate(today())
     upcoming_limit = getdate(add_days(today_date, 7))
 
+    excluded_statuses = [
+        "Completed",
+        "Closed",
+        "Cancelled"
+    ]
+
     today_missions = [
-        m for m in missions
-        if m.custom_planned_starttime
-        and getdate(m.custom_planned_starttime) == today_date
-        and m.custom_mission_status not in ["Completed", "Closed", "Cancelled"]
+        mission
+        for mission in missions
+        if mission.custom_planned_starttime
+        and getdate(mission.custom_planned_starttime) == today_date
+        and mission.custom_mission_status not in excluded_statuses
     ]
 
     upcoming_missions = [
-        m for m in missions
-        if m.custom_planned_starttime
-        and today_date < getdate(m.custom_planned_starttime) <= upcoming_limit
-        and m.custom_mission_status not in ["Completed", "Closed", "Cancelled"]
+        mission
+        for mission in missions
+        if mission.custom_planned_starttime
+        and today_date < getdate(
+            mission.custom_planned_starttime
+        ) <= upcoming_limit
+        and mission.custom_mission_status not in excluded_statuses
     ]
 
     ongoing_missions = [
-        m for m in missions
-        if m.custom_mission_status == "Ongoing"
+        mission
+        for mission in missions
+        if mission.custom_mission_status == "Ongoing"
     ]
 
     unplanned_missions = [
-        m for m in missions
-        if not m.custom_planned_starttime
-        and m.custom_mission_status not in ["Completed", "Closed", "Cancelled"]
+        mission
+        for mission in missions
+        if not mission.custom_planned_starttime
+        and mission.custom_mission_status not in excluded_statuses
     ]
 
     completed_missions_all = [
-        m for m in missions
-        if m.custom_mission_status in ["Completed", "Closed"]
+        mission
+        for mission in missions
+        if mission.custom_mission_status in [
+            "Completed",
+            "Closed"
+        ]
     ]
 
     completed_missions = completed_missions_all
@@ -114,16 +167,22 @@ def get_context(context):
 
     if selected_year_int:
         completed_missions = [
-            m for m in completed_missions
-            if m.custom_planned_starttime
-            and getdate(m.custom_planned_starttime).year == selected_year_int
+            mission
+            for mission in completed_missions
+            if mission.custom_planned_starttime
+            and getdate(
+                mission.custom_planned_starttime
+            ).year == selected_year_int
         ]
 
     if selected_month_int:
         completed_missions = [
-            m for m in completed_missions
-            if m.custom_planned_starttime
-            and getdate(m.custom_planned_starttime).month == selected_month_int
+            mission
+            for mission in completed_missions
+            if mission.custom_planned_starttime
+            and getdate(
+                mission.custom_planned_starttime
+            ).month == selected_month_int
         ]
 
     if selected_filter == "upcoming":
@@ -140,13 +199,18 @@ def get_context(context):
         visible_missions = today_missions
 
     calendar_days = []
+
     for offset in range(0, 7):
         day_date = getdate(add_days(today_date, offset))
+
         day_missions = [
-            m for m in missions
-            if m.custom_planned_starttime
-            and getdate(m.custom_planned_starttime) == day_date
-            and m.custom_mission_status not in ["Completed", "Closed", "Cancelled"]
+            mission
+            for mission in missions
+            if mission.custom_planned_starttime
+            and getdate(
+                mission.custom_planned_starttime
+            ) == day_date
+            and mission.custom_mission_status not in excluded_statuses
         ]
 
         calendar_days.append({

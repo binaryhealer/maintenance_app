@@ -12,6 +12,7 @@
   "custom_customer",
   "custom_branch",
   "custom_intervention_type",
+  "custom_replacement_reason",
   "column_break_kxce",
   "custom_related_asset",
   "custom_technician",
@@ -23,6 +24,8 @@
   "custom_service_ticket",
   "custom_mission_ref",
   "custom_intervention_ref",
+  "custom_calibration_record",
+  "custom_commissioning_record",
   "column_break_jtml",
   "custom_start_time",
   "custom_end_time",
@@ -140,7 +143,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection"
   },
   {
    "fieldname": "custom_work_outcome",
@@ -222,13 +225,31 @@
    "label": "Equipment Component",
    "options": "Equipment Component",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_replacement_reason",
+   "fieldtype": "Data",
+   "label": "Replacement Reason"
+  },
+  {
+   "fieldname": "custom_calibration_record",
+   "fieldtype": "Link",
+   "label": "Calibration Record",
+   "options": "Calibration Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_commissioning_record",
+   "fieldtype": "Link",
+   "label": "Commissioning Record",
+   "options": "Commissioning Record"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-16 13:42:18.896350",
+ "modified": "2026-07-31 06:16:18.911629",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Service Log",

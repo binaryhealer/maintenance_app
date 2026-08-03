@@ -351,6 +351,26 @@
         font-weight: 700;
     }
 
+    .signature-meta-row {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(145px, 0.85fr);
+        gap: 10px;
+        align-items: end;
+    }
+
+    .signature-name-field {
+        min-width: 0;
+    }
+
+    .signature-date-field {
+        min-width: 145px;
+    }
+
+    .signature-date-box {
+        white-space: nowrap;
+        text-align: center;
+    }
+
     @media (max-width: 480px) {
         .container {
             padding-left: 10px;
@@ -363,6 +383,18 @@
 
         .top-title {
             font-size: 22px;
+        }
+
+        .signature-meta-row {
+            grid-template-columns: 1fr;
+        }
+
+        .signature-date-field {
+            min-width: 0;
+        }
+
+        .signature-date-box {
+            text-align: left;
         }
     }
 
@@ -556,12 +588,6 @@
                         <div class="info-value">{{ mi.custom_branch or "-" }} ›</div>
                     </a>
 
-                    <a class="summary-item info-link" href="/app/installed-equipment/{{ mi.custom_asset }}">
-                        <div class="info-label">Equipment</div>
-                        <div class="info-value">{{ mi.custom_asset or "-" }} ›</div>
-                    </a>
-
-
                     <div class="summary-item">
                         <div class="info-label">Target / Faulty Item</div>
                         <div class="info-value">
@@ -570,15 +596,8 @@
                     </div>
 
                     <div class="summary-item">
-                        <div class="info-label">Parent Equipment</div>
-                        <div class="info-value">
-                            {{ mi.custom_parent_equipment or "-" }}
-                        </div>
-                    </div>
-
-                    <div class="summary-item">
                         <div class="info-label">Technician</div>
-                        <div class="info-value">{{ mi.custom_technician or "-" }}</div>
+                        <div class="info-value">{{ technician_display or mi.custom_technician or "-" }}</div>
                     </div>
                 </div>
 
@@ -605,7 +624,7 @@
             <div class="accordion-body summary-grid compact-grid">
                 <div class="summary-item">
                     <div class="info-label">Ticket Type</div>
-                    <div class="info-value">{{ mi.custom_ticket_type or "-" }}</div>
+                    <div class="info-value">{{ ticket_type or "-" }}</div>
                 </div>
 
                 <div class="summary-item">
@@ -614,13 +633,8 @@
                 </div>
 
                 <div class="summary-item">
-                    <div class="info-label">Intervention Type</div>
-                    <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
-                </div>
-
-                <div class="summary-item">
-                    <div class="info-label">Intervention Type</div>
-                    <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
+                    <div class="info-label">Request Type</div>
+                    <div class="info-value">{{ request_type or "-" }}</div>
                 </div>
 
                 <div class="summary-item">
@@ -662,14 +676,13 @@
 
             <div class="accordion-body action-list">
                <button class="btn btn-outline-primary action-btn" onclick="showChangeEquipmentDialog()">
-                    Change Target Equipment
+                    Correct Target Equipment
                 </button>
-                <a class="btn btn-outline-primary action-btn"
-                   href="/app/mission-intervention/{{ mi.name }}">
-                   Equipment Swap / Loan / Relocation
-                </a>
+                <button class="btn btn-outline-primary action-btn" onclick="showChangeComponentDialog()">
+                    Correct Target Component
+                </button>
                 <button class="btn btn-outline-primary action-btn" onclick="showAdditionalMIDialog()">
-                    Add Additional MI
+                    Add Additional Equipment MI
                 </button>
                 <!--<button class="btn btn-outline-primary action-btn" onclick="change_request_placeholder()">
                     Raise Change Request
@@ -824,7 +837,7 @@
                             <option value="">Loading fault types...</option>
                         </select>
                         <div class="field-help">
-                            Required for completed Repair interventions.
+                            Required only when Intervention Type is Repair.
                         </div>
                     </div>
 
@@ -940,21 +953,47 @@
                     <canvas id="client_signature_pad" class="signature-pad"></canvas>
                     {% if mi.docstatus == 0 %}
                         <div class="signature-actions">
-                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="clear_signature('client')">Clear</button>
-                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="mark_signature_saved('client')">Confirm</button>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    type="button"
+                                    onclick="clear_signature('client')">
+                                Clear
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    type="button"
+                                    onclick="mark_signature_saved('client')">
+                                Confirm
+                            </button>
                         </div>
                     {% else %}
-                        <div class="readonly-box mt-2">Submitted intervention: signature locked.</div>
+                        <div class="readonly-box mt-2">
+                            Submitted intervention: signature locked.
+                        </div>
                     {% endif %}
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label"><b>Signatory Name</b></label>
-                    <input id="signatory_name"
-                           class="form-control"
-                           type="text"
-                           value="{{ mi.custom_signatory_name or '' }}"
-                           {% if mi.docstatus == 1 %}readonly{% endif %}>
+                <div class="signature-meta-row mb-4">
+                    <div class="signature-name-field">
+                        <label class="form-label"><b>Client Signatory Name</b></label>
+                        <input id="signatory_name"
+                               class="form-control"
+                               type="text"
+                               value="{{ mi.custom_signatory_name or '' }}"
+                               {% if mi.docstatus == 1 %}readonly{% endif %}>
+                    </div>
+
+                    <div class="signature-date-field">
+                        <label class="form-label"><b>Signed On</b></label>
+                        <div class="readonly-box signature-date-box">
+                            {% if mi.custom_client_signed_on %}
+                                {{ frappe.utils.format_datetime(
+                                    mi.custom_client_signed_on,
+                                    "dd-MM-yyyy HH:mm"
+                                ) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -962,15 +1001,86 @@
                     <canvas id="tech_signature_pad" class="signature-pad"></canvas>
                     {% if mi.docstatus == 0 %}
                         <div class="signature-actions">
-                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="clear_signature('tech')">Clear</button>
-                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="mark_signature_saved('tech')">Confirm</button>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    type="button"
+                                    onclick="clear_signature('tech')">
+                                Clear
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    type="button"
+                                    onclick="mark_signature_saved('tech')">
+                                Confirm
+                            </button>
                         </div>
                     {% else %}
-                        <div class="readonly-box mt-2">Submitted intervention: signature locked.</div>
+                        <div class="readonly-box mt-2">
+                            Submitted intervention: signature locked.
+                        </div>
                     {% endif %}
                 </div>
 
+                <div class="signature-meta-row mb-3">
+                    <div class="signature-name-field">
+                        <label class="form-label"><b>Technician Name</b></label>
+                        <div class="readonly-box">
+                            {% if mi.docstatus == 0 %}
+                                {{ current_user_full_name or technician_display or "-" }}
+                            {% else %}
+                                {{ technician_signatory_display or technician_display or "-" }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="signature-date-field">
+                        <label class="form-label"><b>Signed On</b></label>
+                        <div class="readonly-box signature-date-box">
+                            {% if mi.custom_technician_signed_on %}
+                                {{ frappe.utils.format_datetime(
+                                    mi.custom_technician_signed_on,
+                                    "dd-MM-yyyy HH:mm"
+                                ) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 {% if mi.docstatus == 0 %}
+                    <div class="mi-card mt-3" style="box-shadow:none;">
+                        <div class="form-check">
+                            <input id="send_report_after_submit"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   onchange="toggleEmailFields()">
+                            <label class="form-check-label" for="send_report_after_submit">
+                                <b>Email report after submission</b>
+                            </label>
+                        </div>
+
+                        <div id="email-report-fields" style="display:none;">
+                            <label class="form-label mt-3"><b>To</b></label>
+                            <input id="report_email_to"
+                                   class="form-control"
+                                   type="text"
+                                   value="{{ report_email_to or '' }}"
+                                   placeholder="Applicant email">
+
+                            <label class="form-label mt-3"><b>CC</b></label>
+                            <input id="report_email_cc"
+                                   class="form-control"
+                                   type="text"
+                                   value="{{ report_email_cc or '' }}"
+                                   placeholder="Other branch contacts">
+
+                            <div class="field-help">
+                                To is filled from the Service Ticket applicant.
+                                CC is filled from the other contacts in the branch contact list.
+                                You can review or edit the addresses before submission.
+                            </div>
+                        </div>
+                    </div>
+
                     <button class="btn btn-dark action-btn mt-3" type="button" onclick="save_client_confirmation('{{ mi.name }}')">
                         Save Client Confirmation
                     </button>
@@ -986,6 +1096,50 @@
         {% if mi.docstatus == 1 %}
             <div class="alert alert-info">
                 This intervention has already been submitted.
+            </div>
+
+            {% if mi.custom_work_outcome in [
+                "Continue Work",
+                "Waiting for Parts",
+                "Waiting for Client",
+                "Could Not Complete",
+                "To Quote (Billable)"
+            ] %}
+                <div class="mi-card">
+                    <div class="section-title">Ongoing Work</div>
+                    <div class="field-help mb-3">
+                        Create the next work session for the same equipment/component.
+                    </div>
+                    <button class="btn btn-warning action-btn"
+                            type="button"
+                            onclick="showFollowUpModal()">
+                        Continue Job / Create Follow-up MI
+                    </button>
+                </div>
+            {% endif %}
+
+            <div class="mi-card">
+                <div class="section-title">Email Intervention Report</div>
+
+                <label class="form-label"><b>To</b></label>
+                <input id="submitted_report_email_to"
+                       class="form-control"
+                       type="text"
+                       value="{{ report_email_to or '' }}"
+                       placeholder="Applicant email">
+
+                <label class="form-label mt-3"><b>CC</b></label>
+                <input id="submitted_report_email_cc"
+                       class="form-control"
+                       type="text"
+                       value="{{ report_email_cc or '' }}"
+                       placeholder="Other branch contacts">
+
+                <button class="btn btn-primary action-btn mt-3"
+                        type="button"
+                        onclick="sendSubmittedReport('{{ mi.name }}')">
+                    Send / Resend PDF Report
+                </button>
             </div>
         {% endif %}
 
@@ -1085,9 +1239,7 @@
                 <option value="Service">Service</option>
                 <option value="Repair">Repair</option>
                 <option value="Preventive Maintenance">Preventive Maintenance</option>
-                <option value="Installation">Installation</option>
                 <option value="Inspection">Inspection</option>
-                <option value="Calibration">Calibration</option>
             </select>
 
         <label class="form-label mt-3"><b>Reason / Work Required</b></label>
@@ -1105,6 +1257,65 @@
     </div>
 </div>
 
+
+
+<div id="change-component-modal" class="custom-modal" style="display:none;">
+    <div class="custom-modal-box">
+        <h4>Correct Target Component</h4>
+
+        <label class="form-label"><b>Actual Component</b></label>
+        <select id="change-component-select" class="form-control"></select>
+
+        <label class="form-label mt-3"><b>Reason</b></label>
+        <textarea id="change-component-reason"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Why was the original component incorrect?"></textarea>
+
+        <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-primary action-btn"
+                    type="button"
+                    onclick="submitChangeComponent()">
+                Update Component
+            </button>
+            <button class="btn btn-outline-secondary action-btn"
+                    type="button"
+                    onclick="closeChangeComponentModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="follow-up-mi-modal" class="custom-modal" style="display:none;">
+    <div class="custom-modal-box">
+        <h4>Continue Job</h4>
+
+        <label class="form-label"><b>Next Work Date</b></label>
+        <input id="follow-up-date"
+               class="form-control"
+               type="date">
+
+        <label class="form-label mt-3"><b>Continuation Reason / Plan</b></label>
+        <textarea id="follow-up-reason"
+                  class="form-control"
+                  rows="4"
+                  placeholder="What remains to be done?"></textarea>
+
+        <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-warning action-btn"
+                    type="button"
+                    onclick="submitFollowUpMI()">
+                Create Follow-up MI
+            </button>
+            <button class="btn btn-outline-secondary action-btn"
+                    type="button"
+                    onclick="closeFollowUpModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
 
 <div id="hse-incident-modal" class="custom-modal" style="display:none;">
     <div class="custom-modal-box">
@@ -1220,7 +1431,6 @@ function save_work_outcome(mi_name) {
 
     if (
         intervention_type === "Repair" &&
-        outcome === "Work Completed" &&
         !fault_type
     ) {
         frappe.msgprint("Please select Fault Type for completed Repair work.");
@@ -1391,7 +1601,34 @@ function submit_mi(mi_name) {
                                 args: { doc: r2.message || doc },
                                 freeze: true,
                                 freeze_message: __("Submitting..."),
-                                callback: function() {
+                                callback: function(r3) {
+                                    let send_report =
+                                        document.getElementById(
+                                            "send_report_after_submit"
+                                        );
+
+                                    if (
+                                        send_report &&
+                                        send_report.checked
+                                    ) {
+                                        let to_value =
+                                            document.getElementById(
+                                                "report_email_to"
+                                            ).value || "";
+                                        let cc_value =
+                                            document.getElementById(
+                                                "report_email_cc"
+                                            ).value || "";
+
+                                        sendMIReport(
+                                            mi_name,
+                                            to_value,
+                                            cc_value,
+                                            true
+                                        );
+                                        return;
+                                    }
+
                                     reload_page();
                                 },
                                 error: show_error
@@ -1629,10 +1866,24 @@ function save_client_confirmation(mi_name) {
             doc.custom_quality_score = quality_score;
             doc.custom_hse_score = hse_score;
 
+            let signed_now = frappe.datetime.now_datetime();
+
+            if (!doc.custom_client_signed_on) {
+                doc.custom_client_signed_on = signed_now;
+            }
+
+            if (!doc.custom_technician_signatory) {
+                doc.custom_technician_signatory = frappe.session.user;
+            }
+
+            if (!doc.custom_technician_signed_on) {
+                doc.custom_technician_signed_on = signed_now;
+            }
+
             doc.custom_client_signature_received = 1;
 
             if (!doc.custom_client_signed_time) {
-                doc.custom_client_signed_time = frappe.datetime.now_datetime();
+                doc.custom_client_signed_time = signed_now;
             }
 
             doc.custom_checkout_status = "Client Signed";
@@ -2495,6 +2746,294 @@ function submitAdditionalMI() {
             } else {
                 frappe.msgprint("Additional MI created, but no intervention reference was returned.");
             }
+        },
+        error: show_error
+    });
+}
+
+
+function splitEmailList(value) {
+    return (value || "")
+        .split(/[;,]/)
+        .map(function(email) {
+            return email.trim();
+        })
+        .filter(Boolean);
+}
+
+
+function toggleEmailFields() {
+    let checkbox =
+        document.getElementById("send_report_after_submit");
+    let fields =
+        document.getElementById("email-report-fields");
+
+    if (!checkbox || !fields) {
+        return;
+    }
+
+    fields.style.display =
+        checkbox.checked ? "block" : "none";
+}
+
+
+function sendMIReport(
+    mi_name,
+    to_value,
+    cc_value,
+    reload_after
+) {
+    let recipients = splitEmailList(to_value);
+    let cc = splitEmailList(cc_value);
+
+    if (!recipients.length) {
+        frappe.msgprint(
+            "Please enter at least one report recipient."
+        );
+        return;
+    }
+
+    frappe.call({
+        method:
+            "maintenance_app.www.tech.intervention.index.send_mi_report",
+        args: {
+            mi_name: mi_name,
+            recipients: JSON.stringify(recipients),
+            cc: JSON.stringify(cc)
+        },
+        freeze: true,
+        freeze_message: "Queueing PDF report...",
+        callback: function(r) {
+            frappe.show_alert({
+                message: "Intervention report queued for email",
+                indicator: "green"
+            });
+
+            if (reload_after) {
+                setTimeout(reload_page, 600);
+            }
+        },
+        error: function(r) {
+            show_error(r);
+
+            if (reload_after) {
+                setTimeout(reload_page, 1000);
+            }
+        }
+    });
+}
+
+
+function sendSubmittedReport(mi_name) {
+    let to_value =
+        document.getElementById(
+            "submitted_report_email_to"
+        ).value || "";
+    let cc_value =
+        document.getElementById(
+            "submitted_report_email_cc"
+        ).value || "";
+
+    sendMIReport(
+        mi_name,
+        to_value,
+        cc_value,
+        false
+    );
+}
+
+
+function showFollowUpModal() {
+    let modal =
+        document.getElementById("follow-up-mi-modal");
+    let date_input =
+        document.getElementById("follow-up-date");
+    let reason_input =
+        document.getElementById("follow-up-reason");
+
+    let tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    date_input.value =
+        tomorrow.toISOString().slice(0, 10);
+    reason_input.value = "";
+
+    modal.style.display = "flex";
+}
+
+
+function closeFollowUpModal() {
+    document.getElementById(
+        "follow-up-mi-modal"
+    ).style.display = "none";
+}
+
+
+function submitFollowUpMI() {
+    let follow_up_date =
+        document.getElementById(
+            "follow-up-date"
+        ).value;
+    let reason =
+        document.getElementById(
+            "follow-up-reason"
+        ).value || "";
+
+    if (!follow_up_date) {
+        frappe.msgprint(
+            "Please select the next work date."
+        );
+        return;
+    }
+
+    if (!reason.trim()) {
+        frappe.msgprint(
+            "Please enter the continuation reason or plan."
+        );
+        return;
+    }
+
+    frappe.call({
+        method:
+            "maintenance_app.www.tech.intervention.index.create_follow_up_mi",
+        args: {
+            source_mi_name: "{{ mi.name }}",
+            follow_up_date: follow_up_date,
+            reason: reason
+        },
+        freeze: true,
+        freeze_message: "Creating follow-up MI...",
+        callback: function(r) {
+            let result = r.message || {};
+
+            closeFollowUpModal();
+
+            if (!result.intervention) {
+                frappe.msgprint(
+                    "The server did not return a follow-up MI."
+                );
+                return;
+            }
+
+            window.location.href =
+                "/tech/intervention?name=" +
+                encodeURIComponent(
+                    result.intervention
+                );
+        },
+        error: show_error
+    });
+}
+
+
+function showChangeComponentDialog() {
+    frappe.call({
+        method:
+            "maintenance_app.api.get_components_for_equipment_group",
+        args: {
+            equipment_name: "{{ mi.custom_asset }}",
+            component_group: ""
+        },
+        freeze: true,
+        freeze_message: "Loading installed components...",
+        callback: function(r) {
+            let components = r.message || [];
+
+            if (!components.length) {
+                frappe.msgprint(
+                    "No installed components were found for this equipment."
+                );
+                return;
+            }
+
+            let select =
+                document.getElementById(
+                    "change-component-select"
+                );
+
+            select.innerHTML = "";
+
+            components.forEach(function(component) {
+                let label =
+                    component.component_item ||
+                    component.component_group ||
+                    component.row_id;
+
+                if (component.serial) {
+                    label += " - SN: " + component.serial;
+                }
+
+                let option =
+                    document.createElement("option");
+
+                option.value = component.row_id;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+
+            document.getElementById(
+                "change-component-reason"
+            ).value = "";
+
+            document.getElementById(
+                "change-component-modal"
+            ).style.display = "flex";
+        },
+        error: show_error
+    });
+}
+
+
+function closeChangeComponentModal() {
+    document.getElementById(
+        "change-component-modal"
+    ).style.display = "none";
+}
+
+
+function submitChangeComponent() {
+    let component_row_id =
+        document.getElementById(
+            "change-component-select"
+        ).value;
+    let reason =
+        document.getElementById(
+            "change-component-reason"
+        ).value || "";
+
+    if (!component_row_id) {
+        frappe.msgprint(
+            "Please select the actual component."
+        );
+        return;
+    }
+
+    if (!reason.trim()) {
+        frappe.msgprint(
+            "Please enter the component correction reason."
+        );
+        return;
+    }
+
+    frappe.call({
+        method:
+            "maintenance_app.api.change_mi_component",
+        args: {
+            mi_name: "{{ mi.name }}",
+            component_row_id: component_row_id,
+            reason: reason
+        },
+        freeze: true,
+        freeze_message: "Updating component...",
+        callback: function() {
+            closeChangeComponentModal();
+
+            frappe.show_alert({
+                message: "Target component corrected",
+                indicator: "green"
+            });
+
+            setTimeout(reload_page, 500);
         },
         error: show_error
     });

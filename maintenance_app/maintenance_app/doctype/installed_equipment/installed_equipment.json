@@ -56,6 +56,12 @@
   "custom_replacement_date",
   "custom_commissioned_date",
   "custom_installed_date",
+  "custom_commissioning_status",
+  "section_break_eske",
+  "custom_last_calibration_date",
+  "custom_next_calibration_date",
+  "custom_last_calibration_record",
+  "custom_last_commissioning_record",
   "custom_info",
   "custom_display_name",
   "custom_component_overview",
@@ -78,7 +84,8 @@
    "fieldname": "custom_asset_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Serial Number"
+   "label": "Serial Number",
+   "unique": 1
   },
   {
    "fieldname": "custom_ownership",
@@ -93,7 +100,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Equipment Status",
-   "options": "Installed\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost"
+   "options": "Pending Installation\nInstalled\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost"
   },
   {
    "fieldname": "custom_maint_frequency",
@@ -393,6 +400,40 @@
    "fieldname": "custom_installed_date",
    "fieldtype": "Date",
    "label": "Installed Date"
+  },
+  {
+   "fieldname": "section_break_eske",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_last_calibration_date",
+   "fieldtype": "Datetime",
+   "label": "Last Calibration Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_next_calibration_date",
+   "fieldtype": "Date",
+   "label": "Next Calibration Date"
+  },
+  {
+   "fieldname": "custom_last_calibration_record",
+   "fieldtype": "Link",
+   "label": "Last Calibration Record",
+   "options": "Calibration Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_commissioning_status",
+   "fieldtype": "Select",
+   "label": "Commissioning Status",
+   "options": "Not Commissioned\nCommissioning Pending\nCommissioned\nCommissioning Failed"
+  },
+  {
+   "fieldname": "custom_last_commissioning_record",
+   "fieldtype": "Link",
+   "label": "Commissioning Record",
+   "options": "Commissioning Record"
   }
  ],
  "grid_page_length": 50,
@@ -415,7 +456,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-07-23 09:10:17.264257",
+ "modified": "2026-08-03 00:01:04.311375",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

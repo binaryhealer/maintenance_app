@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-31 18:49:22.486360",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_change_type",
+  "custom_previous_start",
+  "custom_previous_end",
+  "custom_previous_vehicle",
+  "custom_changed_on",
+  "custom_changed_by",
+  "custom_previous_technicians",
+  "custom_change_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_change_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Change Type",
+   "options": "Schedule Changed\nTechnician Reassigned\nTechnician Added\nTechnician Removed\nSchedule and Technician Changed"
+  },
+  {
+   "fieldname": "custom_previous_start",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Previous Start"
+  },
+  {
+   "fieldname": "custom_previous_end",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Previous End"
+  },
+  {
+   "fieldname": "custom_previous_vehicle",
+   "fieldtype": "Link",
+   "label": "Previous Vehicle",
+   "options": "Vehicle"
+  },
+  {
+   "fieldname": "custom_previous_technicians",
+   "fieldtype": "Small Text",
+   "label": "Previous Technicians"
+  },
+  {
+   "fieldname": "custom_change_reason",
+   "fieldtype": "Small Text",
+   "label": "Change Reason"
+  },
+  {
+   "fieldname": "custom_changed_on",
+   "fieldtype": "Datetime",
+   "label": "Changed On"
+  },
+  {
+   "fieldname": "custom_changed_by",
+   "fieldtype": "Link",
+   "label": "Changed By",
+   "options": "User"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-31 20:47:55.991035",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Tech Mission Schedule Histor",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

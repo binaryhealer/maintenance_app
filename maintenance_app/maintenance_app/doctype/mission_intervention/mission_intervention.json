@@ -31,8 +31,11 @@
   "section_break_afet",
   "custom_client_signature",
   "custom_signatory_name",
+  "custom_client_signed_on",
   "column_break_fuis",
   "custom_tech_signature",
+  "custom_technician_signatory",
+  "custom_technician_signed_on",
   "custom_work_execution",
   "custom_hours_worked",
   "custom_billable_hours",
@@ -67,17 +70,13 @@
   "custom_head_office_contacts",
   "custom_branch_operational_contacts",
   "custom_branch_contacts",
-  "custom_parts_billing",
-  "custom_billing_analysis",
-  "custom_vehicle",
-  "custom_vehicle_plate",
-  "custom_parts_table",
   "custom_asset_change",
   "custom_component_replaced",
   "custom_removed_asset_outcome",
   "custom_replacement_source",
   "custom_replacement_source_branch",
   "custom_replacement_warehouse",
+  "custom_replacement_reason",
   "column_break_bbev",
   "custom_loan_return",
   "column_break_jwyc",
@@ -107,6 +106,11 @@
   "custom_new_component_serial",
   "custom_old_component_row_id",
   "custom_component_replacement_reason",
+  "custom_parts_billing",
+  "custom_billing_analysis",
+  "custom_vehicle",
+  "custom_vehicle_plate",
+  "custom_parts_table",
   "custom_config_change",
   "custom_config_changes",
   "custm_info_tab",
@@ -118,6 +122,7 @@
   "custom_planned_starttime",
   "custom_planned_endtime",
   "custom_technician",
+  "custom_calibration_record",
   "column_break_wndv",
   "amended_from",
   "custom_service_type",
@@ -128,6 +133,11 @@
   "custom_component_item",
   "custom_component_row_id",
   "custom_equipment_component",
+  "custom_commissioning_record",
+  "custom_sla_priority",
+  "custom_priority",
+  "custom_response_due",
+  "custom_resolution_due",
   "custom_location_data",
   "custom_checkin_latitude",
   "custom_checkin_longitude",
@@ -266,7 +276,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection"
   },
   {
    "fieldname": "custom_parts_table",
@@ -911,13 +921,76 @@
    "fieldname": "custom_component_installation",
    "fieldtype": "Check",
    "label": "Component Installation Only"
+  },
+  {
+   "fieldname": "custom_replacement_reason",
+   "fieldtype": "Select",
+   "label": "Replacement Reason",
+   "options": "Faulty\nRepeated Breakdown\nBeyond Economical Repair\nObsolete\nEnd of Life\nPlanned Upgrade\nCapacity Upgrade\nPreventive Replacement\nClient Request\nAccidental Damage\nOther"
+  },
+  {
+   "fieldname": "custom_sla_priority",
+   "fieldtype": "Section Break",
+   "label": "SLA & Priority"
+  },
+  {
+   "fieldname": "custom_priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nNormal\nMedium\nHigh\nUrgent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_response_due",
+   "fieldtype": "Datetime",
+   "label": "Respond By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_resolution_due",
+   "fieldtype": "Datetime",
+   "label": "Fix By",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.custom_intervention_type==\"Calibration\"",
+   "fieldname": "custom_calibration_record",
+   "fieldtype": "Link",
+   "label": "Calibration Record",
+   "options": "Calibration Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_commissioning_record",
+   "fieldtype": "Link",
+   "label": "Commissioning Record",
+   "options": "Commissioning Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_technician_signatory",
+   "fieldtype": "Link",
+   "label": "Technician Signatory",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_client_signed_on",
+   "fieldtype": "Datetime",
+   "label": "Client Signed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_technician_signed_on",
+   "fieldtype": "Datetime",
+   "label": "Technician Signed On",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-23 05:38:01.053436",
+ "modified": "2026-08-03 03:26:43.296129",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

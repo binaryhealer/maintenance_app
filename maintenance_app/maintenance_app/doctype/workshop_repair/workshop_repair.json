@@ -1,0 +1,321 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-28 06:16:22.728536",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "details_tab",
+  "custom_references_tab",
+  "amended_from",
+  "naming_series",
+  "custom_service_ticket",
+  "custom_source_intervention",
+  "custom_customer",
+  "column_break_itzd",
+  "cuatom_original_branch",
+  "custom_company_workshop",
+  "custom_installed_equipment",
+  "custom_equipment_component",
+  "custom_repair_details_tab",
+  "custom_subject",
+  "custom_repair_status",
+  "column_break_hmxp",
+  "custom_work_outcome",
+  "custom_replacement_reason",
+  "section_break_ezxz",
+  "custom_reported_problem",
+  "column_break_wyxx",
+  "custom_diagnosis",
+  "section_break_lvgt",
+  "custom_work_performed",
+  "section_break_wipb",
+  "custom_resolution_notes",
+  "custom_tech_timing_tab",
+  "custom_technician",
+  "custom_started_on",
+  "custom_last_work_end",
+  "column_break_mgrn",
+  "custom_completed_on",
+  "custom_total_hours",
+  "custom_work_session_active",
+  "section_break_oalg",
+  "custom_time_logs",
+  "custom_parts_history_tab",
+  "custom_timesheet",
+  "custom_asset_lifecycle_log",
+  "custom_asset_service_log",
+  "custom_timesheet_posted",
+  "section_break_wnca",
+  "custom_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Workshop Repair",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "WR-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "WR-.#####"
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "label": "Service Ticket",
+   "options": "Service Ticket"
+  },
+  {
+   "fieldname": "custom_source_intervention",
+   "fieldtype": "Link",
+   "label": "Source Mission Intervention",
+   "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_itzd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cuatom_original_branch",
+   "fieldtype": "Link",
+   "label": "Original Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_company_workshop",
+   "fieldtype": "Link",
+   "label": "Company Workshop",
+   "options": "Company Workshop"
+  },
+  {
+   "fieldname": "custom_installed_equipment",
+   "fieldtype": "Link",
+   "label": "Installed Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "label": "Equipment Component",
+   "options": "Equipment Component"
+  },
+  {
+   "fieldname": "custom_references_tab",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "custom_repair_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Repair Details"
+  },
+  {
+   "fieldname": "custom_subject",
+   "fieldtype": "Data",
+   "label": "Subject"
+  },
+  {
+   "fieldname": "custom_reported_problem",
+   "fieldtype": "Small Text",
+   "label": "Reported Problem"
+  },
+  {
+   "fieldname": "custom_diagnosis",
+   "fieldtype": "Small Text",
+   "label": "Diagnosis"
+  },
+  {
+   "fieldname": "custom_work_performed",
+   "fieldtype": "Text Editor",
+   "label": "Work Performed"
+  },
+  {
+   "fieldname": "custom_repair_status",
+   "fieldtype": "Select",
+   "label": "Repair Status",
+   "options": "Open\nIn Progress\nOn Hold\nCompleted\nClosed\nCancelled"
+  },
+  {
+   "fieldname": "details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "custom_work_outcome",
+   "fieldtype": "Select",
+   "label": "Work Outcome",
+   "options": "Work Completed\nContinue\nWaiting for Parts\nWaiting for Approval\nWaiting for Client\nTo Quote (Billable)\nCould Not Complete\nBeyond Economical Repair"
+  },
+  {
+   "fieldname": "custom_replacement_reason",
+   "fieldtype": "Data",
+   "label": "Replacement Reason"
+  },
+  {
+   "fieldname": "custom_resolution_notes",
+   "fieldtype": "Small Text",
+   "label": "Resolution Notes"
+  },
+  {
+   "fieldname": "column_break_hmxp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ezxz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_wyxx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_lvgt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_wipb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_tech_timing_tab",
+   "fieldtype": "Tab Break",
+   "label": "Technician and timing"
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Link",
+   "label": "Assigned Technician",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_last_work_end",
+   "fieldtype": "Datetime",
+   "label": "Last Work End",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_total_hours",
+   "fieldtype": "Float",
+   "label": "Total Labour Hours",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_work_session_active",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Work Session Active",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mgrn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_oalg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_time_logs",
+   "fieldtype": "Table",
+   "label": "Time Logs",
+   "options": "Workshop Repair Time Log"
+  },
+  {
+   "fieldname": "custom_parts_history_tab",
+   "fieldtype": "Tab Break",
+   "label": "Parts and history "
+  },
+  {
+   "fieldname": "custom_timesheet",
+   "fieldtype": "Link",
+   "label": "Timesheet",
+   "options": "Timesheet"
+  },
+  {
+   "fieldname": "custom_asset_lifecycle_log",
+   "fieldtype": "Link",
+   "label": "Asset Lifecycle Log",
+   "options": "Asset Lifecycle Log"
+  },
+  {
+   "fieldname": "custom_asset_service_log",
+   "fieldtype": "Link",
+   "label": "Asset Service Log",
+   "options": "Asset Service Log"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_timesheet_posted",
+   "fieldtype": "Check",
+   "label": "Timesheet Posted"
+  },
+  {
+   "fieldname": "section_break_wnca",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-29 05:37:12.920142",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Workshop Repair",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

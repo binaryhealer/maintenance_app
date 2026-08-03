@@ -83,9 +83,19 @@
 
 <div class="container mt-4 mb-5">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="mb-0">Technician Dashboard</h2>
-        <small class="text-muted">{{ user }}</small>
+
+        <div class="text-end">
+            <small class="text-muted d-block">{{ user }}</small>
+            <small class="text-muted d-block" id="tech-last-refreshed"></small>
+
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary mt-1"
+                    onclick="refresh_tech_dashboard(true)">
+                Refresh Schedule
+            </button>
+        </div>
     </div>
 
     <div class="row mb-4">
@@ -166,9 +176,12 @@
             {% for todo in todos %}
                 <a href="javascript:open_or_create_mi('{{ todo.reference_name }}')"
                    class="list-group-item list-group-item-action tech-list-item">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
                         <strong>{{ todo.reference_name }}</strong>
-                        <small>{{ todo.date or "-" }}</small>
+                        <small class="text-end">
+                            Planned:<br>
+                            {{ todo.date or "-" }}
+                        </small>
                     </div>
                 </a>
             {% else %}
@@ -319,6 +332,90 @@
 </div>
 
 <script>
+const TECH_DASHBOARD_REFRESH_INTERVAL_MS = 60000;
+const TECH_DASHBOARD_RETURN_REFRESH_AGE_MS = 15000;
+
+let tech_dashboard_loaded_at = Date.now();
+let tech_dashboard_refreshing = false;
+
+
+function update_last_refreshed_label() {
+    const element = document.getElementById('tech-last-refreshed');
+
+    if (!element) {
+        return;
+    }
+
+    const refreshed_at = new Date(tech_dashboard_loaded_at);
+
+    element.textContent =
+        'Schedule refreshed: ' +
+        refreshed_at.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+}
+
+
+function refresh_tech_dashboard(force_refresh) {
+    if (tech_dashboard_refreshing) {
+        return;
+    }
+
+    const age = Date.now() - tech_dashboard_loaded_at;
+
+    if (
+        !force_refresh &&
+        age < TECH_DASHBOARD_RETURN_REFRESH_AGE_MS
+    ) {
+        return;
+    }
+
+    tech_dashboard_refreshing = true;
+
+    const url = new URL(window.location.href);
+
+    // Prevent a stale browser/proxy response after mission rescheduling.
+    url.searchParams.set('_schedule_refresh', Date.now());
+
+    window.location.replace(url.toString());
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    update_last_refreshed_label();
+
+    // Refresh periodically so rescheduled missions move between Today,
+    // Upcoming and Calendar without requiring technician logout/login.
+    window.setInterval(function() {
+        if (!document.hidden) {
+            refresh_tech_dashboard(false);
+        }
+    }, TECH_DASHBOARD_REFRESH_INTERVAL_MS);
+});
+
+
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // Refresh when returning from a Mission Intervention or another tab.
+        refresh_tech_dashboard(false);
+    }
+});
+
+
+window.addEventListener('focus', function() {
+    refresh_tech_dashboard(false);
+});
+
+
+window.addEventListener('pageshow', function(event) {
+    // Browser back/forward cache can show an old mission schedule.
+    if (event.persisted) {
+        refresh_tech_dashboard(true);
+    }
+});
+
+
 function go_to_intervention(intervention_name) {
     window.location.href =
         "/tech/intervention?name=" +

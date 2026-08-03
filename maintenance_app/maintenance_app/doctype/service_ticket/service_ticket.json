@@ -10,27 +10,34 @@
   "custom_ticket_title",
   "custom_customer",
   "custom_client_branch",
-  "custom_target_component_name",
-  "custom_parent_equipment",
-  "custom_planning_required",
+  "custom_raised_by",
+  "custom_opening_date",
   "custom_handling_mode",
+  "custom_planning_required",
   "column_break_jygr",
   "custom_request_type",
   "custom_ticket_type",
   "custom_applicant",
   "custom_subject",
-  "custom_raised_by",
-  "custom_opening_date",
+  "custom_parent_equipment",
+  "custom_target_component_name",
   "section_break_dmjb",
   "custom_description",
+  "column_break_dakm",
+  "custom_rm_notes",
+  "section_break_gyvz",
+  "custom_planned_team",
+  "column_break_obxi",
   "custom_assignment_review",
   "custom_rm_reviewer",
-  "column_break_otsg",
   "custom_priority",
-  "section_break_hdqf",
-  "custom_planned_team",
-  "section_break_wvlv",
-  "custom_rm_notes",
+  "custom_planned_vehicle",
+  "column_break_otsg",
+  "custom_planned_starttime",
+  "custom_planned_endtime",
+  "section_break_uvur",
+  "custom_planned_technicians",
+  "column_break_mnjq",
   "custom_classification",
   "custom_service_type",
   "custom_work_type",
@@ -84,6 +91,8 @@
   "custom_primary_planning_ref",
   "custom_resolution_source_mi",
   "custom_resolution_date",
+  "custom_calibration_record",
+  "custom_commissioning_record",
   "custom_false_call",
   "section_break_jocs",
   "custom_resolution_details",
@@ -187,7 +196,7 @@
    "fieldname": "custom_priority",
    "fieldtype": "Select",
    "label": "Priority",
-   "options": "Low\nNormal\nHigh\nUrgent"
+   "options": "Low\nNormal\nMedium\nHigh\nUrgent"
   },
   {
    "fieldname": "custom_planned_team",
@@ -205,10 +214,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "section_break_wvlv",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "custom_classification",
    "fieldtype": "Tab Break",
    "label": "Classification"
@@ -217,7 +222,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection"
   },
   {
    "default": "Billable",
@@ -660,10 +665,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "section_break_hdqf",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "custom_target_component",
    "fieldtype": "Link",
    "label": "Target Component",
@@ -762,12 +763,74 @@
    "label": "Equipment Component",
    "options": "Equipment Component",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.custom_intervention_type==\"Calibration\"",
+   "fieldname": "custom_calibration_record",
+   "fieldtype": "Link",
+   "label": "Calibration Record",
+   "options": "Calibration Record"
+  },
+  {
+   "fieldname": "custom_commissioning_record",
+   "fieldtype": "Link",
+   "label": "Commissioning Record",
+   "options": "Commissioning Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_planned_vehicle",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_list_view": 1,
+   "label": "Planned Vehicle",
+   "options": "Vehicle",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_planned_starttime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Planned Start",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_planned_endtime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Planned End",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dakm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_planned_technicians",
+   "fieldtype": "Small Text",
+   "label": "Planned Technicians"
+  },
+  {
+   "fieldname": "section_break_gyvz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_obxi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_uvur",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_mnjq",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-16 15:59:31.264356",
+ "modified": "2026-08-02 22:11:42.059835",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

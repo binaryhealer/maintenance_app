@@ -25,7 +25,14 @@
   "custom_status",
   "custom_installation_date",
   "custom_display_name",
-  "custom_item"
+  "custom_item",
+  "custom_commissioning_status",
+  "custom_last_commissioning_record",
+  "column_break_llov",
+  "custom_last_calibration_date",
+  "custom_next_calibration_date",
+  "custom_last_calibration_record",
+  "custom_commissioned_date"
  ],
  "fields": [
   {
@@ -98,7 +105,7 @@
   {
    "fieldname": "lifecycle_tab_tab",
    "fieldtype": "Tab Break",
-   "label": "LifeCycle Tab"
+   "label": "LifeCycle Tab/ Info"
   },
   {
    "fieldname": "custom_status",
@@ -141,12 +148,53 @@
    "fieldtype": "Link",
    "label": "Company Workshop",
    "options": "Company Workshop"
+  },
+  {
+   "fieldname": "column_break_llov",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_last_calibration_date",
+   "fieldtype": "Date",
+   "label": "Last Calibration Date"
+  },
+  {
+   "fieldname": "custom_next_calibration_date",
+   "fieldtype": "Date",
+   "label": "Next Calibration Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_last_calibration_record",
+   "fieldtype": "Link",
+   "label": "Last Calibration Record",
+   "options": "Calibration Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_commissioning_status",
+   "fieldtype": "Select",
+   "label": "Commissioning Status",
+   "options": "Not Commissioned\nCommissioning Pending\nCommissioned\nCommissioning Failed"
+  },
+  {
+   "fieldname": "custom_last_commissioning_record",
+   "fieldtype": "Link",
+   "label": "Last Commissioning Record",
+   "options": "Commissioning Record",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_commissioned_date",
+   "fieldtype": "Date",
+   "label": "Commissioned Date",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-23 06:16:53.145491",
+ "modified": "2026-07-31 07:47:26.950684",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Component",

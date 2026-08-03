@@ -12,18 +12,24 @@
   "custom_branch",
   "custom_target_component_name",
   "custom_parent_equipment",
-  "custom_planned_team",
   "custom_requires_parts",
-  "custom_mission_status",
-  "column_break_atlh",
   "custom_project",
   "custom_analytic_number",
-  "custom_count_each_technician",
+  "custom_mission_status",
+  "column_break_atlh",
   "custom_subject",
   "custom_component_group",
   "custom_asset",
+  "custom_priority",
+  "custom_response_due",
+  "custom_resolution_due",
+  "custom_count_each_technician",
+  "custom_tech_details",
+  "custom_planned_team",
   "section_break_lkej",
   "custom_intervention_table",
+  "section_break_fhuw",
+  "custom_change_history",
   "tab_2_tab",
   "custom_planned_starttime",
   "custom_planned_endtime",
@@ -122,7 +128,7 @@
   {
    "fieldname": "tab_2_tab",
    "fieldtype": "Tab Break",
-   "label": "Details"
+   "label": "Planned Details"
   },
   {
    "fieldname": "custom_planned_starttime",
@@ -172,8 +178,7 @@
    "fieldname": "custom_mission_status",
    "fieldtype": "Select",
    "label": "Mission Status",
-   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work",
-   "read_only": 1
+   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work"
   },
   {
    "fieldname": "custom_tech_planning",
@@ -250,7 +255,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation",
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection",
    "read_only": 1
   },
   {
@@ -363,12 +368,46 @@
    "fieldname": "custom_parent_equipment",
    "fieldtype": "Data",
    "label": "Parent Equipment"
+  },
+  {
+   "fieldname": "custom_priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nNormal\nMedium\nHigh\nUrgent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_response_due",
+   "fieldtype": "Datetime",
+   "label": "Respond By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_resolution_due",
+   "fieldtype": "Datetime",
+   "label": "Fix By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_tech_details",
+   "fieldtype": "Section Break",
+   "label": "Tech Details"
+  },
+  {
+   "fieldname": "section_break_fhuw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_change_history",
+   "fieldtype": "Table",
+   "label": "Mission Change History",
+   "options": "Tech Mission Schedule Histor"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-02 13:19:58.829546",
+ "modified": "2026-08-02 22:18:13.658871",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

@@ -1,0 +1,323 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-31 03:21:48.466107",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_refrerences_tab",
+  "section_break_b1pv",
+  "amended_from",
+  "custom_commissioning_title",
+  "custom_service_ticket",
+  "custom_tech_mission",
+  "custom_mission_intervention",
+  "column_break_lanr",
+  "custom_customer",
+  "custom_branch",
+  "custom_equipment_component",
+  "custom_installed_equipment",
+  "custom_equipment_snapshot_tab",
+  "custom_equipment_description",
+  "custom_client_asset_code",
+  "custom_make",
+  "custom_model",
+  "column_break_uoug",
+  "custom_serial_number",
+  "custom_site_position",
+  "custom_asset_name",
+  "custom_commissioning_details",
+  "custom_installation_verified",
+  "custom_connections_verified",
+  "column_break_fier",
+  "custom_configuration_completed",
+  "custom_functional_test_completed",
+  "column_break_opzn",
+  "custom_safety_checks_completed",
+  "custom_operator_training_completed",
+  "section_break_qkym",
+  "custom_commissioning_date",
+  "custom_commissioning_type",
+  "custom_technician",
+  "custom_results_tab",
+  "custom_handover_completed",
+  "section_break_wibu",
+  "custom_commissioning_result",
+  "custom_commissioning_certificate",
+  "section_break_xxgm",
+  "custom_findings",
+  "custom_recommendations",
+  "column_break_zfbi",
+  "custom_corrective_action",
+  "custom_client_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_b1pv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Commissioning Record",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "custom_commissioning_title",
+   "fieldtype": "Data",
+   "label": "Commissioning Title"
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "label": "Service Ticket",
+   "options": "Service Ticket"
+  },
+  {
+   "fieldname": "custom_tech_mission",
+   "fieldtype": "Link",
+   "label": "Tech Mission",
+   "options": "Tech Mission"
+  },
+  {
+   "fieldname": "custom_mission_intervention",
+   "fieldtype": "Link",
+   "label": "Mission Intervention",
+   "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "custom_customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "custom_branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_installed_equipment",
+   "fieldtype": "Link",
+   "label": "Installed Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_equipment_component",
+   "fieldtype": "Link",
+   "label": "Equipment Component",
+   "options": "Equipment Component"
+  },
+  {
+   "fieldname": "column_break_lanr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_refrerences_tab",
+   "fieldtype": "Tab Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "custom_equipment_snapshot_tab",
+   "fieldtype": "Tab Break",
+   "label": "Equipment snapshot"
+  },
+  {
+   "fieldname": "custom_equipment_description",
+   "fieldtype": "Data",
+   "label": "Equipment Description"
+  },
+  {
+   "fieldname": "custom_client_asset_code",
+   "fieldtype": "Data",
+   "label": "Client Asset Code"
+  },
+  {
+   "fieldname": "custom_make",
+   "fieldtype": "Data",
+   "label": "Make"
+  },
+  {
+   "fieldname": "custom_model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "custom_serial_number",
+   "fieldtype": "Data",
+   "label": "Serial Number"
+  },
+  {
+   "fieldname": "custom_asset_name",
+   "fieldtype": "Data",
+   "label": "Equipment Name"
+  },
+  {
+   "fieldname": "custom_site_position",
+   "fieldtype": "Data",
+   "label": "Site Position"
+  },
+  {
+   "fieldname": "column_break_uoug",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_commissioning_details",
+   "fieldtype": "Tab Break",
+   "label": "Commissioning details"
+  },
+  {
+   "fieldname": "custom_commissioning_date",
+   "fieldtype": "Date",
+   "label": "Commissioning Date"
+  },
+  {
+   "fieldname": "custom_commissioning_type",
+   "fieldtype": "Select",
+   "label": "Commissioning Type",
+   "options": "New Installation\nReplacement Equipment\nRecommissioning\nPost-Repair Commissioning\nRelocation Commissioning"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_installation_verified",
+   "fieldtype": "Check",
+   "label": "Installation Verified"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_connections_verified",
+   "fieldtype": "Check",
+   "label": "Connections Verified"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_configuration_completed",
+   "fieldtype": "Check",
+   "label": "Configuration Completed"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_safety_checks_completed",
+   "fieldtype": "Check",
+   "label": "Safety Checks Completed"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_functional_test_completed",
+   "fieldtype": "Check",
+   "label": "Functional Test Completed"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_operator_training_completed",
+   "fieldtype": "Check",
+   "label": "Operator Training Completed"
+  },
+  {
+   "fieldname": "section_break_qkym",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Link",
+   "label": "Technician",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_fier",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_opzn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_results_tab",
+   "fieldtype": "Tab Break",
+   "label": "Results"
+  },
+  {
+   "fieldname": "custom_commissioning_result",
+   "fieldtype": "Select",
+   "label": "Commissioning Result",
+   "options": "Successfully Commissioned\nCommissioned with Observations\nPending Corrective Action\nFailed"
+  },
+  {
+   "fieldname": "custom_findings",
+   "fieldtype": "Small Text",
+   "label": "Findings"
+  },
+  {
+   "fieldname": "custom_corrective_action",
+   "fieldtype": "Small Text",
+   "label": "Corrective Action"
+  },
+  {
+   "fieldname": "custom_recommendations",
+   "fieldtype": "Small Text",
+   "label": "Recommendations"
+  },
+  {
+   "fieldname": "custom_client_notes",
+   "fieldtype": "Small Text",
+   "label": "Customer Notes"
+  },
+  {
+   "fieldname": "custom_commissioning_certificate",
+   "fieldtype": "Attach",
+   "label": "Commissioning Certificate"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_handover_completed",
+   "fieldtype": "Check",
+   "label": "Handover Completed"
+  },
+  {
+   "fieldname": "section_break_wibu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_xxgm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zfbi",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-31 06:02:45.532345",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Commissioning Record",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

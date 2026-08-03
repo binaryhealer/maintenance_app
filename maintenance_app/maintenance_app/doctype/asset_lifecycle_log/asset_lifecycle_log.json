@@ -19,6 +19,7 @@
   "custom_removed_asset_outcome",
   "custom_equipment_component",
   "custom_company_workshop",
+  "custom_replacement_reason",
   "section_break_nqmv",
   "custom_previous_branch",
   "section_break_vzqv",
@@ -331,13 +332,18 @@
   {
    "fieldname": "section_break_nqmv",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_replacement_reason",
+   "fieldtype": "Data",
+   "label": "Replacement Reason"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-22 11:05:12.251563",
+ "modified": "2026-07-27 11:35:37.686925",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Lifecycle Log",
