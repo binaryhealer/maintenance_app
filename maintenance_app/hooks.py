@@ -10,130 +10,13 @@ sync_customizations = True
 website_route_rules = [
     {"from_route": "/tech", "to_route": "tech"},
 ]
-fixtures = [
-    {
-        "dt": "DocType",
-        "filters": [
-            ["name", "in", ["Warranty"]]
-        ]
-    },
-
-    {
-        "dt": "Custom Field",
-        "filters": [
-            [
-                "dt",
-                "in",
-                [
-                    "Quotation",
-                    "Contact",
-                    "Sales Invoice",
-                    "Sales Order",
-                    "Delivery Note",
-                    "Purchase Order",
-                    "Purchase Receipt",
-                    "Customer",
-                    "Warehouse",
-                    "Vehicle",
-                    "Item",
-                ],
-            ]
-        ],
-    },
-
-    {
-        "dt": "Property Setter",
-        "filters": [
-            [
-                "doc_type",
-                "in",
-                [
-                    "Quotation",
-                    "Contact",
-                    "Sales Invoice",
-                    "Sales Order",
-                    "Delivery Note",
-                    "Purchase Order",
-                    "Purchase Receipt",
-                    "Customer",
-                    "Warehouse",
-                    "Vehicle",
-                    "Item",
-                ],
-            ]
-        ],
-    },
-
-    "Client Script",
-    "Server Script",
-    "Workflow",
-    "Workflow State",
-    "Workflow Action Master",
-    "Print Format",
-
-    {
-        "dt": "Workspace",
-        "filters": [
-            ["module", "=", "Maintenance App"]
-        ],
-    },
-]
-'''fixtures = [
 
 
-    {
-    "dt": "DocType",
-    "filters": [
-        ["name", "in", [
-            "Warranty"
-            ]]
-        ]
-    },
 
-    {
-        "dt": "Custom Field",
-        "filters": [
-            ["dt", "in", [
-                "Quotation",
-                "Contact",
-                "Sales Invoice",
-                "Sales Order",
-                "Delivery Note",
-                "Purchase Order",
-                "Purchase Receipt",
-                "Customer",
-                "Warehouse",
-                "Vehicle",
-                "Item"
-            ]]
-        ]
-    },
-    {
-        "dt": "Property Setter",
-        "filters": [
-            ["doc_type", "in", [
-                "Quotation",
-                "Contact",
-                "Sales Invoice",
-                "Sales Order",
-                "Delivery Note",
-                "Purchase Order",
-                "Purchase Receipt",
-                "Customer",
-                "Warehouse",
-                "Vehicle",
-                "Item"
-            ]]
-        ]
-    },
-    "Client Script",
-    "Server Script",
-    "Workflow",
-    "Workflow State",
-    "Workflow Action Master",
-    "Print Format",
-    "Workspace"
-]'''
+after_migrate = (
+    "maintenance_app.import_maintenance_fixtures."
+    "import_maintenance_fixtures"
+)
 # Apps
 # ------------------
 
