@@ -473,7 +473,7 @@
    "fieldname": "custom_removed_asset_outcome",
    "fieldtype": "Select",
    "label": "Removed Asset Outcome",
-   "options": "Workshop for Repair\nReturned to Stock\nInstalled at another Site\nScrapped\nRetired"
+   "options": "\nWorkshop for Repair\nReturned to Stock\nInstalled at another Site\nScrapped\nRetired"
   },
   {
    "fieldname": "custom_subject",
@@ -871,7 +871,7 @@
    "fieldname": "custom_equipment_name_action",
    "fieldtype": "Select",
    "label": "Equipment Name Action",
-   "options": "Keep Existing Names\nExchange Names\nReplacement Takes Current Name\nSet Names Manually"
+   "options": "\nKeep Existing Names\nExchange Names\nReplacement Takes Current Name\nSet Names Manually"
   },
   {
    "fieldname": "custom_new_current_equipment_name",
@@ -902,7 +902,7 @@
    "fieldname": "custom_replacement_source",
    "fieldtype": "Select",
    "label": "Replacement Source",
-   "options": "Stock\nWorkshop\nSame Site\nAnother Site\nNew Asset\nCustomer Supplied\nNew Component"
+   "options": "\nStock\nWorkshop\nSame Site\nAnother Site\nNew Asset\nCustomer Supplied\nNew Component"
   },
   {
    "fieldname": "custom_replacement_source_branch",
@@ -926,7 +926,7 @@
    "fieldname": "custom_replacement_reason",
    "fieldtype": "Select",
    "label": "Replacement Reason",
-   "options": "Faulty\nRepeated Breakdown\nBeyond Economical Repair\nObsolete\nEnd of Life\nPlanned Upgrade\nCapacity Upgrade\nPreventive Replacement\nClient Request\nAccidental Damage\nOther"
+   "options": "\nFaulty\nRepeated Breakdown\nBeyond Economical Repair\nObsolete\nEnd of Life\nPlanned Upgrade\nCapacity Upgrade\nPreventive Replacement\nClient Request\nAccidental Damage\nOther"
   },
   {
    "fieldname": "custom_sla_priority",
@@ -990,7 +990,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-03 03:26:43.296129",
+ "modified": "2026-08-04 11:04:48.986567",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

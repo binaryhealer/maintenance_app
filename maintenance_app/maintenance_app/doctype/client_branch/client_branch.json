@@ -13,6 +13,8 @@
   "custom_require_cr_approval",
   "column_break_juqt",
   "custom_site_type",
+  "custom_region_type",
+  "custom_region",
   "section_break_eaiw",
   "custom_branch_inventory",
   "custom_contact_list",
@@ -110,12 +112,24 @@
    "in_standard_filter": 1,
    "label": "Client Type",
    "options": "Customer Group"
+  },
+  {
+   "fieldname": "custom_region",
+   "fieldtype": "Link",
+   "label": "Region Name",
+   "options": "Region"
+  },
+  {
+   "fieldname": "custom_region_type",
+   "fieldtype": "Select",
+   "label": "Region Type",
+   "options": "Region\nDistrict\nZone\nArea\nTerritory\nOther"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-08 06:08:04.320626",
+ "modified": "2026-08-04 08:20:10.084953",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Client Branch",

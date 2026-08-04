@@ -106,7 +106,7 @@
    "fieldname": "custom_maint_frequency",
    "fieldtype": "Select",
    "label": "Maintenance Frequency",
-   "options": "Monthly\nQuarterly\nBi-Annual\nAnnual"
+   "options": "\nMonthly\nQuarterly\nBi-Annual\nAnnual"
   },
   {
    "fieldname": "column_break_afnw",
@@ -229,7 +229,7 @@
   {
    "fieldname": "custom_client_asset_code",
    "fieldtype": "Data",
-   "label": "Client Asset Code"
+   "label": "Client Asset Tag"
   },
   {
    "fieldname": "custom_location_status",
@@ -456,7 +456,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-08-03 00:01:04.311375",
+ "modified": "2026-08-04 10:59:34.675118",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",
