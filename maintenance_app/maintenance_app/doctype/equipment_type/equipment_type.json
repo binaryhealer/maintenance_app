@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:custom_component_type_name",
  "creation": "2026-06-18 22:35:31.959686",
@@ -42,7 +43,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-17 22:36:20.957114",
+ "modified": "2026-08-06 06:37:25.372658",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Type",
@@ -67,5 +68,6 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "title_field": "custom_component_type_name"
+ "title_field": "custom_component_type_name",
+ "track_changes": 1
 }

@@ -45,6 +45,7 @@
   "custom_client_asset_code",
   "custom_location_status",
   "custom_equipment_health",
+  "custom_region",
   "column_break_zspy",
   "custom_maintenance_contract",
   "custom_sla_rule",
@@ -132,7 +133,6 @@
    "fieldtype": "Link",
    "in_filter": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Brand / Make",
    "options": "Brand"
   },
@@ -141,7 +141,6 @@
    "fieldname": "custom_model",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Model",
    "options": "Maintenance Item"
   },
@@ -184,9 +183,6 @@
    "default": "0",
    "fieldname": "is_group",
    "fieldtype": "Check",
-   "in_filter": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Is Group"
   },
   {
@@ -236,7 +232,6 @@
    "fieldname": "custom_location_status",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Current Location Status",
    "options": "Client Site\nWorkshop\nVan\nWarehouse\nIn Transit"
   },
@@ -443,6 +438,14 @@
    "in_standard_filter": 1,
    "label": "Client Type",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_region",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Region",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -465,7 +468,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-08-05 10:22:40.287801",
+ "modified": "2026-08-06 06:25:34.014261",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

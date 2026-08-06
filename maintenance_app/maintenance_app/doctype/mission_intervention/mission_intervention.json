@@ -32,6 +32,8 @@
   "custom_client_signature",
   "custom_signatory_name",
   "custom_client_signed_on",
+  "column_break_gumq",
+  "custom_customer_remarks",
   "column_break_fuis",
   "custom_tech_signature",
   "custom_technician_signatory",
@@ -976,21 +978,30 @@
   {
    "fieldname": "custom_client_signed_on",
    "fieldtype": "Datetime",
-   "label": "Client Signed On",
+   "label": "Signed On",
    "read_only": 1
   },
   {
    "fieldname": "custom_technician_signed_on",
    "fieldtype": "Datetime",
-   "label": "Technician Signed On",
+   "label": "Signed On",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_gumq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_customer_remarks",
+   "fieldtype": "Small Text",
+   "label": "Customer Remarks"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-04 11:04:48.986567",
+ "modified": "2026-08-06 07:13:22.316772",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

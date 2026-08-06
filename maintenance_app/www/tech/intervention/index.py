@@ -1,7 +1,7 @@
 import json
 
 import frappe
-from frappe.utils import add_days, get_datetime, now_datetime, today
+from frappe.utils import add_days, flt, get_datetime, now_datetime, today
 
 no_cache = 1
 
@@ -377,6 +377,165 @@ def create_follow_up_mi(
     return {
         "created": True,
         "intervention": follow_up.name,
+    }
+
+
+# -----------------------------------------------------------------------------
+# PWA CHECK-IN / CHECK-OUT
+# -----------------------------------------------------------------------------
+
+
+def _get_pwa_mi_for_update(mi_name):
+    """Return a writable draft Mission Intervention for the logged-in user."""
+    if not frappe.session.user or frappe.session.user == "Guest":
+        raise frappe.PermissionError("Please log in before updating an intervention.")
+
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+    mi.check_permission("write")
+
+    if mi.docstatus != 0:
+        frappe.throw("Only a draft intervention can be checked in or checked out.")
+
+    return mi
+
+
+def _save_pwa_gps(mi, prefix, latitude=None, longitude=None, accuracy=None):
+    """Save GPS values when both latitude and longitude were supplied."""
+    if latitude in (None, "") or longitude in (None, ""):
+        return False
+
+    latitude_value = flt(latitude)
+    longitude_value = flt(longitude)
+
+    _set_if_field(mi, f"custom_{prefix}_latitude", latitude_value)
+    _set_if_field(mi, f"custom_{prefix}_longitude", longitude_value)
+
+    if accuracy not in (None, ""):
+        _set_if_field(mi, f"custom_{prefix}_accuracy", flt(accuracy))
+
+    return True
+
+
+@frappe.whitelist()
+def pwa_check_in(mi_name, latitude=None, longitude=None, accuracy=None):
+    """Check into an MI from the technician PWA using server time."""
+    mi = _get_pwa_mi_for_update(mi_name)
+
+    if mi.get("custom_start_time"):
+        frappe.throw("This intervention is already checked in.")
+
+    checked_in_at = now_datetime()
+
+    _set_if_field(mi, "custom_start_time", checked_in_at)
+    _set_if_field(mi, "custom_start_date", checked_in_at.date())
+    _set_if_field(mi, "custom_checkout_status", "Checked In")
+
+    gps_saved = _save_pwa_gps(
+        mi,
+        "checkin",
+        latitude=latitude,
+        longitude=longitude,
+        accuracy=accuracy,
+    )
+
+    mi.save()
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "intervention": mi.name,
+        "checked_in_at": checked_in_at,
+        "gps_saved": gps_saved,
+    }
+
+
+@frappe.whitelist()
+def pwa_check_out(mi_name, latitude=None, longitude=None, accuracy=None):
+    """Check out of an MI from the technician PWA using server time."""
+    mi = _get_pwa_mi_for_update(mi_name)
+
+    if not mi.get("custom_start_time"):
+        frappe.throw("Please Check In before checking out.")
+
+    if mi.get("custom_end_time"):
+        frappe.throw("This intervention is already checked out.")
+
+    if not mi.get("custom_work_outcome") or not mi.get("custom_work_progress"):
+        frappe.throw(
+            "Please save Work Outcome and Technical Progress Notes before checking out."
+        )
+
+    required_confirmation = {
+        "custom_signatory_name": "Client Signatory Name",
+        "custom_client_signature": "Client Signature",
+        "custom_tech_signature": "Technician Signature",
+    }
+
+    missing = [
+        label
+        for fieldname, label in required_confirmation.items()
+        if _has_field(mi, fieldname) and not mi.get(fieldname)
+    ]
+
+    if missing:
+        frappe.throw(
+            "Please complete Client Confirmation before checking out: "
+            + ", ".join(missing)
+        )
+
+    if mi.get("custom_work_outcome") == "Work Completed":
+        rating_fields = {
+            "custom_quality_score": "Quality Rating",
+            "custom_hse_score": "HSE Rating",
+        }
+        missing_ratings = [
+            label
+            for fieldname, label in rating_fields.items()
+            if _has_field(mi, fieldname) and not mi.get(fieldname)
+        ]
+        if missing_ratings:
+            frappe.throw(
+                "Please complete ratings for completed work: "
+                + ", ".join(missing_ratings)
+            )
+
+    checked_out_at = now_datetime()
+
+    _set_if_field(mi, "custom_end_time", checked_out_at)
+    _set_if_field(mi, "custom_checkout_status", "Checked Out")
+
+    if (
+        mi.get("custom_work_outcome") == "Work Completed"
+        and not mi.get("custom_completed_time")
+    ):
+        _set_if_field(mi, "custom_completed_time", checked_out_at)
+
+    if _has_field(mi, "custom_hours_worked"):
+        start_time = get_datetime(mi.get("custom_start_time"))
+        elapsed_seconds = (checked_out_at - start_time).total_seconds()
+        if elapsed_seconds > 0:
+            mi.custom_hours_worked = round(elapsed_seconds / 3600, 2)
+
+    gps_saved = _save_pwa_gps(
+        mi,
+        "checkout",
+        latitude=latitude,
+        longitude=longitude,
+        accuracy=accuracy,
+    )
+
+    mi.save()
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "intervention": mi.name,
+        "checked_out_at": checked_out_at,
+        "hours_worked": mi.get("custom_hours_worked"),
+        "gps_saved": gps_saved,
     }
 
 

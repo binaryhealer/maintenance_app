@@ -28,6 +28,8 @@
   "section_break_gyvz",
   "custom_planned_team",
   "column_break_obxi",
+  "custom_client_type",
+  "custom_region",
   "custom_assignment_review",
   "custom_rm_reviewer",
   "custom_priority",
@@ -825,12 +827,24 @@
   {
    "fieldname": "column_break_mnjq",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_client_type",
+   "fieldtype": "Data",
+   "label": "Client Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_region",
+   "fieldtype": "Data",
+   "label": "Region",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-02 22:11:42.059835",
+ "modified": "2026-08-06 07:06:13.011730",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",
