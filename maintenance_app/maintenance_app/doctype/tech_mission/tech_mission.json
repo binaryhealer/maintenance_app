@@ -36,7 +36,7 @@
   "custom_service_type",
   "column_break_vwer",
   "custom_work_type",
-  "custom_vehicle",
+  "custom_external_vehicle",
   "custom_reference",
   "custom_service_ticket",
   "custom_tech_planning",
@@ -128,7 +128,7 @@
   {
    "fieldname": "tab_2_tab",
    "fieldtype": "Tab Break",
-   "label": "Planned Details"
+   "label": "Hired / External Vehicle"
   },
   {
    "fieldname": "custom_planned_starttime",
@@ -208,12 +208,6 @@
    "fieldtype": "Select",
    "label": "Work Type",
    "options": "Quick Intervention\nTech Mission"
-  },
-  {
-   "fieldname": "custom_vehicle",
-   "fieldtype": "Link",
-   "label": "Vehicle / Van",
-   "options": "Vehicle"
   },
   {
    "fieldname": "column_break_wpxe",
@@ -402,12 +396,18 @@
    "fieldtype": "Table",
    "label": "Mission Change History",
    "options": "Tech Mission Schedule Histor"
+  },
+  {
+   "fieldname": "custom_external_vehicle",
+   "fieldtype": "Data",
+   "label": "Vehicle / Van",
+   "options": "Vehicle"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-02 22:18:13.658871",
+ "modified": "2026-08-10 10:13:25.085060",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

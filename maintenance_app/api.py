@@ -30,7 +30,9 @@ def create_mission_from_planning(planning_name):
     mission.custom_work_type = planning.get("custom_work_type") or "Tech Mission"
     mission.custom_planned_starttime = planning.get("custom_planned_starttime")
     mission.custom_planned_endtime = planning.get("custom_planned_endtime")
-    mission.custom_vehicle = planning.get("custom_vehicle")
+    mission.custom_vehicle = None
+    if mission.meta.has_field("custom_external_vehicle"):
+        mission.custom_external_vehicle = planning.get("custom_external_vehicle") or None
     mission.custom_mission_status = "Scheduled"
     mission.custom_request_description = planning.get("custom_request_description")
 
@@ -64,6 +66,8 @@ def create_mission_from_planning(planning_name):
         frappe.throw("Planned End Time must be after Planned Start Time.")
 
     _copy_planned_team(planning, mission)
+    if mission.meta.has_field("custom_vehicle"):
+        mission.custom_vehicle = _get_common_team_vehicle(mission)
 
     mission.insert(ignore_permissions=True)
     _sync_service_ticket_planning_from_mission(mission)
@@ -106,7 +110,8 @@ def replan_mission_from_planning(planning_name):
 
     mission.custom_planned_starttime = planning.get("custom_planned_starttime")
     mission.custom_planned_endtime = planning.get("custom_planned_endtime")
-    mission.custom_vehicle = planning.get("custom_vehicle")
+    if mission.meta.has_field("custom_external_vehicle"):
+        mission.custom_external_vehicle = planning.get("custom_external_vehicle") or None
     mission.custom_request_description = planning.get("custom_request_description")
     mission.custom_subject = planning.get("custom_subject")
     mission.custom_applicant = planning.get("custom_applicant")
@@ -146,6 +151,9 @@ def replan_mission_from_planning(planning_name):
         mission.custom_planned_team = []
         _copy_planned_team(planning, mission)
 
+    if mission.meta.has_field("custom_vehicle"):
+        mission.custom_vehicle = _get_common_team_vehicle(mission)
+
     mission.save(ignore_permissions=True)
     _sync_service_ticket_planning_from_mission(mission)
 
@@ -179,17 +187,33 @@ def _validate_planning(planning):
         frappe.throw("Please add at least one technician in Planned Team.")
 
 
+
 def _copy_planned_team(source_doc, target_doc):
+    """
+    Copy Planned Team rows while preserving the technician -> vehicle mapping.
+    The Planned Technicians child DocType is shared by the planning workflow.
+    """
     if not target_doc.meta.has_field("custom_planned_team"):
         return
 
     for row in source_doc.get("custom_planned_team") or []:
-        if not row.get("custom_technician"):
-            continue
-        target_doc.append("custom_planned_team", {
-            "custom_technician": row.get("custom_technician")
-        })
+        technician = row.get("custom_technician")
 
+        if not technician:
+            continue
+
+        values = {
+            "custom_technician": technician
+        }
+
+        # Safe even during staged rollout: only add the field when it exists
+        # on the child row DocType.
+        if row.meta.has_field("custom_assigned_vehicle"):
+            values["custom_assigned_vehicle"] = (
+                row.get("custom_assigned_vehicle") or None
+            )
+
+        target_doc.append("custom_planned_team", values)
 
 def _create_todos_for_mission(mission, planning):
     created = 0
@@ -479,6 +503,7 @@ def open_or_create_mi(mission_name):
 ###############################################################################
 
 
+
 def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_parent_mission = mission.name
     mi.custom_service_ticket = mission.get("custom_service_ticket")
@@ -499,8 +524,22 @@ def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_service_type = mission.get("custom_service_type")
     mi.custom_planned_starttime = mission.get("custom_planned_starttime")
     mi.custom_planned_endtime = mission.get("custom_planned_endtime")
-    mi.custom_vehicle = mission.get("custom_vehicle")
-    mi.custom_intervention_type = mission.get("custom_ticket_type") or "Service"
+
+    # IMPORTANT:
+    # MI.custom_vehicle is the operational vehicle used as the van/stock source.
+    # It comes from the first/primary technician's Planned Team row, not from
+    # the old mission-wide vehicle field.
+    if mi.meta.has_field("custom_vehicle"):
+        mi.custom_vehicle = _get_primary_assigned_vehicle(mission)
+
+    if mi.meta.has_field("custom_external_vehicle"):
+        mi.custom_external_vehicle = (
+            mission.get("custom_external_vehicle") or None
+        )
+
+    mi.custom_intervention_type = (
+        mission.get("custom_ticket_type") or "Service"
+    )
     mi.custom_work_outcome = ""
 
     # Technician-facing priority and SLA deadlines
@@ -564,7 +603,6 @@ def _populate_mi_from_mission(mi, mission, asset_name):
     _fill_equipment_snapshot(mi)
     _copy_team_to_intervention(mission, mi)
 
-
 def _set_mission_and_ticket_in_progress(mission):
     mission.custom_mission_status = "Ongoing"
     mission.save(ignore_permissions=True)
@@ -597,25 +635,46 @@ def _fill_equipment_snapshot(mi):
             mi.set(mi_field, equipment.get(equipment_field))
 
 
+
 def _copy_team_to_intervention(mission, mi):
+    """
+    Copy the mission team to the MI while preserving Assigned Vehicle.
+
+    The first valid Planned Team row remains the current primary technician
+    for the existing MI design. MI.custom_vehicle is therefore set from the
+    same first row.
+    """
     first_tech = None
+    first_vehicle = None
 
     for row in mission.get("custom_planned_team") or []:
         tech = row.get("custom_technician")
+        vehicle = row.get("custom_assigned_vehicle")
+
         if not tech:
             continue
 
         if not first_tech:
             first_tech = tech
+            first_vehicle = vehicle
 
         if mi.meta.has_field("custom_intervention_team"):
-            mi.append("custom_intervention_team", {
+            child_values = {
                 "custom_technician": tech
-            })
+            }
+
+            if row.meta.has_field("custom_assigned_vehicle"):
+                child_values["custom_assigned_vehicle"] = (
+                    vehicle or None
+                )
+
+            mi.append("custom_intervention_team", child_values)
 
     if first_tech and mi.meta.has_field("custom_technician"):
         mi.custom_technician = first_tech
 
+    if mi.meta.has_field("custom_vehicle"):
+        mi.custom_vehicle = first_vehicle or None
 
 @frappe.whitelist()
 def create_todos_for_existing_mission(mission_name):
@@ -5193,6 +5252,7 @@ def update_equipment_workshop_status(
 # TECH MISSION REASSIGNMENT / RESCHEDULING
 # ============================================================
 
+
 @frappe.whitelist()
 def update_tech_mission_assignment_and_schedule(
     mission_name,
@@ -5202,6 +5262,7 @@ def update_tech_mission_assignment_and_schedule(
     new_technician=None,
     planned_start=None,
     planned_end=None,
+    assigned_vehicle=None,
     vehicle=None
 ):
     """
@@ -5211,16 +5272,16 @@ def update_tech_mission_assignment_and_schedule(
       - Replace Technician
       - Add Technician
       - Remove Technician
+      - Change Vehicle
       - Reschedule Mission
       - Reassign and Reschedule
 
-    The method:
-      1. Saves the previous mission values in custom_change_history.
-      2. Updates custom_planned_team and/or planned dates/vehicle.
-      3. Closes ToDos for removed technicians.
-      4. Creates ToDos for newly assigned technicians.
-      5. Synchronizes any draft Mission Intervention.
-      6. Preserves submitted Mission Interventions.
+    Planning rules:
+      - Technician -> Vehicle mapping lives in custom_planned_team.
+      - The same company Vehicle may be assigned to multiple technicians.
+      - If custom_external_vehicle is filled, an internal Vehicle may be blank.
+      - Every successful TM planning change is written back to Service Ticket.
+      - Draft MI is synchronized; submitted MI is preserved.
     """
 
     if not mission_name:
@@ -5236,6 +5297,7 @@ def update_tech_mission_assignment_and_schedule(
         "Replace Technician",
         "Add Technician",
         "Remove Technician",
+        "Change Vehicle",
         "Reschedule Mission",
         "Reassign and Reschedule"
     ]
@@ -5257,15 +5319,17 @@ def update_tech_mission_assignment_and_schedule(
     previous_start = mission.get("custom_planned_starttime")
     previous_end = mission.get("custom_planned_endtime")
     previous_vehicle = mission.get("custom_vehicle")
+    previous_team = _get_mission_team_rows(mission)
+    previous_technicians = [
+        row["technician"] for row in previous_team
+    ]
 
-    previous_technicians = _get_mission_technicians(mission)
-    updated_technicians = list(previous_technicians)
-
-    technician_action = action in [
-        "Replace Technician",
-        "Add Technician",
-        "Remove Technician",
-        "Reassign and Reschedule"
+    team_rows = [
+        {
+            "technician": row["technician"],
+            "vehicle": row.get("vehicle")
+        }
+        for row in previous_team
     ]
 
     schedule_action = action in [
@@ -5273,9 +5337,31 @@ def update_tech_mission_assignment_and_schedule(
         "Reassign and Reschedule"
     ]
 
-    # -------------------------
-    # Technician validation
-    # -------------------------
+    team_action = action in [
+        "Replace Technician",
+        "Add Technician",
+        "Remove Technician",
+        "Change Vehicle",
+        "Reassign and Reschedule"
+    ]
+
+    # Backward compatibility with the old client argument.
+    if assigned_vehicle is None and vehicle:
+        assigned_vehicle = vehicle
+
+    external_vehicle = mission.get("custom_external_vehicle")
+
+    def require_vehicle_if_needed(technician, selected_vehicle):
+        if not selected_vehicle and not external_vehicle:
+            frappe.throw(
+                "Please assign a Vehicle to technician "
+                + str(technician)
+                + ", or fill Hired / External Vehicle on the mission."
+            )
+
+    # --------------------------------------------------------
+    # Team changes
+    # --------------------------------------------------------
     if action in ["Replace Technician", "Reassign and Reschedule"]:
         if not old_technician:
             frappe.throw("Current Technician is required.")
@@ -5288,55 +5374,119 @@ def update_tech_mission_assignment_and_schedule(
                 "New Technician must be different from Current Technician."
             )
 
-        if old_technician not in updated_technicians:
+        old_index = next(
+            (
+                i for i, row in enumerate(team_rows)
+                if row["technician"] == old_technician
+            ),
+            None
+        )
+
+        if old_index is None:
             frappe.throw(
                 "The selected Current Technician is not assigned to this mission."
             )
 
-        updated_technicians = [
-            tech for tech in updated_technicians
-            if tech != old_technician
-        ]
+        if any(
+            row["technician"] == new_technician
+            for row in team_rows
+            if row["technician"] != old_technician
+        ):
+            frappe.throw(
+                "The New Technician is already assigned to this mission."
+            )
 
-        if new_technician not in updated_technicians:
-            updated_technicians.append(new_technician)
+        # Preserve the old technician's vehicle unless RM explicitly supplies
+        # another one in the dialog.
+        replacement_vehicle = (
+            assigned_vehicle
+            if assigned_vehicle is not None
+            else team_rows[old_index].get("vehicle")
+        )
+
+        require_vehicle_if_needed(
+            new_technician,
+            replacement_vehicle
+        )
+
+        team_rows[old_index] = {
+            "technician": new_technician,
+            "vehicle": replacement_vehicle or None
+        }
 
     elif action == "Add Technician":
         if not new_technician:
             frappe.throw("New Technician is required.")
 
-        if new_technician in updated_technicians:
+        if any(
+            row["technician"] == new_technician
+            for row in team_rows
+        ):
             frappe.throw(
                 "This technician is already assigned to the mission."
             )
 
-        updated_technicians.append(new_technician)
+        require_vehicle_if_needed(
+            new_technician,
+            assigned_vehicle
+        )
+
+        team_rows.append({
+            "technician": new_technician,
+            "vehicle": assigned_vehicle or None
+        })
 
     elif action == "Remove Technician":
         if not old_technician:
             frappe.throw("Technician to remove is required.")
 
-        if old_technician not in updated_technicians:
+        if not any(
+            row["technician"] == old_technician
+            for row in team_rows
+        ):
             frappe.throw(
                 "The selected technician is not assigned to this mission."
             )
 
-        updated_technicians = [
-            tech for tech in updated_technicians
-            if tech != old_technician
+        team_rows = [
+            row for row in team_rows
+            if row["technician"] != old_technician
         ]
 
-    if technician_action and not updated_technicians:
-        frappe.throw(
-            "At least one technician must remain assigned to the Tech Mission."
+        if not team_rows:
+            frappe.throw(
+                "At least one technician must remain assigned to the Tech Mission."
+            )
+
+    elif action == "Change Vehicle":
+        if not old_technician:
+            frappe.throw("Technician is required.")
+
+        row = next(
+            (
+                row for row in team_rows
+                if row["technician"] == old_technician
+            ),
+            None
         )
 
-    # -------------------------
-    # Schedule validation
-    # -------------------------
+        if not row:
+            frappe.throw(
+                "The selected technician is not assigned to this mission."
+            )
+
+        require_vehicle_if_needed(
+            old_technician,
+            assigned_vehicle
+        )
+
+        row["vehicle"] = assigned_vehicle or None
+
+    # --------------------------------------------------------
+    # Schedule changes
+    # --------------------------------------------------------
     new_start = previous_start
     new_end = previous_end
-    new_vehicle = previous_vehicle
 
     if schedule_action:
         if not planned_start:
@@ -5353,12 +5503,9 @@ def update_tech_mission_assignment_and_schedule(
                 "New Planned End must be after New Planned Start."
             )
 
-        # A blank vehicle is allowed and clears the existing vehicle.
-        new_vehicle = vehicle or None
-
-    # -------------------------
-    # Add audit/history row
-    # -------------------------
+    # --------------------------------------------------------
+    # Audit/history row
+    # --------------------------------------------------------
     if mission.meta.has_field("custom_change_history"):
         mission.append(
             "custom_change_history",
@@ -5376,47 +5523,43 @@ def update_tech_mission_assignment_and_schedule(
             }
         )
 
-    # -------------------------
-    # Update live mission values
-    # -------------------------
-    if technician_action:
-        mission.set("custom_planned_team", [])
-
-        for technician in updated_technicians:
-            mission.append(
-                "custom_planned_team",
-                {
-                    "custom_technician": technician
-                }
-            )
+    # --------------------------------------------------------
+    # Apply live values
+    # --------------------------------------------------------
+    if team_action:
+        _set_mission_team_rows(mission, team_rows)
 
     if schedule_action:
         mission.custom_planned_starttime = new_start
         mission.custom_planned_endtime = new_end
-        mission.custom_vehicle = new_vehicle
 
-    # Keep Scheduled before work starts; otherwise keep Ongoing.
     if _mission_has_started_work(mission.name):
         mission.custom_mission_status = "Ongoing"
     elif mission.get("custom_mission_status") not in ["Ongoing", "On Hold"]:
         mission.custom_mission_status = "Scheduled"
 
     mission.save(ignore_permissions=True)
+
+    # IMPORTANT: TM is the active planning editor after creation.
+    # Dates, external vehicle and the full technician -> vehicle mapping
+    # are written back to Service Ticket.
     _sync_service_ticket_planning_from_mission(mission)
 
-    # -------------------------
-    # Synchronize ToDos
-    # -------------------------
+    current_technicians = _get_mission_technicians(mission)
+
     removed_technicians = [
         tech for tech in previous_technicians
-        if tech not in updated_technicians
+        if tech not in current_technicians
     ]
 
     added_technicians = [
-        tech for tech in updated_technicians
+        tech for tech in current_technicians
         if tech not in previous_technicians
     ]
 
+    # --------------------------------------------------------
+    # Synchronize ToDos
+    # --------------------------------------------------------
     for technician in removed_technicians:
         _close_mission_todos_for_technician(
             mission,
@@ -5425,9 +5568,8 @@ def update_tech_mission_assignment_and_schedule(
             action
         )
 
-    # If only the schedule changed, refresh all current ToDos.
     if schedule_action:
-        for technician in updated_technicians:
+        for technician in current_technicians:
             _refresh_mission_todo(
                 mission,
                 technician,
@@ -5435,7 +5577,6 @@ def update_tech_mission_assignment_and_schedule(
                 action
             )
 
-    # Create ToDos for newly added technicians.
     for technician in added_technicians:
         _create_mission_todo_for_technician(
             mission,
@@ -5444,9 +5585,9 @@ def update_tech_mission_assignment_and_schedule(
             action
         )
 
-    # -------------------------
-    # Synchronize draft MI only
-    # -------------------------
+    # --------------------------------------------------------
+    # Synchronize draft MI only. Submitted MIs remain historical.
+    # --------------------------------------------------------
     _sync_draft_mi_from_mission(mission)
 
     frappe.db.commit()
@@ -5456,13 +5597,14 @@ def update_tech_mission_assignment_and_schedule(
         "mission": mission.name,
         "action": action,
         "previous_technicians": previous_technicians,
-        "current_technicians": updated_technicians,
+        "current_technicians": current_technicians,
         "planned_start": mission.get("custom_planned_starttime"),
         "planned_end": mission.get("custom_planned_endtime"),
         "vehicle": mission.get("custom_vehicle"),
+        "external_vehicle": mission.get("custom_external_vehicle"),
+        "team": _get_mission_team_rows(mission),
         "mission_status": mission.get("custom_mission_status")
     }
-
 
 def _get_mission_technicians(mission):
     technicians = []
@@ -5476,17 +5618,88 @@ def _get_mission_technicians(mission):
     return technicians
 
 
+def _get_mission_team_rows(mission):
+    """
+    Return the current ordered technician -> vehicle mapping.
+    """
+    rows = []
+
+    for row in mission.get("custom_planned_team") or []:
+        technician = row.get("custom_technician")
+
+        if not technician:
+            continue
+
+        rows.append({
+            "technician": technician,
+            "vehicle": row.get("custom_assigned_vehicle") or None
+        })
+
+    return rows
+
+
+def _get_primary_assigned_vehicle(mission):
+    """
+    For the current MI design, the first Planned Team row is the primary tech.
+    Its assigned company vehicle is the MI stock-source vehicle.
+    """
+    for row in mission.get("custom_planned_team") or []:
+        if row.get("custom_technician"):
+            return row.get("custom_assigned_vehicle") or None
+
+    return None
+
+
+def _get_common_team_vehicle(mission):
+    """
+    Legacy/summary parent vehicle:
+    return a vehicle only when every nonblank assignment resolves to one
+    common vehicle. Multiple vehicles -> blank.
+    """
+    vehicles = []
+
+    for row in mission.get("custom_planned_team") or []:
+        vehicle = row.get("custom_assigned_vehicle")
+
+        if vehicle and vehicle not in vehicles:
+            vehicles.append(vehicle)
+
+    return vehicles[0] if len(vehicles) == 1 else None
+
+
+def _set_mission_team_rows(mission, team_rows):
+    mission.set("custom_planned_team", [])
+
+    for item in team_rows:
+        technician = item.get("technician")
+
+        if not technician:
+            continue
+
+        mission.append(
+            "custom_planned_team",
+            {
+                "custom_technician": technician,
+                "custom_assigned_vehicle": item.get("vehicle") or None
+            }
+        )
+
+    # Keep old mission-level field only as a compatibility summary.
+    if mission.meta.has_field("custom_vehicle"):
+        mission.custom_vehicle = _get_common_team_vehicle(mission)
+
+
 def _get_mission_change_type(action):
     mapping = {
         "Replace Technician": "Technician Reassigned",
         "Add Technician": "Technician Added",
         "Remove Technician": "Technician Removed",
+        "Change Vehicle": "Vehicle Assignment Changed",
         "Reschedule Mission": "Schedule Changed",
         "Reassign and Reschedule": "Schedule and Technician Changed"
     }
 
     return mapping.get(action, action)
-
 
 def _mission_has_started_work(mission_name):
     return bool(
@@ -5641,7 +5854,12 @@ def _refresh_mission_todo(
     return todo.name
 
 
+
 def _sync_draft_mi_from_mission(mission):
+    """
+    Keep draft MI aligned with the current TM plan.
+    Submitted MI is intentionally not touched.
+    """
     draft_mis = frappe.get_all(
         "Mission Intervention",
         filters={
@@ -5651,7 +5869,12 @@ def _sync_draft_mi_from_mission(mission):
         pluck="name"
     )
 
-    current_technicians = _get_mission_technicians(mission)
+    team_rows = _get_mission_team_rows(mission)
+    current_technicians = [
+        row["technician"] for row in team_rows
+    ]
+
+    primary_vehicle = _get_primary_assigned_vehicle(mission)
 
     for mi_name in draft_mis:
         mi = frappe.get_doc(
@@ -5669,17 +5892,25 @@ def _sync_draft_mi_from_mission(mission):
                 "custom_planned_endtime"
             )
 
+        if mi.meta.has_field("custom_external_vehicle"):
+            mi.custom_external_vehicle = (
+                mission.get("custom_external_vehicle") or None
+            )
+
         if mi.meta.has_field("custom_vehicle"):
-            mi.custom_vehicle = mission.get("custom_vehicle")
+            mi.custom_vehicle = primary_vehicle
 
         if mi.meta.has_field("custom_intervention_team"):
             mi.set("custom_intervention_team", [])
 
-            for technician in current_technicians:
+            for team_row in team_rows:
                 mi.append(
                     "custom_intervention_team",
                     {
-                        "custom_technician": technician
+                        "custom_technician": team_row["technician"],
+                        "custom_assigned_vehicle": (
+                            team_row.get("vehicle") or None
+                        )
                     }
                 )
 
@@ -5692,13 +5923,17 @@ def _sync_draft_mi_from_mission(mission):
 
         mi.save(ignore_permissions=True)
 
+
 def _sync_service_ticket_planning_from_mission(mission):
     """
-    Copy the current Tech Mission planning summary to its Service Ticket.
+    Copy the current Tech Mission planning state back to Service Ticket.
 
-    The Service Ticket fields are current-summary fields and are overwritten
-    whenever the linked Tech Mission is created, rescheduled, or reassigned.
-    Mission change history remains on Tech Mission.
+    TM is the active planning editor after mission creation. This synchronizes:
+      - planned dates
+      - external / hired vehicle
+      - full Planned Team technician -> assigned vehicle mapping
+      - technician summary
+      - legacy common-vehicle summary
     """
 
     ticket_name = mission.get("custom_service_ticket")
@@ -5722,8 +5957,35 @@ def _sync_service_ticket_planning_from_mission(mission):
             "custom_planned_endtime"
         )
 
+    if ticket.meta.has_field("custom_external_vehicle"):
+        ticket.custom_external_vehicle = (
+            mission.get("custom_external_vehicle") or None
+        )
+
+    if ticket.meta.has_field("custom_planned_team"):
+        ticket.set("custom_planned_team", [])
+
+        for row in mission.get("custom_planned_team") or []:
+            technician = row.get("custom_technician")
+
+            if not technician:
+                continue
+
+            ticket.append(
+                "custom_planned_team",
+                {
+                    "custom_technician": technician,
+                    "custom_assigned_vehicle": (
+                        row.get("custom_assigned_vehicle") or None
+                    )
+                }
+            )
+
+    # Keep this old field only as a compatibility/current-summary field.
     if ticket.meta.has_field("custom_planned_vehicle"):
-        ticket.custom_planned_vehicle = mission.get("custom_vehicle")
+        ticket.custom_planned_vehicle = (
+            _get_common_team_vehicle(mission)
+        )
 
     if ticket.meta.has_field("custom_planned_technicians"):
         ticket.custom_planned_technicians = ", ".join(technicians)
@@ -5837,6 +6099,45 @@ def create_ticket_from_installed_equipment(
     ticket.custom_customer = equipment.get("custom_parent_customer")
     ticket.custom_client_branch = equipment.get("custom_branch")
     ticket.custom_target_equipment = equipment.name
+
+    # Client Type and Region come from Client Branch, which is the
+    # source of truth for these classifications.
+    branch_name = equipment.get("custom_branch")
+
+    if branch_name:
+        branch_doc = frappe.get_doc("Client Branch", branch_name)
+
+        if ticket.meta.has_field("custom_client_type"):
+            ticket.custom_client_type = (
+                branch_doc.get("custom_site_type") or None
+            )
+
+        if ticket.meta.has_field("custom_region"):
+            region_value = branch_doc.get("custom_region")
+
+            if region_value:
+                region_field = branch_doc.meta.get_field("custom_region")
+                region_doctype = region_field.options if region_field else None
+
+                if region_doctype:
+                    region_meta = frappe.get_meta(region_doctype)
+                    title_field = region_meta.title_field
+
+                    if title_field and title_field != "name":
+                        region_title = frappe.db.get_value(
+                            region_doctype,
+                            region_value,
+                            title_field
+                        )
+                        ticket.custom_region = region_title or region_value
+                    else:
+                        ticket.custom_region = region_value
+                else:
+                    ticket.custom_region = region_value
+            else:
+                ticket.custom_region = None
+
+
     ticket.custom_request_type = request_type
     ticket.custom_ticket_type = ticket_type
     ticket.custom_priority = priority
@@ -6008,6 +6309,21 @@ def create_installation_ticket_from_component(
     ticket.custom_customer = customer
     ticket.custom_client_branch = branch
     ticket.custom_target_equipment = equipment.name
+
+    # Client Type and Region come from the destination Client Branch.
+    # This keeps installation tickets aligned with normal Service Tickets.
+    if branch:
+        branch_doc = frappe.get_doc("Client Branch", branch)
+
+        if ticket.meta.has_field("custom_client_type"):
+            ticket.custom_client_type = (
+                branch_doc.get("custom_site_type") or None
+            )
+
+        if ticket.meta.has_field("custom_region"):
+            ticket.custom_region = (
+                branch_doc.get("custom_region") or None
+            )
     ticket.custom_request_type = "General Request"
     ticket.custom_ticket_type = "Installation"
     ticket.custom_priority = priority

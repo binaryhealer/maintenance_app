@@ -33,7 +33,7 @@
   "custom_assignment_review",
   "custom_rm_reviewer",
   "custom_priority",
-  "custom_planned_vehicle",
+  "custom_external_vehicle",
   "column_break_otsg",
   "custom_planned_starttime",
   "custom_planned_endtime",
@@ -781,15 +781,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "custom_planned_vehicle",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "in_list_view": 1,
-   "label": "Planned Vehicle",
-   "options": "Vehicle",
-   "read_only": 1
-  },
-  {
    "fieldname": "custom_planned_starttime",
    "fieldtype": "Datetime",
    "in_list_view": 1,
@@ -839,12 +830,21 @@
    "fieldtype": "Data",
    "label": "Region",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_external_vehicle",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "in_list_view": 1,
+   "label": "Hired / External Vehicle",
+   "options": "Vehicle",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-06 07:06:13.011730",
+ "modified": "2026-08-10 10:13:55.535850",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",
