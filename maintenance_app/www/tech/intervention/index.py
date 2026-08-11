@@ -581,6 +581,44 @@ def send_mi_report(
     if not to_list:
         frappe.throw("At least one email recipient is required.")
 
+    # Store only the TO-recipient names in custom_customer_remarks.
+    # Example:
+    #   julie@gotechmu.com, gerrard@gotechmu.com
+    # becomes:
+    #   julie, gerrard
+    #
+    # CC recipients are intentionally excluded.
+    recipient_names = []
+    seen_names = set()
+
+    for email in to_list:
+        local_part = email.split("@", 1)[0].strip()
+
+        if not local_part:
+            continue
+
+        key = local_part.lower()
+
+        if key in seen_names:
+            continue
+
+        seen_names.add(key)
+        recipient_names.append(local_part)
+
+    customer_remarks = ", ".join(recipient_names)
+
+    if mi.meta.has_field("custom_customer_remarks"):
+        frappe.db.set_value(
+            "Mission Intervention",
+            mi.name,
+            "custom_customer_remarks",
+            customer_remarks,
+            update_modified=False,
+        )
+        mi.custom_customer_remarks = customer_remarks
+
+    # Generate the PDF after saving custom_customer_remarks so the same
+    # report can display the current TO-recipient names.
     attachment = frappe.attach_print(
         "Mission Intervention",
         mi.name,
