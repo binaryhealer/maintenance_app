@@ -58,7 +58,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "In Progress\nCompleted\nWaiting Parts\nWaiting Client\nOngoing"
+   "options": "Draft\nChecked In\nChecked Out\nSubmitted\nIn Progress\nCompleted\nWaiting Parts\nWaiting Client\nOngoing"
   },
   {
    "fieldname": "section_break_kpfb",
@@ -81,7 +81,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-08 13:59:14.361304",
+ "modified": "2026-08-18 01:15:13.019595",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention Log",

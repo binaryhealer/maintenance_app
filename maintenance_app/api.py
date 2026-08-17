@@ -329,12 +329,159 @@ def create_intervention_from_mission(mission_name):
 
     mi = frappe.new_doc("Mission Intervention")
     _populate_mi_from_mission(mi, mission, mission.get("custom_asset"))
+
+    if mi.meta.has_field("custom_mi_purpose"):
+        mi.custom_mi_purpose = "Initial"
+
     mi.insert(ignore_permissions=True)
 
-    _set_mission_and_ticket_in_progress(mission)
+    _sync_mi_register_and_status(mi.name, save_mission=True)
     frappe.db.commit()
 
     return {"intervention": mi.name}
+
+
+@frappe.whitelist()
+def get_additional_mi_components(equipment_name):
+    """Return currently installed permanent components for Additional MI target selection."""
+    if not equipment_name:
+        return []
+
+    equipment = frappe.get_doc("Installed Equipment", equipment_name)
+    results = []
+
+    for row in equipment.get("custom_installed_components") or []:
+        status = (row.get("custom_status") or "").strip()
+
+        # Keep blank/Active/Installed as current; exclude clearly removed/inactive rows.
+        if status and status not in ["Active", "Installed"]:
+            continue
+
+        component_name = row.get("custom_equipment_component")
+        if not component_name:
+            continue
+
+        component = frappe.get_doc("Equipment Component", component_name)
+
+        display_name = (
+            component.get("custom_display_name")
+            or row.get("custom_display_name")
+            or component.get("custom_equipment_type")
+            or row.get("custom_equipment_type")
+            or component.name
+        )
+
+        serial = (
+            component.get("custom_serial_number")
+            or component.get("custom_serial")
+            or row.get("custom_serial_number")
+        )
+
+        results.append({
+            "row_id": row.name,
+            "equipment_component": component.name,
+            "display_name": display_name,
+            "serial": serial,
+        })
+
+    return results
+
+
+def _set_additional_mi_component_target(mi, component_row_id):
+    """
+    Set a component as the target of a NEW Additional MI.
+
+    This is target selection, not a wrong-component correction:
+    it must not modify the original Tech Mission or Service Ticket.
+    """
+    if not mi.get("custom_asset"):
+        frappe.throw("Installed Equipment is required before selecting a component.")
+
+    equipment = frappe.get_doc("Installed Equipment", mi.custom_asset)
+    selected_row = None
+
+    for row in equipment.get("custom_installed_components") or []:
+        if row.name == component_row_id:
+            selected_row = row
+            break
+
+    if not selected_row:
+        frappe.throw("Selected component was not found on the selected equipment.")
+
+    status = (selected_row.get("custom_status") or "").strip()
+    if status and status not in ["Active", "Installed"]:
+        frappe.throw("The selected component is not currently installed.")
+
+    component_name = selected_row.get("custom_equipment_component")
+    if not component_name:
+        frappe.throw(
+            "The selected installed component row is not linked "
+            "to an Equipment Component master."
+        )
+
+    component = frappe.get_doc("Equipment Component", component_name)
+
+    component_label = (
+        component.get("custom_display_name")
+        or selected_row.get("custom_display_name")
+        or component.get("custom_equipment_type")
+        or selected_row.get("custom_equipment_type")
+        or component.name
+    )
+
+    component_item = (
+        component.get("custom_component_item")
+        or component.get("custom_equipment_type")
+        or selected_row.get("custom_equipment_type")
+        or component_label
+    )
+
+    component_group = (
+        component.get("custom_component_group")
+        or selected_row.get("custom_component_group")
+        or selected_row.get("custom_item_group")
+    )
+
+    component_serial = (
+        component.get("custom_serial_number")
+        or component.get("custom_serial")
+        or selected_row.get("custom_serial_number")
+    )
+
+    component_brand = (
+        component.get("custom_make")
+        or component.get("custom_brand")
+        or selected_row.get("custom_brand")
+    )
+
+    component_model = (
+        component.get("custom_model")
+        or selected_row.get("custom_model")
+    )
+
+    _set_if_present = lambda fieldname, value: (
+        mi.set(fieldname, value) if mi.meta.has_field(fieldname) else None
+    )
+
+    equipment_label = (
+        equipment.get("custom_display_name")
+        or equipment.get("custom_asset_name")
+        or equipment.get("custom_client_asset_code")
+        or equipment.name
+    )
+
+    _set_if_present(
+        "custom_parent_equipment",
+        equipment_label
+    )
+    _set_if_present("custom_equipment_component", component.name)
+    _set_if_present("custom_target_component_name", component_label)
+    _set_if_present("custom_component_item", component_item)
+    _set_if_present("custom_component_row_id", selected_row.name)
+    _set_if_present("custom_component_group", component_group)
+    _set_if_present("custom_component_serial", component_serial)
+    _set_if_present("custom_component_brand", component_brand)
+    _set_if_present("custom_component_model", component_model)
 
 
 @frappe.whitelist()
@@ -343,7 +490,9 @@ def create_additional_intervention_from_mission(
         asset_name,
         reason=None,
         subject=None,
-        intervention_type=None
+        intervention_type=None,
+        target_scope="Equipment",
+        component_row_id=None
     ):
 
     if not mission_name:
@@ -354,11 +503,79 @@ def create_additional_intervention_from_mission(
 
     mission = frappe.get_doc("Tech Mission", mission_name)
 
-    if mission.get("custom_mission_status") == "Cancelled":
-        frappe.throw("This mission is cancelled. Cannot create additional intervention.")
+    if mission.get("custom_mission_status") in ["Cancelled", "Completed", "Closed"]:
+        frappe.throw(
+            "This mission is completed/cancelled. "
+            "Cannot create an additional intervention."
+        )
+
+    if asset_name == mission.get("custom_asset"):
+        frappe.throw(
+            "Additional MI is for another equipment discovered during the same mission. "
+            "Please select a different equipment."
+        )
+
+    additional_equipment = frappe.get_doc("Installed Equipment", asset_name)
+
+    if (
+        mission.get("custom_parent_customer")
+        and additional_equipment.get("custom_parent_customer")
+        != mission.get("custom_parent_customer")
+    ):
+        frappe.throw(
+            "The selected equipment does not belong to the mission customer."
+        )
+
+    if (
+        mission.get("custom_branch")
+        and additional_equipment.get("custom_branch")
+        != mission.get("custom_branch")
+    ):
+        frappe.throw(
+            "Additional MI equipment must belong to the same branch/site as the mission."
+        )
+
+    target_scope = (target_scope or "Equipment").strip()
+
+    if target_scope not in ["Equipment", "Component"]:
+        frappe.throw("Invalid Additional MI target type.")
+
+    if target_scope == "Component" and not component_row_id:
+        frappe.throw("Please select the component to work on.")
 
     mi = frappe.new_doc("Mission Intervention")
-    _populate_mi_from_mission(mi, mission, asset_name)
+
+    # Copy mission/customer/team/planning context, but never copy the
+    # original equipment's component target into an Additional MI.
+    _populate_mi_from_mission(
+        mi,
+        mission,
+        asset_name,
+        copy_original_component=False
+    )
+
+    # Whole-equipment target: give the PWA a readable target/faulty item.
+    if target_scope == "Equipment":
+        equipment_label = (
+            additional_equipment.get("custom_display_name")
+            or additional_equipment.get("custom_asset_name")
+            or additional_equipment.get("custom_client_asset_code")
+            or additional_equipment.name
+        )
+
+        if mi.meta.has_field("custom_target_component_name"):
+            mi.custom_target_component_name = equipment_label
+
+        if mi.meta.has_field("custom_parent_equipment"):
+            mi.custom_parent_equipment = None
+
+        if mi.meta.has_field("custom_equipment_component"):
+            mi.custom_equipment_component = None
+
+    else:
+        # Component target: parent/main equipment remains in custom_asset and
+        # custom_parent_equipment; the permanent COMP-xxxxx is the target.
+        _set_additional_mi_component_target(mi, component_row_id)
 
     if subject and mi.meta.has_field("custom_subject"):
         mi.custom_subject = subject
@@ -372,12 +589,21 @@ def create_additional_intervention_from_mission(
     if mi.meta.has_field("custom_additional_mi_reason"):
         mi.custom_additional_mi_reason = reason
 
+    if mi.meta.has_field("custom_mi_purpose"):
+        mi.custom_mi_purpose = "Additional Equipment"
+
     mi.insert(ignore_permissions=True)
 
-    _set_mission_and_ticket_in_progress(mission)
+    _sync_mi_register_and_status(mi.name, save_mission=True)
     frappe.db.commit()
 
-    return {"intervention": mi.name}
+    return {
+        "intervention": mi.name,
+        "equipment": asset_name,
+        "target_scope": target_scope,
+        "equipment_component": mi.get("custom_equipment_component"),
+    }
+
 
 @frappe.whitelist()
 def change_mi_equipment(mi_name, actual_equipment, reason):
@@ -504,7 +730,12 @@ def open_or_create_mi(mission_name):
 
 
 
-def _populate_mi_from_mission(mi, mission, asset_name):
+def _populate_mi_from_mission(
+        mi,
+        mission,
+        asset_name,
+        copy_original_component=True
+    ):
     mi.custom_parent_mission = mission.name
     mi.custom_service_ticket = mission.get("custom_service_ticket")
     mi.custom_planning_ref = mission.get("custom_tech_planning")
@@ -512,23 +743,46 @@ def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_branch = mission.get("custom_branch")
     mi.custom_asset = asset_name
 
-    mi.custom_component_group = mission.get("custom_component_group")
-    mi.custom_component_item = mission.get("custom_component_item")
-    mi.custom_component_row_id = mission.get("custom_component_row_id")
-    mi.custom_component_serial = mission.get("custom_component_serial")
-    mi.custom_component_brand = mission.get("custom_component_brand")
-    mi.custom_component_model = mission.get("custom_component_model")
-    mi.custom_target_component_name = mission.get("custom_target_component_name")
-    mi.custom_parent_equipment = mission.get("custom_parent_equipment")
+    is_original_equipment = (
+        asset_name
+        and mission.get("custom_asset")
+        and asset_name == mission.get("custom_asset")
+    )
+
+    # Component details belong to the original mission target only.
+    # Additional MI records for another equipment must start clean.
+    if copy_original_component and is_original_equipment:
+        mi.custom_component_group = mission.get("custom_component_group")
+        mi.custom_component_item = mission.get("custom_component_item")
+        mi.custom_component_row_id = mission.get("custom_component_row_id")
+        mi.custom_component_serial = mission.get("custom_component_serial")
+        mi.custom_component_brand = mission.get("custom_component_brand")
+        mi.custom_component_model = mission.get("custom_component_model")
+        mi.custom_target_component_name = mission.get("custom_target_component_name")
+        mi.custom_parent_equipment = mission.get("custom_parent_equipment")
+    else:
+        component_fields = [
+            "custom_component_group",
+            "custom_component_item",
+            "custom_component_row_id",
+            "custom_component_serial",
+            "custom_component_brand",
+            "custom_component_model",
+            "custom_target_component_name",
+            "custom_parent_equipment",
+            "custom_equipment_component",
+        ]
+
+        for fieldname in component_fields:
+            if mi.meta.has_field(fieldname):
+                mi.set(fieldname, None)
 
     mi.custom_service_type = mission.get("custom_service_type")
     mi.custom_planned_starttime = mission.get("custom_planned_starttime")
     mi.custom_planned_endtime = mission.get("custom_planned_endtime")
 
-    # IMPORTANT:
-    # MI.custom_vehicle is the operational vehicle used as the van/stock source.
-    # It comes from the first/primary technician's Planned Team row, not from
-    # the old mission-wide vehicle field.
+    # MI.custom_vehicle is the operational van/stock source.
+    # It comes from the first/primary technician's Planned Team row.
     if mi.meta.has_field("custom_vehicle"):
         mi.custom_vehicle = _get_primary_assigned_vehicle(mission)
 
@@ -558,16 +812,11 @@ def _populate_mi_from_mission(mi, mission, asset_name):
     mi.custom_applicant_email = mission.get("custom_applicant_email")
     mi.custom_applicant_phone = mission.get("custom_applicant_phone")
 
-    # Copy the permanent component ID from the Service Ticket
-    # only when this MI is for the mission's original equipment.
-    is_original_equipment = (
-        asset_name
-        and mission.get("custom_asset")
-        and asset_name == mission.get("custom_asset")
-    )
-
+    # Permanent component ID from the Service Ticket is valid only for
+    # the mission's original equipment.
     if (
-        is_original_equipment
+        copy_original_component
+        and is_original_equipment
         and mission.get("custom_service_ticket")
         and mi.meta.has_field("custom_equipment_component")
     ):
@@ -600,20 +849,369 @@ def _populate_mi_from_mission(mi, mission, asset_name):
             "custom_email": row.get("custom_email")
         })
 
+    # Rebuild the equipment-level snapshot from the actually selected asset.
     _fill_equipment_snapshot(mi)
     _copy_team_to_intervention(mission, mi)
 
+
+def _get_mi_register_status(mi):
+    """Return the live workflow status shown in Tech Mission intervention table."""
+    if int(mi.docstatus or 0) == 2:
+        return "Cancelled"
+
+    if int(mi.docstatus or 0) == 1:
+        return "Submitted"
+
+    if mi.get("custom_end_time"):
+        return "Checked Out"
+
+    if mi.get("custom_start_time"):
+        return "Checked In"
+
+    return "Draft"
+
+
+def _get_mission_hold_reason_from_outcome(outcome):
+    mapping = {
+        "Continue Work": "Follow-up Visit / Work to Continue",
+        "Waiting for Parts": "Waiting for Parts",
+        "Waiting for Client": "Waiting for Client",
+        "To Quote (Billable)": "To Quote",
+        "Could Not Complete": "Could Not Complete",
+    }
+    return mapping.get(outcome or "")
+
+
+def _set_ticket_status_from_mission(mission, status, hold_reason=None):
+    ticket_name = mission.get("custom_service_ticket")
+    if not ticket_name:
+        return
+
+    ticket = frappe.get_doc("Service Ticket", ticket_name)
+
+    if ticket.meta.has_field("custom_ticket_status"):
+        ticket.custom_ticket_status = status
+
+    if ticket.meta.has_field("custom_hold_reason"):
+        ticket.custom_hold_reason = hold_reason or ""
+
+    # A reopened/active mission must not retain stale resolution metadata.
+    if status in ["In Progress", "On Hold"]:
+        if ticket.meta.has_field("custom_resolution_source_mi"):
+            ticket.custom_resolution_source_mi = None
+        if ticket.meta.has_field("custom_resolution_date"):
+            ticket.custom_resolution_date = None
+        if ticket.meta.has_field("custom_resolved_by"):
+            ticket.custom_resolved_by = None
+
+    ticket.save(ignore_permissions=True)
+
+
+def _sync_mi_row_to_mission(mission, mi):
+    """
+    Create or update the live MI row in Tech Mission.custom_intervention_table.
+
+    The same row is maintained from Draft -> Checked In -> Checked Out ->
+    Submitted.  The existing child table therefore becomes the live
+    intervention register instead of appearing only after submission.
+    """
+    if not mission.meta.has_field("custom_intervention_table"):
+        return None
+
+    target_row = None
+
+    for row in mission.get("custom_intervention_table") or []:
+        if row.get("custom_intervention_reference") == mi.name:
+            target_row = row
+            break
+
+    if target_row is None:
+        target_row = mission.append("custom_intervention_table", {})
+
+    values = {
+        "custom_date": (
+            mi.get("custom_end_time")
+            or mi.get("custom_start_time")
+            or mi.get("custom_planned_starttime")
+            or frappe.utils.now_datetime()
+        ),
+        "custom_intervention_reference": mi.name,
+        "custom_technician": mi.get("custom_technician"),
+        "custom_hours": mi.get("custom_hours_worked") or 0,
+        "custom_status": _get_mi_register_status(mi),
+        "custom_work_progress": mi.get("custom_work_progress") or "",
+    }
+
+    tech_count = len(mission.get("custom_planned_team") or []) or 1
+    values["custom_technician_count"] = tech_count
+
+    # Billable hours are meaningful only after submission.
+    if int(mi.docstatus or 0) == 1:
+        physical_hours = mi.get("custom_hours_worked") or 0
+        billable_hours = physical_hours
+
+        if mission.get("custom_count_each_technician"):
+            billable_hours = physical_hours * tech_count
+
+        values["custom_billable_hours"] = round(billable_hours, 2)
+
+        if mi.meta.has_field("custom_billable_hours"):
+            mi.db_set(
+                "custom_billable_hours",
+                round(billable_hours, 2),
+                update_modified=False
+            )
+
+    for fieldname, value in values.items():
+        if target_row.meta.has_field(fieldname):
+            target_row.set(fieldname, value)
+
+    return target_row
+
+
+def _recalculate_mission_status_from_mis(mission):
+    """
+    Aggregate TM/ST status from ALL Mission Interventions.
+
+    Rules:
+      * Checked-in work -> TM Ongoing / ST In Progress.
+      * Normal draft Initial/Additional work -> Ongoing / In Progress.
+      * A future untouched Follow-up draft does not restart SLA by itself.
+      * If no active work exists and a submitted MI is waiting -> On Hold.
+      * Only when no open/draft MI and no unresolved waiting MI remains
+        can the mission complete.
+    """
+    mi_meta = frappe.get_meta("Mission Intervention")
+
+    query_fields = [
+        "name",
+        "docstatus",
+        "custom_start_time",
+        "custom_end_time",
+        "custom_work_outcome",
+        "creation",
+        "modified",
+    ]
+
+    for optional_field in [
+        "custom_mi_purpose",
+        "custom_previous_intervention",
+        "custom_additional_mi",
+    ]:
+        if mi_meta.has_field(optional_field):
+            query_fields.append(optional_field)
+
+    rows = frappe.get_all(
+        "Mission Intervention",
+        filters={"custom_parent_mission": mission.name},
+        fields=query_fields,
+        order_by="creation asc",
+        limit_page_length=1000
+    )
+
+    if not rows:
+        return {
+            "mission_status": mission.get("custom_mission_status"),
+            "ticket_status": None,
+            "hold_reason": None,
+        }
+
+    active_drafts = []
+    untouched_followups = []
+
+    for row in rows:
+        if int(row.get("docstatus") or 0) != 0:
+            continue
+
+        purpose = (row.get("custom_mi_purpose") or "").strip()
+
+        # Legacy/current sites may not yet have custom_mi_purpose.
+        # custom_previous_intervention is enough to identify a follow-up.
+        is_follow_up = (
+            purpose == "Follow-up"
+            or bool(row.get("custom_previous_intervention"))
+        )
+
+        if row.get("custom_start_time"):
+            active_drafts.append(row)
+        elif is_follow_up:
+            untouched_followups.append(row)
+        else:
+            active_drafts.append(row)
+
+    if active_drafts:
+        mission.custom_mission_status = "Ongoing"
+        if mission.meta.has_field("custom_hold_reason"):
+            mission.custom_hold_reason = ""
+        _set_ticket_status_from_mission(mission, "In Progress", "")
+        return {
+            "mission_status": "Ongoing",
+            "ticket_status": "In Progress",
+            "hold_reason": "",
+        }
+
+    # A waiting submitted MI stops being a blocker once it has a newer
+    # follow-up MI linked to it.
+    followed_sources = {
+        row.get("custom_previous_intervention")
+        for row in rows
+        if row.get("custom_previous_intervention")
+    }
+
+    waiting_candidates = []
+
+    for row in rows:
+        if int(row.get("docstatus") or 0) != 1:
+            continue
+
+        if row.get("name") in followed_sources:
+            continue
+
+        hold_reason = _get_mission_hold_reason_from_outcome(
+            row.get("custom_work_outcome")
+        )
+
+        if hold_reason:
+            waiting_candidates.append((row, hold_reason))
+
+    if waiting_candidates:
+        waiting_row, hold_reason = waiting_candidates[-1]
+        mission.custom_mission_status = "On Hold"
+
+        if mission.meta.has_field("custom_hold_reason"):
+            mission.custom_hold_reason = hold_reason
+
+        _set_ticket_status_from_mission(
+            mission,
+            "On Hold",
+            hold_reason
+        )
+
+        return {
+            "mission_status": "On Hold",
+            "ticket_status": "On Hold",
+            "hold_reason": hold_reason,
+            "source_mi": waiting_row.get("name"),
+        }
+
+    # An untouched future Follow-up keeps the mission on hold until work
+    # actually starts.  Normally its predecessor supplies the reason.
+    if untouched_followups:
+        latest_followup = untouched_followups[-1]
+        previous_name = latest_followup.get("custom_previous_intervention")
+        previous_outcome = None
+
+        if previous_name:
+            previous_outcome = frappe.db.get_value(
+                "Mission Intervention",
+                previous_name,
+                "custom_work_outcome"
+            )
+
+        hold_reason = (
+            _get_mission_hold_reason_from_outcome(previous_outcome)
+            or "Follow-up Visit / Work to Continue"
+        )
+
+        mission.custom_mission_status = "On Hold"
+
+        if mission.meta.has_field("custom_hold_reason"):
+            mission.custom_hold_reason = hold_reason
+
+        _set_ticket_status_from_mission(
+            mission,
+            "On Hold",
+            hold_reason
+        )
+
+        return {
+            "mission_status": "On Hold",
+            "ticket_status": "On Hold",
+            "hold_reason": hold_reason,
+        }
+
+    # No open work and no unresolved waiting outcome remains.
+    mission.custom_mission_status = "Completed"
+
+    if mission.meta.has_field("custom_hold_reason"):
+        mission.custom_hold_reason = ""
+
+    ticket_name = mission.get("custom_service_ticket")
+    if ticket_name:
+        ticket = frappe.get_doc("Service Ticket", ticket_name)
+
+        if ticket.meta.has_field("custom_ticket_status"):
+            ticket.custom_ticket_status = "Resolved"
+
+        if ticket.meta.has_field("custom_hold_reason"):
+            ticket.custom_hold_reason = ""
+
+        ticket.save(ignore_permissions=True)
+
+    return {
+        "mission_status": "Completed",
+        "ticket_status": "Resolved",
+        "hold_reason": "",
+    }
+
+
+def _sync_mi_register_and_status(mi_name, save_mission=True):
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+
+    if not mi.get("custom_parent_mission"):
+        return {"ok": False, "reason": "MI has no Tech Mission."}
+
+    mission = frappe.get_doc("Tech Mission", mi.custom_parent_mission)
+
+    _sync_mi_row_to_mission(mission, mi)
+    status_result = _recalculate_mission_status_from_mis(mission)
+
+    if mission.meta.has_field("custom_total_actual_hours"):
+        total_actual_hours = 0
+        for row in mission.get("custom_intervention_table") or []:
+            total_actual_hours += row.get("custom_billable_hours") or 0
+        mission.custom_total_actual_hours = round(total_actual_hours, 2)
+
+    if save_mission:
+        mission.save(ignore_permissions=True)
+
+    return {
+        "ok": True,
+        "mission": mission.name,
+        "mi": mi.name,
+        "mi_status": _get_mi_register_status(mi),
+        **status_result,
+    }
+
+
+@frappe.whitelist()
+def sync_mi_to_mission_register(mi_name):
+    """Public Desk/PWA helper used after MI Check In / Check Out saves."""
+    result = _sync_mi_register_and_status(mi_name, save_mission=True)
+    frappe.db.commit()
+    return result
+
 def _set_mission_and_ticket_in_progress(mission):
     mission.custom_mission_status = "Ongoing"
+
+    if mission.meta.has_field("custom_hold_reason"):
+        mission.custom_hold_reason = ""
+
     mission.save(ignore_permissions=True)
 
     if mission.get("custom_service_ticket"):
-        frappe.db.set_value(
+        ticket = frappe.get_doc(
             "Service Ticket",
-            mission.custom_service_ticket,
-            "custom_ticket_status",
-            "In Progress"
+            mission.custom_service_ticket
         )
+
+        if ticket.meta.has_field("custom_ticket_status"):
+            ticket.custom_ticket_status = "In Progress"
+
+        if ticket.meta.has_field("custom_hold_reason"):
+            ticket.custom_hold_reason = ""
+
+        ticket.save(ignore_permissions=True)
 
 
 def _fill_equipment_snapshot(mi):
@@ -918,6 +1516,7 @@ def change_mi_component(mi_name, component_row_id, reason):
         frappe.throw("Reason is required.")
 
     mi = frappe.get_doc("Mission Intervention", mi_name)
+    is_additional_mi = bool(mi.get("custom_additional_mi"))
 
     if mi.docstatus != 0:
         frappe.throw(
@@ -1000,15 +1599,19 @@ def change_mi_component(mi_name, component_row_id, reason):
         or selected_row.get("custom_model")
     )
 
-    if not mi.get("custom_original_component_item"):
-        mi.custom_original_component_item = (
-            mi.get("custom_target_component_name")
-            or mi.get("custom_component_item")
-            or ""
-        )
+    # On the original MI this action means "correct the reported component".
+    # On an Additional MI it can also be used to select a component on the
+    # newly selected equipment, so it must not mark the original report wrong.
+    if not is_additional_mi:
+        if not mi.get("custom_original_component_item"):
+            mi.custom_original_component_item = (
+                mi.get("custom_target_component_name")
+                or mi.get("custom_component_item")
+                or ""
+            )
 
-    mi.custom_component_changed = 1
-    mi.custom_component_change_reason = reason
+        mi.custom_component_changed = 1
+        mi.custom_component_change_reason = reason
 
     if mi.meta.has_field("custom_equipment_component"):
         mi.custom_equipment_component = component.name
@@ -1036,7 +1639,7 @@ def change_mi_component(mi_name, component_row_id, reason):
 
     mi.save(ignore_permissions=True)
 
-    if mi.get("custom_parent_mission"):
+    if mi.get("custom_parent_mission") and not is_additional_mi:
         mission = frappe.get_doc(
             "Tech Mission",
             mi.custom_parent_mission
@@ -1176,7 +1779,7 @@ def change_mi_component(mi_name, component_row_id, reason):
             ticket.custom_component_change_reason = (
                 reason
             )'''
-    if mi.get("custom_service_ticket"):
+    if mi.get("custom_service_ticket") and not is_additional_mi:
         ticket = frappe.get_doc(
             "Service Ticket",
             mi.custom_service_ticket
@@ -3795,35 +4398,100 @@ def client_portal_get_lifecycle_logs(asset=None, branch=None, event_type=None, d
         frappe.log_error(title="Client Portal Lifecycle API Error", message=frappe.get_traceback())
         return []
 
+
+@frappe.whitelist()
+def client_portal_get_preventive_maintenance(branch=None):
+    """Return preventive-maintenance dates for equipment visible to the portal user.
+
+    Security is derived from the logged-in Contact -> Customer mapping.
+    Branch Level contacts are restricted to their assigned branch.
+    """
+    ctx = get_client_portal_context()
+
+    if not ctx.get("customer"):
+        frappe.throw("No Customer linked to this portal user.", frappe.PermissionError)
+
+    filters = [
+        ["Installed Equipment", "custom_parent_customer", "=", ctx["customer"]],
+        ["Installed Equipment", "custom_next_maintenance_date", "is", "set"]
+    ]
+
+    if ctx.get("scope") == "Branch Level":
+        if not ctx.get("branch"):
+            frappe.throw("No branch is assigned to this Branch Level portal user.", frappe.PermissionError)
+        filters.append(["Installed Equipment", "custom_branch", "=", ctx["branch"]])
+    elif branch:
+        filters.append(["Installed Equipment", "custom_branch", "=", branch])
+
+    rows = frappe.get_all(
+        "Installed Equipment",
+        filters=filters,
+        fields=[
+            "name",
+            "custom_branch",
+            "custom_asset_name",
+            "custom_display_name",
+            "custom_asset_category",
+            "custom_asset_status",
+            "custom_next_maintenance_date"
+        ],
+        order_by="custom_next_maintenance_date asc, custom_branch asc, custom_asset_name asc",
+        limit=500
+    )
+
+    branch_names = {}
+    for row in rows:
+        branch_id = row.get("custom_branch")
+        if branch_id and branch_id not in branch_names:
+            branch_names[branch_id] = (
+                frappe.db.get_value("Client Branch", branch_id, "custom_branch")
+                or branch_id
+            )
+
+        row["branch_display"] = branch_names.get(branch_id) or branch_id or "-"
+        row["equipment_display"] = (
+            row.get("custom_display_name")
+            or row.get("custom_asset_name")
+            or row.get("name")
+        )
+
+    return rows
+
 @frappe.whitelist()
 def client_portal_get_planned_interventions(branch=None, mission_type=None, date_from=None, date_to=None):
-    """Get planned interventions from Tech Mission for customer"""
-    
+    """Get planned and overdue interventions from Tech Mission for the logged-in customer.
+
+    Includes Scheduled and Ongoing missions with a planned date, even when the
+    planned date has already passed. Completed, Closed and Cancelled missions
+    are intentionally excluded because this view represents work still to be done.
+    """
+
     ctx = get_client_portal_context()
-    
-    # Include: Scheduled, Ongoing, Completed (not Draft, Closed, Cancelled)
-    valid_statuses = ["Scheduled", "Ongoing", "Completed"]
-    
+
+    # Keep unfinished planned work visible even when its planned date is overdue.
+    valid_statuses = ["Scheduled", "Ongoing"]
+
     filters = [
         ["Tech Mission", "custom_parent_customer", "=", ctx["customer"]],
         ["Tech Mission", "custom_mission_status", "in", valid_statuses],
-        ["Tech Mission", "custom_planned_starttime", ">=", frappe.utils.today()]
+        ["Tech Mission", "custom_planned_starttime", "is", "set"]
     ]
-    
+
     if ctx["scope"] == "Branch Level":
         filters.append(["Tech Mission", "custom_branch", "=", ctx["branch"]])
     elif branch:
         filters.append(["Tech Mission", "custom_branch", "=", branch])
-    
+
     if mission_type:
         filters.append(["Tech Mission", "custom_service_type", "=", mission_type])
-    
+
+    # Optional user-selected date filters still apply when provided.
     if date_from:
         filters.append(["Tech Mission", "custom_planned_starttime", ">=", date_from])
-    
+
     if date_to:
         filters.append(["Tech Mission", "custom_planned_endtime", "<=", date_to])
-    
+
     missions = frappe.get_all(
         "Tech Mission",
         filters=filters,
@@ -3850,10 +4518,9 @@ def client_portal_get_planned_interventions(branch=None, mission_type=None, date
         order_by="custom_planned_starttime asc",
         limit=100
     )
-    
+
     # Enrich with display names
     for row in missions:
-        # Equipment display name
         if row.get("custom_asset"):
             row["equipment_display"] = frappe.db.get_value(
                 "Installed Equipment",
@@ -3862,10 +4529,8 @@ def client_portal_get_planned_interventions(branch=None, mission_type=None, date
             ) or row.get("custom_asset")
         else:
             row["equipment_display"] = row.get("custom_parent_equipment", "-")
-        
-        # First technician from planned team
+
         if row.get("custom_planned_team"):
-            # Get child table data to extract first technician
             team_list = frappe.get_list(
                 "Planned Technicians",
                 filters={"parent": row.get("name"), "parenttype": "Tech Mission"},
@@ -3883,7 +4548,7 @@ def client_portal_get_planned_interventions(branch=None, mission_type=None, date
                 row["technician_display"] = "-"
         else:
             row["technician_display"] = "-"
-    
+
     return missions
 
 

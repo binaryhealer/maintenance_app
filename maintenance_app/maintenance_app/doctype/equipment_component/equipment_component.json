@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "custom_requires_calibration",
   "custom_relationship",
   "custom_parent_equipment",
   "custom_customer",
@@ -26,13 +27,16 @@
   "custom_installation_date",
   "custom_display_name",
   "custom_item",
-  "custom_commissioning_status",
-  "custom_last_commissioning_record",
   "column_break_llov",
-  "custom_last_calibration_date",
-  "custom_next_calibration_date",
+  "custom_commissioning_status",
+  "custom_commissioned_date",
+  "custom_last_commissioning_record",
+  "custom_calibration_details",
   "custom_last_calibration_record",
-  "custom_commissioned_date"
+  "custom_last_calibration_date",
+  "column_break_luyz",
+  "custom_next_calibration_date",
+  "custom_calibration_interval_months"
  ],
  "fields": [
   {
@@ -189,12 +193,32 @@
    "fieldtype": "Date",
    "label": "Commissioned Date",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_calibration",
+   "fieldtype": "Check",
+   "label": "Requires Calibration"
+  },
+  {
+   "fieldname": "custom_calibration_details",
+   "fieldtype": "Section Break",
+   "label": "Calibration Details"
+  },
+  {
+   "fieldname": "column_break_luyz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_calibration_interval_months",
+   "fieldtype": "Int",
+   "label": "Calibration Interval (Months)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-31 07:47:26.950684",
+ "modified": "2026-08-17 22:52:37.668049",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Component",

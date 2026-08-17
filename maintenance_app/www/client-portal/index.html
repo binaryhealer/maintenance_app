@@ -8,7 +8,6 @@
         <div class="sidebar-brand">🔧 Service Desk</div>
         <ul class="sidebar-menu">
             <li id="menu-dashboard" class="menu-item active" onclick="window.cpGo('dashboard')">📊 Dashboard</li>
-            <li id="menu-branches" class="menu-item" onclick="window.cpGo('branches')">🏢 Branches</li>
             
             <li id="menu-equipment-parent" class="menu-item" onclick="window.toggleEquipmentSubmenu(event)" style="cursor: pointer;">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -34,6 +33,7 @@
             
             <div id="sidebar-reports-submenu" style="display: none; padding-left: 16px; margin-bottom: 4px; border-left: 2px solid #e2e8f0;">
                 <li id="menu-planned" class="menu-item" onclick="window.location.href='/client-portal/planned-interventions'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">📅 Planned Interventions</li>
+                <li id="menu-preventive-maintenance" class="menu-item" onclick="window.location.href='/client-portal/preventive-maintenance'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">🛠️ Preventive Maintenance</li>
             </div>
             
             <li id="menu-contracts" class="menu-item" onclick="window.cpGo('contracts')">📜 Contracts</li>

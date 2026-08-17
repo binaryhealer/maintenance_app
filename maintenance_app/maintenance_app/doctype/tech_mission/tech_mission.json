@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "custom_naming_series",
+ "autoname": "TI-.YYYY.-.MM.-.#####",
  "creation": "2026-04-05 15:23:32.230949",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -24,6 +24,7 @@
   "custom_response_due",
   "custom_resolution_due",
   "custom_count_each_technician",
+  "custom_hold_reason",
   "custom_tech_details",
   "custom_planned_team",
   "section_break_lkej",
@@ -178,7 +179,7 @@
    "fieldname": "custom_mission_status",
    "fieldtype": "Select",
    "label": "Mission Status",
-   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work"
+   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work\nOn Hold"
   },
   {
    "fieldname": "custom_tech_planning",
@@ -402,16 +403,22 @@
    "fieldtype": "Data",
    "label": "Vehicle / Van",
    "options": "Vehicle"
+  },
+  {
+   "fieldname": "custom_hold_reason",
+   "fieldtype": "Select",
+   "label": "Hold Reason",
+   "options": "Follow-up Visit / Work to Continue\nWaiting for Parts\nWaiting for Client\nTo Quote\nCould Not Complete\nOther"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-10 10:13:25.085060",
+ "modified": "2026-08-18 00:33:00.790738",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",
- "naming_rule": "By \"Naming Series\" field",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

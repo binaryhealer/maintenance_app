@@ -423,6 +423,75 @@
     text-decoration: none;
 }
 
+.photo-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 8px;
+    min-width: 0;
+}
+
+.photo-card-private {
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.photo-file-link {
+    min-height: 120px;
+    border-radius: 10px;
+    border: 1px solid #dcdcdc;
+    background: #f8f9fa;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    color: #374151;
+    text-align: center;
+    word-break: break-word;
+}
+
+.photo-file-icon {
+    font-size: 34px;
+}
+
+.photo-private-row {
+    margin-top: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.photo-private-row input {
+    margin-top: 2px;
+}
+
+.photo-client-state {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.photo-upload-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.photo-upload-actions label {
+    margin: 0;
+}
+
+@media (max-width: 420px) {
+    .photo-upload-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
 #photo-upload {
     width: 100%;
     padding: 10px;
@@ -637,6 +706,14 @@
                     <div class="info-value">{{ request_type or "-" }}</div>
                 </div>
 
+
+                {% if mi.custom_parent_equipment %}
+                <div class="summary-item">
+                    <div class="info-label">Parent Equipment</div>
+                    <div class="info-value">{{ mi.custom_parent_equipment }}</div>
+                </div>
+                {% endif %}
+
                 <div class="summary-item">
                     <div class="info-label">Component Brand</div>
                     <div class="info-value">{{ mi.custom_component_brand or "-" }}</div>
@@ -742,31 +819,45 @@
         <details class="mi-card accordion-card">
     <summary>
         <div class="d-flex justify-content-between align-items-center">
-            <span class="section-title mb-0">📸 Photos</span>
+            <span class="section-title mb-0">📸 Photos & Attachments</span>
             <span class="muted-small">tap to expand</span>
         </div>
     </summary>
 
-    <div class="mt-3">
+    <div class="accordion-body">
 
-        {% if mi.docstatus < 2 %}
+        {% if mi.docstatus == 0 %}
+        <div class="photo-upload-actions">
+            <label class="btn btn-primary action-btn" for="camera-upload">
+                📷 Take Photo
+            </label>
+            <label class="btn btn-outline-primary action-btn" for="file-upload">
+                📎 Upload File / Photo
+            </label>
+        </div>
 
         <input
             type="file"
-            id="photo-upload"
+            id="camera-upload"
             accept="image/*"
-            multiple>
+            capture="environment"
+            style="display:none"
+            onchange="uploadSelectedFiles('{{ mi.name }}', this)">
 
-        <button
-            class="btn btn-primary action-btn mt-2"
-            onclick="uploadPhotos('{{ mi.name }}')">
-            Upload Selected Photo
-        </button>
+        <input
+            type="file"
+            id="file-upload"
+            multiple
+            style="display:none"
+            onchange="uploadSelectedFiles('{{ mi.name }}', this)">
 
+        <div class="field-help mt-2">
+            Take Photo opens the device camera on supported phones/tablets. Mark internal files as Private for Client below.
+        </div>
         {% endif %}
 
         <div id="photo-gallery" class="photo-gallery mt-3">
-            Loading photos...
+            Loading attachments...
         </div>
 
     </div>
@@ -1059,6 +1150,18 @@
                         </div>
 
                         <div id="email-report-fields" style="display:none;">
+                            <div class="form-check mt-3">
+                                <input id="send_photos_after_submit"
+                                       class="form-check-input"
+                                       type="checkbox"
+                                       {% if mi.get("custom_send_photos") %}checked{% endif %}>
+                                <label class="form-check-label" for="send_photos_after_submit">
+                                    <b>Send Photos / Attachments</b>
+                                </label>
+                                <div class="field-help">
+                                    Only files not marked Private for Client will be attached.
+                                </div>
+                            </div>
                             <label class="form-label mt-3"><b>To</b></label>
                             <input id="report_email_to"
                                    class="form-control"
@@ -1134,6 +1237,19 @@
                        type="text"
                        value="{{ report_email_cc or '' }}"
                        placeholder="Other branch contacts">
+
+                <div class="form-check mt-3">
+                    <input id="submitted_send_photos"
+                           class="form-check-input"
+                           type="checkbox"
+                           {% if mi.get("custom_send_photos") %}checked{% endif %}>
+                    <label class="form-check-label" for="submitted_send_photos">
+                        <b>Send Photos / Attachments</b>
+                    </label>
+                    <div class="field-help">
+                        Private for Client files are always excluded.
+                    </div>
+                </div>
 
                 <button class="btn btn-primary action-btn mt-3"
                         type="button"
@@ -1226,7 +1342,19 @@
         <h4>Add Additional MI</h4>
 
         <label class="form-label"><b>Equipment</b></label>
-        <select id="additional-mi-equipment" class="form-control"></select>
+        <select id="additional-mi-equipment" class="form-control" onchange="additionalMITargetChanged()"></select>
+
+        <label class="form-label mt-3"><b>Target</b></label>
+        <select id="additional-mi-target-scope" class="form-control" onchange="additionalMITargetChanged()">
+            <option value="Equipment">Whole Equipment</option>
+            <option value="Component">Component</option>
+        </select>
+
+        <div id="additional-mi-component-wrap" style="display:none;">
+            <label class="form-label mt-3"><b>Component</b></label>
+            <select id="additional-mi-component" class="form-control"></select>
+            <small class="text-muted">Only currently installed components are shown.</small>
+        </div>
 
         <label class="form-label mt-3"><b>Subject</b></label>
             <input
@@ -1361,6 +1489,8 @@
 </div>
 
 <script>
+const MI_IS_SUBMITTED = {{ 1 if mi.docstatus == 1 else 0 }};
+
 function reload_page() {
     window.location.reload();
 }
@@ -1600,6 +1730,13 @@ function submit_mi(mi_name) {
                 }
             }
 
+            let send_photos_checkbox =
+                document.getElementById("send_photos_after_submit");
+            if (Object.prototype.hasOwnProperty.call(doc, "custom_send_photos")) {
+                doc.custom_send_photos =
+                    send_photos_checkbox && send_photos_checkbox.checked ? 1 : 0;
+            }
+
             frappe.confirm(
                 __("Submit this intervention? You will not be able to edit it afterwards."),
                 function() {
@@ -1633,10 +1770,16 @@ function submit_mi(mi_name) {
                                                 "report_email_cc"
                                             ).value || "";
 
+                                        let send_photos =
+                                            document.getElementById(
+                                                "send_photos_after_submit"
+                                            );
+
                                         sendMIReport(
                                             mi_name,
                                             to_value,
                                             cc_value,
+                                            send_photos && send_photos.checked,
                                             true
                                         );
                                         return;
@@ -2020,6 +2163,20 @@ function scroll_to_client_confirmation() {
 function change_request_placeholder() {
     frappe.msgprint("Change Request page will be connected next.");
 }
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function isImageFile(file) {
+    let name = (file.file_name || file.file_url || "").toLowerCase();
+    return /\.(jpg|jpeg|png|gif|webp|bmp|heic|heif)(\?|$)/i.test(name);
+}
+
 function loadPhotos(mi_name) {
     let gallery = document.getElementById("photo-gallery");
 
@@ -2036,8 +2193,14 @@ function loadPhotos(mi_name) {
                 attached_to_name: mi_name,
                 is_folder: 0
             },
-            fields: ["name", "file_url", "file_name"],
-            limit_page_length: 100
+            fields: [
+                "name",
+                "file_url",
+                "file_name",
+                "custom_private_for_client"
+            ],
+            limit_page_length: 100,
+            order_by: "creation desc"
         },
         callback: function(r) {
             gallery.innerHTML = "";
@@ -2046,7 +2209,7 @@ function loadPhotos(mi_name) {
 
             if (!files.length) {
                 gallery.innerHTML =
-                    '<div class="placeholder-box">No photos uploaded.</div>';
+                    '<div class="placeholder-box">No photos or files uploaded.</div>';
                 return;
             }
 
@@ -2055,29 +2218,65 @@ function loadPhotos(mi_name) {
                     return;
                 }
 
-                gallery.innerHTML += `
-                    <a href="${file.file_url}" target="_blank">
-                        <img src="${file.file_url}" alt="${file.file_name || "Photo"}">
-                    </a>
-                `;
+                let privateChecked = file.custom_private_for_client ? "checked" : "";
+                let privateDisabled = MI_IS_SUBMITTED ? "disabled" : "";
+                let cardClass = file.custom_private_for_client
+                    ? "photo-card photo-card-private"
+                    : "photo-card";
+                let stateText = file.custom_private_for_client
+                    ? "Internal only — will not be emailed"
+                    : "Can be attached to client email";
+
+                let preview;
+                if (isImageFile(file)) {
+                    preview = `
+                        <a href="${escapeHtml(file.file_url)}" target="_blank">
+                            <img src="${escapeHtml(file.file_url)}" alt="${escapeHtml(file.file_name || "Photo")}">
+                        </a>
+                    `;
+                } else {
+                    preview = `
+                        <a class="photo-file-link" href="${escapeHtml(file.file_url)}" target="_blank">
+                            <span class="photo-file-icon">📄</span>
+                            <span>${escapeHtml(file.file_name || "Attachment")}</span>
+                        </a>
+                    `;
+                }
+
+                gallery.insertAdjacentHTML("beforeend", `
+                    <div class="${cardClass}" id="photo-card-${escapeHtml(file.name)}">
+                        ${preview}
+                        <label class="photo-private-row">
+                            <input type="checkbox"
+                                   ${privateChecked}
+                                   ${privateDisabled}
+                                   onchange="setFilePrivateForClient('${escapeHtml(file.name)}', this.checked, '${escapeHtml(mi_name)}')">
+                            <span>Private for Client</span>
+                        </label>
+                        <div class="photo-client-state">${stateText}</div>
+                    </div>
+                `);
             });
         },
         error: show_error
     });
 }
 
-function uploadPhotos(mi_name) {
-    let input = document.getElementById("photo-upload");
-
+function uploadSelectedFiles(mi_name, input) {
     if (!input || !input.files || !input.files.length) {
-        frappe.msgprint("Please choose a photo first.");
         return;
     }
 
-    Array.from(input.files).forEach(function(file) {
+    let files = Array.from(input.files);
+    let completed = 0;
+    let failed = 0;
+
+    files.forEach(function(file) {
         let formData = new FormData();
 
         formData.append("file", file);
+        // Keep Frappe storage visibility unchanged. Client-email privacy is
+        // controlled separately by File.custom_private_for_client.
         formData.append("is_private", "0");
         formData.append("doctype", "Mission Intervention");
         formData.append("docname", mi_name);
@@ -2095,23 +2294,56 @@ function uploadPhotos(mi_name) {
         })
         .then(function(data) {
             if (data.exc) {
-                frappe.msgprint("Photo upload failed.");
-                console.log(data);
-                return;
+                failed += 1;
+            } else {
+                completed += 1;
             }
-
-            frappe.show_alert({
-                message: "Photo uploaded",
-                indicator: "green"
-            });
-
-            input.value = "";
-            loadPhotos(mi_name);
         })
         .catch(function(error) {
             console.log(error);
-            frappe.msgprint("Photo upload failed.");
+            failed += 1;
+        })
+        .finally(function() {
+            if (completed + failed === files.length) {
+                input.value = "";
+                loadPhotos(mi_name);
+
+                if (failed) {
+                    frappe.msgprint(
+                        completed + " file(s) uploaded; " + failed + " failed."
+                    );
+                } else {
+                    frappe.show_alert({
+                        message: completed === 1 ? "File uploaded" : completed + " files uploaded",
+                        indicator: "green"
+                    });
+                }
+            }
         });
+    });
+}
+
+function setFilePrivateForClient(file_name, is_private, mi_name) {
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.set_file_private_for_client",
+        args: {
+            file_name: file_name,
+            is_private: is_private ? 1 : 0
+        },
+        freeze: false,
+        callback: function() {
+            frappe.show_alert({
+                message: is_private
+                    ? "Marked internal only"
+                    : "File can be sent to client",
+                indicator: is_private ? "orange" : "green"
+            });
+            loadPhotos(mi_name);
+        },
+        error: function(r) {
+            show_error(r);
+            loadPhotos(mi_name);
+        }
     });
 }
 
@@ -2699,10 +2931,59 @@ function showAdditionalMIDialog() {
                 select.appendChild(option);
             });
 
+            document.getElementById("additional-mi-target-scope").value = "Equipment";
+            document.getElementById("additional-mi-component").innerHTML = "";
+            document.getElementById("additional-mi-component-wrap").style.display = "none";
             document.getElementById("additional-mi-subject").value = "";
             document.getElementById("additional-mi-type").value = "Service";
             document.getElementById("additional-mi-reason").value = "";
             document.getElementById("additional-mi-modal").style.display = "flex";
+        },
+        error: show_error
+    });
+}
+
+function additionalMITargetChanged() {
+    let asset_name = document.getElementById("additional-mi-equipment").value;
+    let target_scope = document.getElementById("additional-mi-target-scope").value;
+    let wrap = document.getElementById("additional-mi-component-wrap");
+    let select = document.getElementById("additional-mi-component");
+
+    if (target_scope !== "Component") {
+        wrap.style.display = "none";
+        select.innerHTML = "";
+        return;
+    }
+
+    wrap.style.display = "block";
+    select.innerHTML = '<option value="">Loading components...</option>';
+
+    if (!asset_name) {
+        select.innerHTML = '<option value="">Select equipment first</option>';
+        return;
+    }
+
+    frappe.call({
+        method: "maintenance_app.api.get_additional_mi_components",
+        args: {
+            equipment_name: asset_name
+        },
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select component</option>';
+
+            rows.forEach(function(row) {
+                let option = document.createElement("option");
+                option.value = row.row_id;
+                option.textContent =
+                    (row.display_name || row.equipment_component) +
+                    (row.serial ? " | " + row.serial : "");
+                select.appendChild(option);
+            });
+
+            if (!rows.length) {
+                select.innerHTML = '<option value="">No active components found</option>';
+            }
         },
         error: show_error
     });
@@ -2714,12 +2995,19 @@ function closeAdditionalMIModal() {
 
 function submitAdditionalMI() {
     let asset_name = document.getElementById("additional-mi-equipment").value;
+    let target_scope = document.getElementById("additional-mi-target-scope").value || "Equipment";
+    let component_row_id = document.getElementById("additional-mi-component").value || "";
     let subject = document.getElementById("additional-mi-subject").value;
     let intervention_type = document.getElementById("additional-mi-type").value;
     let reason = document.getElementById("additional-mi-reason").value;
 
     if (!asset_name) {
         frappe.msgprint("Please select equipment.");
+        return;
+    }
+
+    if (target_scope === "Component" && !component_row_id) {
+        frappe.msgprint("Please select the component to work on.");
         return;
     }
 
@@ -2745,7 +3033,9 @@ function submitAdditionalMI() {
             asset_name: asset_name,
             reason: reason,
             subject: subject,
-            intervention_type: intervention_type
+            intervention_type: intervention_type,
+            target_scope: target_scope,
+            component_row_id: target_scope === "Component" ? component_row_id : null
         },
         freeze: true,
         freeze_message: "Creating additional MI...",
@@ -2794,6 +3084,7 @@ function sendMIReport(
     mi_name,
     to_value,
     cc_value,
+    send_photos,
     reload_after
 ) {
     let recipients = splitEmailList(to_value);
@@ -2812,10 +3103,13 @@ function sendMIReport(
         args: {
             mi_name: mi_name,
             recipients: JSON.stringify(recipients),
-            cc: JSON.stringify(cc)
+            cc: JSON.stringify(cc),
+            send_photos: send_photos ? 1 : 0
         },
         freeze: true,
-        freeze_message: "Queueing PDF report...",
+        freeze_message: send_photos
+            ? "Queueing report and client attachments..."
+            : "Queueing PDF report...",
         callback: function(r) {
             frappe.show_alert({
                 message: "Intervention report queued for email",
@@ -2847,10 +3141,14 @@ function sendSubmittedReport(mi_name) {
             "submitted_report_email_cc"
         ).value || "";
 
+    let send_photos =
+        document.getElementById("submitted_send_photos");
+
     sendMIReport(
         mi_name,
         to_value,
         cc_value,
+        send_photos && send_photos.checked,
         false
     );
 }

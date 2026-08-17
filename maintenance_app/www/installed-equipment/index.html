@@ -1,0 +1,173 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Installed Equipment{% endblock %}
+
+{% block head_include %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/installed-equipment/installed-equipment.css?v={{ asset_version }}">
+{% endblock %}
+
+{% block content %}
+<div class="eq-shell">
+
+  <aside class="eq-sidebar">
+    <div class="eq-sidebar-logo">
+      <div class="app-name">Gotech</div>
+      <div class="page-title">GMAO</div>
+    </div>
+
+    <nav class="eq-sidebar-nav">
+      <a class="eq-nav-item" href="/installed-equipment/maintenance-dashboard">
+        <span class="eq-nav-dot"></span> Maintenance Dashboard
+      </a>
+
+      <a class="eq-nav-item active" href="/installed-equipment">
+        <span class="eq-nav-dot"></span> Installed Equipment
+      </a>
+
+      <a class="eq-nav-item" href="/installed-equipment/service-tickets">
+        <span class="eq-nav-dot"></span> Service Tickets
+      </a>
+
+      <a class="eq-nav-item" href="/installed-equipment/tech-missions">
+        <span class="eq-nav-dot"></span> Tech Missions
+      </a>
+
+      <a class="eq-nav-item" href="/installed-equipment/interventions">
+        <span class="eq-nav-dot"></span> Interventions
+      </a>
+
+      <a class="eq-nav-item" href="/installed-equipment/remote-assist">
+        <span class="eq-nav-dot"></span> Remote Assist
+      </a>
+    </nav>
+
+    <div class="eq-sidebar-footer">
+      Logged in as {{ frappe.session.user }}
+    </div>
+  </aside>
+
+  <div
+    class="eq-mobile-backdrop"
+    id="eq-mobile-backdrop"
+    onclick="eqCloseMobileMenu()"
+  ></div>
+
+  <main class="eq-main">
+    <header class="eq-topbar">
+      <button
+        type="button"
+        class="eq-mobile-menu-btn"
+        id="eq-mobile-menu-btn"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        onclick="eqToggleMobileMenu()"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="eq-breadcrumb" id="eq-breadcrumb"></div>
+
+      <div class="eq-search-wrap">
+        <span class="eq-search-icon">⌕</span>
+        <input
+          type="text"
+          id="eq-search"
+          placeholder="Search…"
+          oninput="eqOnSearch(this.value)"
+        >
+      </div>
+    </header>
+
+    <section class="eq-content" id="eq-content">
+      <div class="eq-loading">
+        <div class="eq-spinner"></div>
+        Loading…
+      </div>
+    </section>
+  </main>
+
+</div>
+
+<!-- SERVICE TICKET MODAL -->
+<div class="eq-modal-overlay" id="eq-modal-overlay">
+  <div class="eq-modal">
+    <div class="eq-modal-title">Open Service Ticket</div>
+    <div class="eq-modal-sub" id="eq-modal-eq-label">—</div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Request Type</label>
+      <select id="eq-m-req-type" onchange="eqOnRequestTypeChange()">
+        <option>Breakdown</option>
+        <option>Maintenance Request</option>
+        <option>General Request</option>
+      </select>
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Ticket Type</label>
+      <select id="eq-m-ticket-type">
+        <option>Repair</option>
+      </select>
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Subject</label>
+      <input type="text" id="eq-m-subject" placeholder="Brief description of issue…">
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Priority</label>
+      <select id="eq-m-priority">
+        <option>Normal</option>
+        <option>Low</option>
+        <option>High</option>
+        <option>Urgent</option>
+      </select>
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Description</label>
+      <textarea id="eq-m-description" placeholder="Additional details…"></textarea>
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Suggested Technicians</label>
+      <div class="eq-picker" id="eq-tech-picker">
+        <div class="eq-picker-tags" id="eq-tech-tags"></div>
+        <input
+          type="text"
+          id="eq-tech-search"
+          class="eq-picker-input"
+          placeholder="Type technician name or email…"
+          autocomplete="off"
+          oninput="eqRenderTechnicianSuggestions()"
+          onfocus="eqRenderTechnicianSuggestions()"
+          onkeydown="eqTechSearchKeydown(event)"
+        >
+        <div class="eq-picker-dropdown" id="eq-tech-suggestions"></div>
+      </div>
+    </div>
+
+    <div class="eq-form-row">
+      <label class="eq-form-label">Applicant / Contact</label>
+      <select id="eq-m-applicant">
+        <option value="">Loading contacts…</option>
+      </select>
+    </div>
+
+    <div class="eq-modal-confirm" id="eq-modal-confirm"></div>
+    <div class="eq-modal-error" id="eq-modal-error"></div>
+
+    <div class="eq-modal-actions">
+      <button class="eq-btn eq-btn-ghost" onclick="eqCloseModal()">Cancel</button>
+      <button class="eq-btn eq-btn-ghost" id="eq-btn-open-desk" onclick="eqOpenInDesk()">Open in Desk ↗</button>
+      <button class="eq-btn eq-btn-primary" id="eq-btn-create-ticket" onclick="eqSubmitTicket()">Create Ticket</button>
+    </div>
+  </div>
+</div>
+
+<script src="/installed-equipment/installed-equipment.js?v={{ asset_version }}"></script>
+{% endblock %}

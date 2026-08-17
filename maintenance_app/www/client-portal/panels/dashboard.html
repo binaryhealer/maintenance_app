@@ -17,13 +17,25 @@
             <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Active Open Tickets →</div>
         </div>
 
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.location.href='/client-portal/preventive-maintenance?view=upcoming'">
+            <div class="stat-num" id="stat-next-pm-count" style="font-size: 28px; font-weight: 700; color: #0f766e; margin-bottom: 4px;">0</div>
+            <div id="stat-next-pm-date" style="font-size: 11px; color: #64748b; margin-bottom: 7px; min-height: 15px;">No upcoming date</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #0f766e; font-weight: 600;">Next Preventive Maintenance →</div>
+        </div>
+
+        <div class="stat-card" style="background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.location.href='/client-portal/preventive-maintenance?view=missed'">
+            <div class="stat-num" id="stat-missed-pm-count" style="font-size: 28px; font-weight: 700; color: #dc2626; margin-bottom: 4px;">0</div>
+            <div id="stat-missed-pm-oldest" style="font-size: 11px; color: #64748b; margin-bottom: 7px; min-height: 15px;">No missed PM</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #b91c1c; font-weight: 600;">Missed PM →</div>
+        </div>
+
         <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('contracts')">
             <div class="stat-num" id="stat-active-mc" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">0</div>
             <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Active Contracts →</div>
         </div>
 
         <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-sla-compliance" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">92%</div>
+            <div class="stat-num" id="stat-sla-compliance" style="font-size: 28px; font-weight: 700; color: #64748b; margin-bottom: 8px;">N/A</div>
             <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">SLA Compliance</div>
         </div>
 
@@ -36,6 +48,66 @@
             <div class="stat-num" id="stat-downtime" style="font-size: 28px; font-weight: 700; color: #ef4444; margin-bottom: 8px;">18.5h</div>
             <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Total Downtime</div>
         </div>
+
+        <!-- Number of Interventions -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-interventions" style="font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 8px;">4</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Number of Interventions</div>
+        </div>
+
+        <!-- PM Completion Rate -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-pm-completion" style="font-size: 28px; font-weight: 700; color: #0f766e; margin-bottom: 8px;">95%</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">PM Completion Rate</div>
+        </div>
+
+        <!-- MTBF -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-mtbf" style="font-size: 28px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px;">5h</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">MTBF</div>
+        </div>
+
+        <!-- Breakdown Frequency -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-breakdown-frequency" style="font-size: 28px; font-weight: 700; color: #f59e0b; margin-bottom: 8px;">2%</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Breakdown Frequency</div>
+        </div>
+
+        <!-- Calibration Compliance -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-calibration-compliance" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">100%</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Calibration Compliance</div>
+        </div>
+
+        <!-- Closed Work Orders -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-closed-work-orders" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">5</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Closed Work Orders</div>
+        </div>
+
+        <!-- Number of Reworks -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-reworks" style="font-size: 28px; font-weight: 700; color: #ef4444; margin-bottom: 8px;">1</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Number of Reworks</div>
+        </div>
+
+        <!-- Top Failing Equipment -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-top-failing-equipment" style="font-size: 18px; font-weight: 700; color: #dc2626; margin-bottom: 8px; line-height: 1.3; word-break: break-word;">&nbsp;</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Top Failing Equipment</div>
+        </div>
+
+        <!-- Top Failing Site -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-top-failing-site" style="font-size: 18px; font-weight: 700; color: #f59e0b; margin-bottom: 8px; line-height: 1.3; word-break: break-word;">&nbsp;</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Top Failing Site</div>
+        </div>
+
+        <!-- Top Failing Component -->
+        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
+            <div class="stat-num" id="stat-top-failing-component" style="font-size: 18px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px; line-height: 1.3; word-break: break-word;">&nbsp;</div>
+            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Top Failing Component</div>
+        </div>
     </div>
 
     <!-- Quick Links Section -->
@@ -45,6 +117,7 @@
             <button onclick="window.cpGo('equipment')" style="padding: 12px 16px; background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🖥️ View Equipment</button>
             <button onclick="window.cpGo('tickets')" style="padding: 12px 16px; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🎫 View Tickets</button>
             <button onclick="window.openTicketModal()" style="padding: 12px 16px; background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">➕ Raise Ticket</button>
+            <button onclick="window.location.href='/client-portal/preventive-maintenance'" style="padding: 12px 16px; background: #ccfbf1; color: #115e59; border: 1px solid #99f6e4; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🛠️ PM Schedule</button>
             <button onclick="window.cpGo('contracts')" style="padding: 12px 16px; background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">📜 Contracts</button>
         </div>
     </div>

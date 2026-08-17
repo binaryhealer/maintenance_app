@@ -252,22 +252,29 @@ def create_follow_up_mi(
     if not source.get("custom_parent_mission"):
         frappe.throw("The intervention is not linked to a Tech Mission.")
 
-    existing_draft = frappe.db.get_value(
-        "Mission Intervention",
-        {
-            "custom_parent_mission": source.custom_parent_mission,
-            "docstatus": 0,
-            "name": ["!=", source.name],
-        },
-        "name",
-        order_by="creation desc",
-    )
+    # Multiple draft MIs are valid under one Tech Mission.
+    # Only prevent a duplicate follow-up for this same source MI when the
+    # continuation-link field exists on this site.
+    existing_draft = None
+    mi_meta = frappe.get_meta("Mission Intervention")
+
+    if mi_meta.has_field("custom_previous_intervention"):
+        existing_draft = frappe.db.get_value(
+            "Mission Intervention",
+            {
+                "custom_parent_mission": source.custom_parent_mission,
+                "custom_previous_intervention": source.name,
+                "docstatus": 0,
+            },
+            "name",
+            order_by="creation desc",
+        )
 
     if existing_draft:
         return {
             "created": False,
             "intervention": existing_draft,
-            "message": "An open draft MI already exists.",
+            "message": "An open follow-up MI already exists for this work item.",
         }
 
     follow_up = frappe.new_doc("Mission Intervention")
@@ -362,16 +369,71 @@ def create_follow_up_mi(
             f"{follow_up_date} 17:00:00"
         )
 
-    if mission.meta.has_field("custom_mission_status"):
-        mission.custom_mission_status = "Ongoing"
-
     if mission.meta.has_field("custom_latest_intervention"):
         mission.custom_latest_intervention = follow_up.name
 
     if mission.meta.has_field("custom_open_work_remaining"):
         mission.custom_open_work_remaining = 1
 
+    # Add the Follow-up MI to the Tech Mission live register immediately.
+    # Creating a future follow-up must NOT restart the SLA clock.  The TM/ST
+    # therefore remain On Hold until the technician actually checks in.
+    live_row = None
+    if mission.meta.has_field("custom_intervention_table"):
+        for row in mission.get("custom_intervention_table") or []:
+            if row.get("custom_intervention_reference") == follow_up.name:
+                live_row = row
+                break
+
+        if live_row is None:
+            live_row = mission.append("custom_intervention_table", {})
+
+        live_values = {
+            "custom_date": (
+                follow_up.get("custom_planned_starttime")
+                or frappe.utils.now_datetime()
+            ),
+            "custom_intervention_reference": follow_up.name,
+            "custom_technician": follow_up.get("custom_technician"),
+            "custom_hours": 0,
+            "custom_status": "Draft",
+            "custom_work_progress": "",
+        }
+
+        for fieldname, value in live_values.items():
+            if live_row.meta.has_field(fieldname):
+                live_row.set(fieldname, value)
+
+    hold_reason_map = {
+        "Continue Work": "Follow-up Visit / Work to Continue",
+        "Waiting for Parts": "Waiting for Parts",
+        "Waiting for Client": "Waiting for Client",
+        "To Quote (Billable)": "To Quote",
+        "Could Not Complete": "Could Not Complete",
+    }
+    hold_reason = hold_reason_map.get(
+        source.get("custom_work_outcome"),
+        "Follow-up Visit / Work to Continue",
+    )
+
+    if mission.meta.has_field("custom_mission_status"):
+        mission.custom_mission_status = "On Hold"
+    if mission.meta.has_field("custom_hold_reason"):
+        mission.custom_hold_reason = hold_reason
+
     mission.save(ignore_permissions=True)
+
+    if mission.get("custom_service_ticket"):
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mission.custom_service_ticket,
+        )
+        if ticket.meta.has_field("custom_ticket_status"):
+            ticket.custom_ticket_status = "On Hold"
+        if ticket.meta.has_field("custom_hold_reason"):
+            ticket.custom_hold_reason = hold_reason
+        ticket.save(ignore_permissions=True)
+
     frappe.db.commit()
 
     return {
@@ -442,6 +504,13 @@ def pwa_check_in(mi_name, latitude=None, longitude=None, accuracy=None):
     )
 
     mi.save()
+
+    # Keep the Tech Mission live MI register and TM/ST aggregate status aligned.
+    sync_method = frappe.get_attr(
+        "maintenance_app.api.sync_mi_to_mission_register"
+    )
+    sync_method(mi.name)
+
     frappe.db.commit()
 
     return {
@@ -528,6 +597,13 @@ def pwa_check_out(mi_name, latitude=None, longitude=None, accuracy=None):
     )
 
     mi.save()
+
+    # Checked-out state must appear immediately in the TM live MI register.
+    sync_method = frappe.get_attr(
+        "maintenance_app.api.sync_mi_to_mission_register"
+    )
+    sync_method(mi.name)
+
     frappe.db.commit()
 
     return {
@@ -539,11 +615,96 @@ def pwa_check_out(mi_name, latitude=None, longitude=None, accuracy=None):
     }
 
 
+def _get_client_email_attachments(mi_name):
+    """Return only MI files that are explicitly allowed to go to the client."""
+    file_meta = frappe.get_meta("File")
+    if not file_meta.has_field("custom_private_for_client"):
+        frappe.throw(
+            "File field custom_private_for_client is missing. "
+            "Add the Private for Client checkbox before sending attachments."
+        )
+
+    rows = frappe.get_all(
+        "File",
+        filters={
+            "attached_to_doctype": "Mission Intervention",
+            "attached_to_name": mi_name,
+            "is_folder": 0,
+            "custom_private_for_client": 0,
+        },
+        fields=["name", "file_name"],
+        order_by="creation asc",
+        limit_page_length=100,
+    )
+
+    attachments = []
+    for row in rows:
+        file_doc = frappe.get_doc("File", row.name)
+
+        # Defence in depth: never trust only the query filter for client privacy.
+        if file_doc.get("custom_private_for_client"):
+            continue
+
+        try:
+            content = file_doc.get_content()
+        except Exception:
+            frappe.log_error(
+                frappe.get_traceback(),
+                f"Could not attach MI file {file_doc.name}",
+            )
+            continue
+
+        attachments.append({
+            "fname": file_doc.file_name or file_doc.name,
+            "fcontent": content,
+        })
+
+    return attachments
+
+
+@frappe.whitelist()
+def set_file_private_for_client(file_name, is_private=0):
+    if not file_name:
+        frappe.throw("File is required.")
+
+    file_doc = frappe.get_doc("File", file_name)
+
+    if file_doc.get("attached_to_doctype") != "Mission Intervention":
+        frappe.throw("Only Mission Intervention attachments can be updated here.")
+
+    mi_name = file_doc.get("attached_to_name")
+    if not mi_name:
+        frappe.throw("This file is not attached to a Mission Intervention.")
+
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+    mi.check_permission("write")
+
+    if not file_doc.meta.has_field("custom_private_for_client"):
+        frappe.throw("File field custom_private_for_client is missing.")
+
+    value = 1 if str(is_private).lower() in ("1", "true", "yes") else 0
+    frappe.db.set_value(
+        "File",
+        file_doc.name,
+        "custom_private_for_client",
+        value,
+        update_modified=False,
+    )
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "file": file_doc.name,
+        "private_for_client": value,
+    }
+
+
 @frappe.whitelist()
 def send_mi_report(
     mi_name,
     recipients,
     cc=None,
+    send_photos=0,
 ):
     if not mi_name:
         frappe.throw("Mission Intervention is required.")
@@ -619,12 +780,28 @@ def send_mi_report(
 
     # Generate the PDF after saving custom_customer_remarks so the same
     # report can display the current TO-recipient names.
-    attachment = frappe.attach_print(
+    report_attachment = frappe.attach_print(
         "Mission Intervention",
         mi.name,
         print_format=None,
         file_name=f"{mi.name}.pdf",
     )
+
+    attachments = [report_attachment]
+    include_client_files = str(send_photos).lower() in ("1", "true", "yes")
+
+    if mi.meta.has_field("custom_send_photos"):
+        frappe.db.set_value(
+            "Mission Intervention",
+            mi.name,
+            "custom_send_photos",
+            1 if include_client_files else 0,
+            update_modified=False,
+        )
+        mi.custom_send_photos = 1 if include_client_files else 0
+
+    if include_client_files:
+        attachments.extend(_get_client_email_attachments(mi.name))
 
     subject = (
         f"Intervention Report {mi.name}"
@@ -651,7 +828,7 @@ def send_mi_report(
         cc=cc_list,
         subject=subject,
         message=message,
-        attachments=[attachment],
+        attachments=attachments,
         reference_doctype="Mission Intervention",
         reference_name=mi.name,
         now=False,
@@ -682,4 +859,6 @@ def send_mi_report(
         "status": "Queued",
         "recipients": to_list,
         "cc": cc_list,
+        "send_photos": include_client_files,
+        "client_attachment_count": max(len(attachments) - 1, 0),
     }

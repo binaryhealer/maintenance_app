@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preventive Maintenance</title>
+<style>
+:root{
+--primary:#0f766e;
+--primary-light:#ccfbf1;
+--danger:#dc2626;
+--danger-light:#fee2e2;
+--gray50:#f8fafc;
+--gray100:#f1f5f9;
+--gray200:#e2e8f0;
+--gray500:#64748b;
+--gray600:#475569;
+--gray700:#334155;
+--gray900:#0f172a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--gray50);color:var(--gray900)}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{background:#fff;border:1px solid var(--gray200);border-radius:8px;padding:20px;margin-bottom:20px}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.page-header h1{font-size:28px;color:var(--primary);margin-bottom:8px}
+.subtitle{font-size:14px;color:var(--gray600)}
+.back-link{color:var(--primary);font-weight:600;text-decoration:none;padding:8px 14px;border:1px solid var(--gray200);border-radius:6px;white-space:nowrap}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px}
+.stat-card{background:#fff;border:1px solid var(--gray200);border-radius:8px;padding:16px;text-align:center}
+.stat-value{font-size:26px;font-weight:700;color:var(--primary)}
+.stat-value.danger{color:var(--danger)}
+.stat-label{font-size:12px;color:var(--gray600);margin-top:5px;text-transform:uppercase}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.view-btn{border:1px solid var(--gray200);background:#fff;color:var(--gray700);padding:9px 13px;border-radius:6px;cursor:pointer;font-weight:600}
+.view-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+select{padding:9px 12px;border:1px solid var(--gray200);border-radius:6px;background:#fff;min-width:180px}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--gray50)}
+th{padding:12px;text-align:left;font-size:12px;text-transform:uppercase;color:var(--gray700);border-bottom:2px solid var(--gray200)}
+td{padding:13px 12px;border-bottom:1px solid var(--gray200);font-size:14px}
+tbody tr:hover{background:var(--gray50)}
+.date-overdue{color:var(--danger);font-weight:700}
+.date-upcoming{color:var(--primary);font-weight:700}
+.overdue-tag{display:inline-block;margin-left:7px;background:var(--danger-light);color:#991b1b;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700}
+.empty{text-align:center;padding:40px;color:var(--gray500)}
+.loading{text-align:center;padding:40px;color:var(--gray500)}
+@media(max-width:700px){
+.container{padding:12px}
+.page-header{flex-direction:column}
+.card{padding:14px}
+table{font-size:12px}
+th,td{padding:9px 7px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="card page-header">
+        <div>
+            <h1>🛠️ Preventive Maintenance</h1>
+            <div class="subtitle">Next planned preventive maintenance dates by branch and equipment.</div>
+        </div>
+        <a class="back-link" href="/client-portal">← Back to Portal</a>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="stat-upcoming">0</div>
+            <div class="stat-label">Upcoming PM</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value danger" id="stat-missed">0</div>
+            <div class="stat-label">Missed PM</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-next-date">-</div>
+            <div class="stat-label">Next Planned Date</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="toolbar">
+            <button class="view-btn" id="btn-upcoming" onclick="setView('upcoming')">Upcoming</button>
+            <button class="view-btn" id="btn-missed" onclick="setView('missed')">Missed PM</button>
+            <button class="view-btn" id="btn-all" onclick="setView('all')">All</button>
+            <select id="filter-branch" onchange="renderCurrentView()">
+                <option value="">All Branches</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Branch</th>
+                    <th>Equipment</th>
+                    <th>Next Planned Date</th>
+                </tr>
+            </thead>
+            <tbody id="pm-table-body">
+                <tr><td colspan="3" class="loading">Loading preventive maintenance schedule...</td></tr>
+            </tbody>
+        </table>
+        <div id="empty-state" class="empty" style="display:none;">No preventive maintenance records found for this view.</div>
+    </div>
+</div>
+
+<script>
+let pmRows = [];
+let currentView = 'upcoming';
+
+function parseLocalDate(value){
+    if(!value) return null;
+    const raw = String(value).slice(0,10);
+    const p = raw.split('-').map(Number);
+    if(p.length === 3 && p.every(Number.isFinite)){
+        return new Date(p[0], p[1]-1, p[2]);
+    }
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function todayLocal(){
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function formatDate(value){
+    const d = parseLocalDate(value);
+    return d ? d.toLocaleDateString() : '-';
+}
+
+function loadPM(){
+    fetch('/api/method/maintenance_app.api.client_portal_get_preventive_maintenance', {
+        method:'GET',
+        credentials:'same-origin'
+    })
+    .then(async r => {
+        const data = await r.json();
+        if(!r.ok) throw new Error(data.exception || data.message || 'Unable to load preventive maintenance');
+        return data;
+    })
+    .then(r => {
+        pmRows = r.message || [];
+        populateBranchFilter();
+        updateStats();
+
+        const params = new URLSearchParams(window.location.search);
+        const requested = params.get('view');
+        currentView = ['upcoming','missed','all'].includes(requested) ? requested : 'upcoming';
+
+        renderCurrentView();
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById('pm-table-body').innerHTML =
+            '<tr><td colspan="3" class="empty">Error loading preventive maintenance schedule.</td></tr>';
+    });
+}
+
+function populateBranchFilter(){
+    const select = document.getElementById('filter-branch');
+    const branches = [...new Set(pmRows.map(r => r.custom_branch).filter(Boolean))].sort();
+    select.innerHTML = '<option value="">All Branches</option>';
+    branches.forEach(branch => {
+        const o = document.createElement('option');
+        o.value = branch;
+        o.textContent = branch;
+        select.appendChild(o);
+    });
+}
+
+function updateStats(){
+    const today = todayLocal();
+    const valid = pmRows
+        .map(r => ({row:r, date:parseLocalDate(r.custom_next_maintenance_date)}))
+        .filter(x => x.date);
+
+    const upcoming = valid.filter(x => x.date >= today).sort((a,b) => a.date-b.date);
+    const missed = valid.filter(x => x.date < today);
+
+    document.getElementById('stat-upcoming').textContent = upcoming.length;
+    document.getElementById('stat-missed').textContent = missed.length;
+    document.getElementById('stat-next-date').textContent =
+        upcoming.length ? formatDate(upcoming[0].row.custom_next_maintenance_date) : '-';
+}
+
+function setView(view){
+    currentView = view;
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', view);
+    window.history.replaceState({}, '', url);
+    renderCurrentView();
+}
+
+function renderCurrentView(){
+    const today = todayLocal();
+    const branch = document.getElementById('filter-branch').value;
+
+    ['upcoming','missed','all'].forEach(v => {
+        const btn = document.getElementById('btn-' + v);
+        if(btn) btn.classList.toggle('active', v === currentView);
+    });
+
+    let rows = pmRows.filter(r => !branch || r.custom_branch === branch);
+
+    rows = rows.filter(r => {
+        const d = parseLocalDate(r.custom_next_maintenance_date);
+        if(!d) return false;
+        if(currentView === 'upcoming') return d >= today;
+        if(currentView === 'missed') return d < today;
+        return true;
+    });
+
+    rows.sort((a,b) => {
+        const da = parseLocalDate(a.custom_next_maintenance_date);
+        const db = parseLocalDate(b.custom_next_maintenance_date);
+        return da - db;
+    });
+
+    const tbody = document.getElementById('pm-table-body');
+    const empty = document.getElementById('empty-state');
+
+    if(!rows.length){
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+
+    empty.style.display = 'none';
+    tbody.innerHTML = rows.map(r => {
+        const d = parseLocalDate(r.custom_next_maintenance_date);
+        const overdue = d < today;
+        const dateClass = overdue ? 'date-overdue' : 'date-upcoming';
+        const tag = overdue ? '<span class="overdue-tag">MISSED PM</span>' : '';
+        return `
+            <tr>
+                <td>${r.branch_display || r.custom_branch || '-'}</td>
+                <td><strong>${r.equipment_display || r.custom_asset_name || r.name}</strong></td>
+                <td><span class="${dateClass}">${formatDate(r.custom_next_maintenance_date)}</span>${tag}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', loadPM);
+</script>
+</body>
+</html>

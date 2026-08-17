@@ -79,6 +79,14 @@
             grid-template-columns: repeat(7, 180px);
         }
     }
+
+.mi-list { margin-top: 10px; display: grid; gap: 7px; }
+.mi-row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:9px 10px; border:1px solid #e5e7eb; border-radius:9px; background:#fff; cursor:pointer; }
+.mi-row:hover { background:#f8fafc; }
+.mi-main { min-width:0; }
+.mi-name { font-weight:700; font-size:12px; }
+.mi-meta { color:#6b7280; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:230px; }
+.mi-status { font-size:10px; font-weight:700; padding:3px 7px; border-radius:999px; background:#eef2ff; white-space:nowrap; }
 </style>
 
 <div class="container mt-4 mb-5">
@@ -156,7 +164,7 @@
                     <div class="calendar-date">{{ day.label }}</div>
 
                     {% for mission in day.missions %}
-                        <a href="javascript:open_or_create_mi('{{ mission.name }}')" class="calendar-mission">
+                        <a href="/tech?filter=today#mission-{{ mission.name }}" class="calendar-mission">
                             {{ mission.name }}<br>
                             <small>{{ mission.custom_branch or '-' }}</small>
                         </a>
@@ -174,8 +182,7 @@
 
         <div class="list-group">
             {% for todo in todos %}
-                <a href="javascript:open_or_create_mi('{{ todo.reference_name }}')"
-                   class="list-group-item list-group-item-action tech-list-item">
+                <div class="list-group-item tech-list-item">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                         <strong>{{ todo.reference_name }}</strong>
                         <small class="text-end">
@@ -183,7 +190,22 @@
                             {{ todo.date or "-" }}
                         </small>
                     </div>
-                </a>
+                    {% if todo.get("mission_data") and todo.mission_data.interventions %}
+                    <div class="mi-list">
+                        {% for intervention in todo.mission_data.interventions %}
+                        <div class="mi-row" onclick="go_to_intervention('{{ intervention.name }}')">
+                            <div class="mi-main">
+                                <div class="mi-name">{{ intervention.name }} · {{ intervention.purpose_label }}</div>
+                                <div class="mi-meta">{{ intervention.custom_subject or intervention.custom_target_component_name or intervention.equipment_display or intervention.custom_asset or '' }}</div>
+                            </div>
+                            <span class="mi-status">{{ intervention.live_status }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <button class="btn btn-primary btn-sm mt-2" onclick="open_or_create_mi('{{ todo.reference_name }}')">Open Mission</button>
+                    {% endif %}
+                </div>
             {% else %}
                 <div class="alert alert-info">No open ToDos.</div>
             {% endfor %}
@@ -205,13 +227,27 @@
                         <p class="mb-2">
                             <b>Customer:</b> {{ mission.custom_parent_customer or "-" }}<br>
                             <b>Branch:</b> {{ mission.custom_branch or "-" }}<br>
-                            <b>Equipment:</b> {{ mission.custom_asset or "-" }}
+                            <b>Equipment:</b> {{ mission.equipment_display or mission.custom_asset or "-" }}
                         </p>
 
                         <button class="btn btn-primary w-100 mb-2"
                                 onclick="open_or_create_mi('{{ mission.name }}')">
                             Open Intervention
                         </button>
+
+                        {% if mission.interventions %}
+                        <div class="mi-list">
+                            {% for intervention in mission.interventions %}
+                            <div class="mi-row" onclick="go_to_intervention('{{ intervention.name }}')">
+                                <div class="mi-main">
+                                    <div class="mi-name">{{ intervention.name }} · {{ intervention.purpose_label }}</div>
+                                    <div class="mi-meta">{{ intervention.custom_subject or intervention.custom_target_component_name or intervention.equipment_display or intervention.custom_asset or '' }}</div>
+                                </div>
+                                <span class="mi-status">{{ intervention.live_status }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
 
                         <a class="btn btn-outline-secondary w-100"
                            href="/app/tech-mission/{{ mission.name }}">
@@ -252,8 +288,7 @@
 
         <div class="list-group">
             {% for mission in missions %}
-                <a href="javascript:open_existing_mi('{{ mission.name }}')"
-                   class="list-group-item list-group-item-action tech-list-item">
+                <div class="list-group-item tech-list-item">
                     <div class="d-flex justify-content-between">
                         <strong>{{ mission.name }}</strong>
                         <span class="mission-badge badge-completed">
@@ -264,7 +299,20 @@
                         {{ mission.custom_parent_customer or "-" }} — {{ mission.custom_branch or "-" }}<br>
                         {{ mission.custom_planned_starttime or "-" }}
                     </small>
-                </a>
+                    {% if mission.interventions %}
+                    <div class="mi-list">
+                        {% for intervention in mission.interventions %}
+                        <div class="mi-row" onclick="go_to_intervention('{{ intervention.name }}')">
+                            <div class="mi-main">
+                                <div class="mi-name">{{ intervention.name }} · {{ intervention.purpose_label }}</div>
+                                <div class="mi-meta">{{ intervention.custom_subject or intervention.custom_target_component_name or intervention.equipment_display or intervention.custom_asset or '' }}</div>
+                            </div>
+                            <span class="mi-status">{{ intervention.live_status }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
             {% else %}
                 <div class="alert alert-info">No completed missions found.</div>
             {% endfor %}
@@ -301,7 +349,7 @@
                         <p class="mb-2">
                             <b>Customer:</b> {{ mission.custom_parent_customer or "-" }}<br>
                             <b>Branch:</b> {{ mission.custom_branch or "-" }}<br>
-                            <b>Equipment:</b> {{ mission.custom_asset or "-" }}
+                            <b>Equipment:</b> {{ mission.equipment_display or mission.custom_asset or "-" }}
                         </p>
 
                         <p class="mb-3">
@@ -313,6 +361,20 @@
                                 onclick="open_or_create_mi('{{ mission.name }}')">
                             Open Intervention
                         </button>
+
+                        {% if mission.interventions %}
+                        <div class="mi-list">
+                            {% for intervention in mission.interventions %}
+                            <div class="mi-row" onclick="go_to_intervention('{{ intervention.name }}')">
+                                <div class="mi-main">
+                                    <div class="mi-name">{{ intervention.name }} · {{ intervention.purpose_label }}</div>
+                                    <div class="mi-meta">{{ intervention.custom_subject or intervention.custom_target_component_name or intervention.equipment_display or intervention.custom_asset or '' }}</div>
+                                </div>
+                                <span class="mi-status">{{ intervention.live_status }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
 
                         <a class="btn btn-outline-secondary w-100"
                            href="/app/tech-mission/{{ mission.name }}">

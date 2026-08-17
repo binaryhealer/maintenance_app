@@ -546,6 +546,55 @@
 
     
 
+
+    window.updatePreventiveMaintenanceDashboard = function(equipmentList) {
+        const equipment = Array.isArray(equipmentList) ? equipmentList : [];
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const dated = equipment
+            .filter(eq => eq.custom_next_maintenance_date)
+            .map(eq => {
+                const raw = String(eq.custom_next_maintenance_date).slice(0, 10);
+                const parts = raw.split('-').map(Number);
+                const date = parts.length === 3
+                    ? new Date(parts[0], parts[1] - 1, parts[2])
+                    : new Date(eq.custom_next_maintenance_date);
+                return { eq, date };
+            })
+            .filter(row => !isNaN(row.date.getTime()));
+
+        const upcoming = dated
+            .filter(row => row.date >= today)
+            .sort((a, b) => a.date - b.date);
+
+        const missed = dated
+            .filter(row => row.date < today)
+            .sort((a, b) => a.date - b.date);
+
+        const nextCountEl = document.getElementById('stat-next-pm-count');
+        const nextDateEl = document.getElementById('stat-next-pm-date');
+        const missedCountEl = document.getElementById('stat-missed-pm-count');
+        const missedOldestEl = document.getElementById('stat-missed-pm-oldest');
+
+        if(nextCountEl) nextCountEl.textContent = upcoming.length;
+        if(nextDateEl) {
+            nextDateEl.textContent = upcoming.length
+                ? 'Next due: ' + upcoming[0].date.toLocaleDateString()
+                : 'No upcoming date';
+        }
+
+        if(missedCountEl) missedCountEl.textContent = missed.length;
+        if(missedOldestEl) {
+            if(missed.length) {
+                const days = Math.floor((today - missed[0].date) / 86400000);
+                missedOldestEl.textContent = 'Oldest overdue: ' + days + ' day' + (days === 1 ? '' : 's');
+            } else {
+                missedOldestEl.textContent = 'No missed PM';
+            }
+        }
+    };
+
 window.loadPortalData = function() {
         let loadedCount = 0;
         const totalRequests = 4;
@@ -614,6 +663,8 @@ window.loadPortalData = function() {
                 window.PortalApp.cachedEquipment = r.message || [];
                 const countEl = document.getElementById('stat-equipment-count');
                 if(countEl) countEl.textContent = window.PortalApp.cachedEquipment.length;
+
+                window.updatePreventiveMaintenanceDashboard(window.PortalApp.cachedEquipment);
                 
                 const branchFilterSelect = document.getElementById('eq-filter-branch');
                 if(branchFilterSelect) {

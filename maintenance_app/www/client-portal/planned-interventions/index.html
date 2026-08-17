@@ -309,7 +309,7 @@ padding:8px;
 <div class="card page-header">
 <div>
 <h1>📅 Planned Interventions</h1>
-<div class="page-header-subtitle">Upcoming scheduled maintenance and service missions</div>
+<div class="page-header-subtitle">Scheduled maintenance and service missions, including overdue visits not yet completed</div>
 </div>
 <a href="/client-portal" style="color:var(--primary); font-weight:600; text-decoration:none; padding:8px 16px; border:1px solid var(--gray200); border-radius:6px; display:inline-block; margin-top:4px; transition:all 0.2s;">
 ← Back to Portal
@@ -328,6 +328,10 @@ padding:8px;
 <div class="stat-card">
 <div class="stat-value" id="stat-next-30">0</div>
 <div class="stat-label">Next 30 Days</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="stat-overdue">0</div>
+<div class="stat-label">Overdue / Not Done</div>
 </div>
 </div>
 
@@ -474,10 +478,19 @@ return isNaN(d.getTime()) ? v : d.toLocaleDateString() + ' ' + d.toLocaleTimeStr
 
 function loadPlannedInterventions(){
 fetch('/api/method/maintenance_app.api.client_portal_get_planned_interventions', {
-method: 'POST'
+method: 'GET',
+credentials: 'same-origin'
 })
-.then(r => r.json())
+.then(async r => {
+const data = await r.json();
+if(!r.ok){
+console.error('Planned interventions API error:', data);
+throw new Error(data.exception || data.message || 'API request failed');
+}
+return data;
+})
 .then(r => {
+console.log('PLANNED INTERVENTIONS:', r);
 allInterventions = r.message || [];
 masterInterventions = [...allInterventions];
 updateStats();
@@ -486,27 +499,39 @@ renderTable(allInterventions);
 })
 .catch(err => {
 console.error('Error loading interventions:', err);
-document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="empty">Error loading planned interventions</td></tr>';
+document.getElementById('table-body').innerHTML =
+'<tr><td colspan="8" class="empty">Error loading planned interventions. Check browser console.</td></tr>';
 });
 }
 
 function updateStats(){
 const now = new Date();
+const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
 const thisMonth = allInterventions.filter(m => {
+if(!m.custom_planned_starttime) return false;
 const d = new Date(m.custom_planned_starttime);
 return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }).length;
 
 const next30 = allInterventions.filter(m => {
+if(!m.custom_planned_starttime) return false;
 const d = new Date(m.custom_planned_starttime);
-const future = new Date(now);
+const future = new Date(startToday);
 future.setDate(future.getDate() + 30);
-return d >= now && d <= future;
+return d >= startToday && d <= future;
+}).length;
+
+const overdue = allInterventions.filter(m => {
+if(!m.custom_planned_starttime) return false;
+const d = new Date(m.custom_planned_starttime);
+return d < startToday && !['Completed', 'Closed', 'Cancelled'].includes(m.custom_mission_status);
 }).length;
 
 document.getElementById('stat-total').textContent = allInterventions.length;
 document.getElementById('stat-this-month').textContent = thisMonth;
 document.getElementById('stat-next-30').textContent = next30;
+document.getElementById('stat-overdue').textContent = overdue;
 }
 
 function populateFilters(){
@@ -545,29 +570,52 @@ const component = document.getElementById('filter-component').value;
 const fromDate = document.getElementById('filter-from').value;
 const toDate = document.getElementById('filter-to').value;
 
-const fd = new FormData();
-if(branch) fd.append('branch', branch);
-if(type) fd.append('mission_type', type);
-if(fromDate) fd.append('date_from', fromDate);
-if(toDate) fd.append('date_to', toDate);
+const params = new URLSearchParams();
+if(branch) params.append('branch', branch);
+if(type) params.append('mission_type', type);
+if(fromDate) params.append('date_from', fromDate);
+if(toDate) params.append('date_to', toDate);
 
-fetch('/api/method/maintenance_app.api.client_portal_get_planned_interventions', {
-method: 'POST',
-body: fd
+const url =
+'/api/method/maintenance_app.api.client_portal_get_planned_interventions' +
+(params.toString() ? '?' + params.toString() : '');
+
+fetch(url, {
+method: 'GET',
+credentials: 'same-origin'
 })
-.then(r => r.json())
+.then(async r => {
+const data = await r.json();
+if(!r.ok){
+console.error('Filter API error:', data);
+throw new Error(data.exception || data.message || 'Filter request failed');
+}
+return data;
+})
 .then(r => {
 allInterventions = r.message || [];
-const filtered = component ? allInterventions.filter(m => m.custom_target_component_name === component) : allInterventions;
+const filtered = component
+? allInterventions.filter(m => m.custom_target_component_name === component)
+: allInterventions;
 renderTable(filtered);
+updateStats();
 })
-.catch(err => console.error('Filter error:', err));
+.catch(err => {
+console.error('Filter error:', err);
+});
 }
 
 function getTechniciansDisplay(mission){
-if(!mission.custom_planned_team) return '-';
-// The API should enrich this, so we use technician_display if available
-return mission.technician_display || '-';
+if(mission.technician_display) return mission.technician_display;
+
+if(Array.isArray(mission.custom_planned_team) && mission.custom_planned_team.length){
+return mission.custom_planned_team
+.map(row => row.technician_display || row.custom_technician || row.technician)
+.filter(Boolean)
+.join(', ') || '-';
+}
+
+return '-';
 }
 
 function renderTable(interventions){
@@ -586,7 +634,17 @@ const statusClass = 'badge-' + (m.custom_mission_status || 'scheduled').toLowerC
 
 return `
 <tr onclick="showDetail('${m.name}')">
-<td><strong>${formatDate(m.custom_planned_starttime)}</strong></td>
+<td>
+<strong class="planned-date">${formatDate(m.custom_planned_starttime)}</strong>
+${(() => {
+const d = m.custom_planned_starttime ? new Date(m.custom_planned_starttime) : null;
+const today = new Date();
+today.setHours(0,0,0,0);
+return d && d < today && !['Completed','Closed','Cancelled'].includes(m.custom_mission_status)
+? '<div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:2px;">OVERDUE</div>'
+: '';
+})()}
+</td>
 <td>${safe(m.equipment_display)}</td>
 <td>${safe(m.custom_target_component_name)}</td>
 <td><span style="font-weight:600;">${safe(m.custom_ticket_type)}</span></td>
