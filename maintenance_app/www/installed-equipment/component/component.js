@@ -63,12 +63,34 @@ function cpUpdateTicketTypeOptions(){
 }
 
 function cpLoadTechnicians(){
-  cpCall("maintenance_app.api.get_technicians",{}).then(function(rows){
-    CP.technicianCache=rows||[];
+  cpCall("maintenance_app.api.get_maintenance_technicians",{
+    doctype:"User",
+    txt:"",
+    searchfield:"name",
+    start:0,
+    page_len:100,
+    filters:{}
+  }).then(function(rows){
+    CP.technicianCache=(rows||[]).map(function(row){
+      if(Array.isArray(row)){
+        return {
+          name:row[0]||"",
+          full_name:row[1]||row[0]||""
+        };
+      }
+
+      return {
+        name:row.name||"",
+        full_name:row.full_name||row.name||""
+      };
+    }).filter(function(user){
+      return !!user.name;
+    });
+
     cpRenderSelectedTechnicians();
     cpRenderTechnicianSuggestions();
   }).catch(function(err){
-    console.error("Could not load technicians",err);
+    console.error("Could not load maintenance technicians",err);
     CP.technicianCache=[];
     cpRenderTechnicianSuggestions();
   });

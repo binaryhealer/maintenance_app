@@ -2234,9 +2234,32 @@ function eqOnRequestTypeChange() {
 
 function eqLoadTechnicians() {
   frappe.call({
-    method: "maintenance_app.api.get_technicians",
+    method: "maintenance_app.api.get_maintenance_technicians",
+    args: {
+      doctype: "User",
+      txt: "",
+      searchfield: "name",
+      start: 0,
+      page_len: 100,
+      filters: {}
+    },
     callback: function(r) {
-      EQ.technicianCache = r.message || [];
+      EQ.technicianCache = (r.message || []).map(function(row) {
+        if (Array.isArray(row)) {
+          return {
+            name: row[0] || "",
+            full_name: row[1] || row[0] || ""
+          };
+        }
+
+        return {
+          name: row.name || "",
+          full_name: row.full_name || row.name || ""
+        };
+      }).filter(function(user) {
+        return !!user.name;
+      });
+
       eqRenderSelectedTechnicians();
       eqRenderTechnicianSuggestions();
     },

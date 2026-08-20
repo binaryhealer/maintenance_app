@@ -11,5 +11,5 @@ def get_context(context):
         frappe.throw("You are not permitted to access the Equipment Component web view.", frappe.PermissionError)
     context.title = "Equipment Component"
     context.page_url = "/installed-equipment/component"
-    context.asset_version = "13"
+    context.asset_version = "14"
     return context
