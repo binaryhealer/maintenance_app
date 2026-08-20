@@ -151,6 +151,7 @@
   "custom_client_signed_time",
   "column_break_xcbr",
   "custom_checkout_status",
+  "custom_company",
   "custom_client_signature_received",
   "custom_hse_section",
   "custom_incidents"
@@ -996,13 +997,19 @@
    "fieldname": "custom_external_vehicle",
    "fieldtype": "Data",
    "label": "Hired / External Vehicle"
+  },
+  {
+   "fieldname": "custom_company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-10 10:42:15.342988",
+ "modified": "2026-08-18 18:22:04.908406",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

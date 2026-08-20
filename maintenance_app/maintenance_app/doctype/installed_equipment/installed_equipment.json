@@ -24,6 +24,7 @@
   "custom_site_id",
   "custom_equipment_template",
   "custom_client_type",
+  "custom_company",
   "section_break_sffk",
   "custom_next_maintenance_date",
   "custom_ownership",
@@ -50,6 +51,7 @@
   "custom_maintenance_contract",
   "custom_sla_rule",
   "custom_last_service_date",
+  "custom_installation_year",
   "section_break_zkha",
   "custom_replaces_equipment",
   "custom_replaced_by_equipment",
@@ -458,6 +460,17 @@
   {
    "fieldname": "column_break_fulx",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "custom_installation_year",
+   "fieldtype": "Int",
+   "label": "Installation Year"
   }
  ],
  "grid_page_length": 50,
@@ -480,7 +493,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-08-17 14:04:59.176857",
+ "modified": "2026-08-19 07:20:13.032638",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

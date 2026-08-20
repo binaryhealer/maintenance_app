@@ -51,6 +51,7 @@
   "custom_total_billable_hours",
   "custom_component_serial",
   "custom_component_row_id",
+  "custom_company",
   "section_break_fyvt",
   "custom_request_description",
   "custom_contact_communication",
@@ -409,12 +410,18 @@
    "fieldtype": "Select",
    "label": "Hold Reason",
    "options": "Follow-up Visit / Work to Continue\nWaiting for Parts\nWaiting for Client\nTo Quote\nCould Not Complete\nOther"
+  },
+  {
+   "fieldname": "custom_company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-18 00:33:00.790738",
+ "modified": "2026-08-18 18:05:43.734867",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

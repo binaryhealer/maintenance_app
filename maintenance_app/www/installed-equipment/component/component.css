@@ -1,0 +1,168 @@
+ :root{--bg:#0b0d10;--surface:#11151a;--surface2:#171c22;--border:#252c35;--border2:#39424e;--text:#f1f4f7;--text2:#b8c0ca;--text3:#77818d;--accent:#ff8a3d;--ok:#5fd19a;--warn:#f3bc5b;--bad:#ef6a6a;--mono:"DM Mono",monospace;--sans:"DM Sans",sans-serif}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}body .navbar,body footer,body .web-footer{display:none!important}body .container,body .container-fluid{max-width:none!important;width:100%!important;padding:0!important}.cp-shell{display:flex;min-height:100vh}.cp-sidebar{position:fixed;inset:0 auto 0 0;width:230px;display:flex;flex-direction:column;background:#0d1014;border-right:1px solid var(--border);z-index:50}.cp-sidebar-logo{padding:25px 22px 18px;border-bottom:1px solid var(--border)}.cp-sidebar-logo .app-name{font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.16em}.cp-sidebar-logo .page-title{font-size:22px;font-weight:700;margin-top:3px}.cp-sidebar-nav{padding:14px 10px;display:flex;flex-direction:column;gap:4px}.cp-nav-item{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:7px;color:var(--text3);font-size:12px;text-decoration:none}.cp-nav-item:hover{background:var(--surface2);color:var(--text)}.cp-nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor}.cp-sidebar-footer{margin-top:auto;padding:16px 18px;color:var(--text3);font:9px var(--mono);border-top:1px solid var(--border)}.cp-main{margin-left:230px;min-width:0;flex:1}.cp-topbar{height:58px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(11,13,16,.94);z-index:30}.cp-breadcrumb{display:flex;gap:8px;align-items:center;font:10px var(--mono);color:var(--text3)}.cp-breadcrumb a{color:var(--text2)}.cp-menu-btn{display:none;width:38px;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);margin-right:10px}.cp-menu-btn span{display:block;width:16px;height:2px;background:var(--text2);margin:3px auto}.cp-content{padding:24px;max-width:1500px;margin:0 auto}.cp-loading,.cp-empty{padding:50px 20px;text-align:center;color:var(--text3);font-size:12px}.cp-empty-icon{font-size:25px;margin-bottom:8px}.cp-hero{display:flex;justify-content:space-between;gap:24px;padding:22px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}.cp-back-link{display:inline-block;color:var(--text3);font-size:10px;margin-bottom:15px}.cp-title-row{display:flex;align-items:flex-start;gap:14px}.cp-title-row h1{font-size:24px;line-height:1.15;margin:0}.cp-component-id{font:10px var(--mono);color:var(--accent);margin-top:6px}.cp-context{margin-top:12px;color:var(--text2);font-size:11px}.cp-hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.cp-hero-meta span{padding:5px 7px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);font:9px var(--mono);color:var(--text3)}.cp-hero-actions{display:flex;gap:8px;align-items:flex-start}.cp-btn{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 12px;border-radius:7px;border:1px solid var(--border);font:10px var(--mono);cursor:pointer;text-decoration:none}.cp-btn-primary{background:var(--accent);border-color:var(--accent);color:#16100b}.cp-btn-ghost{background:var(--surface2);color:var(--text2)}.cp-btn-small{min-height:30px;padding:6px 9px}.cp-pill{display:inline-flex;padding:5px 8px;border:1px solid;border-radius:999px;font:9px var(--mono)}.cp-pill-ok{color:var(--ok);border-color:rgba(95,209,154,.35)}.cp-pill-warn{color:var(--warn);border-color:rgba(243,188,91,.35)}.cp-pill-bad{color:var(--bad);border-color:rgba(239,106,106,.35)}.cp-pill-neutral{color:var(--text3);border-color:var(--border)}.cp-parent-strip{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px;padding:13px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.cp-parent-strip>div{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.cp-parent-label{color:var(--text3);font:9px var(--mono);text-transform:uppercase}.cp-mono-small{font:9px var(--mono);color:var(--text3)}.cp-tabs{display:flex;gap:4px;overflow:auto;margin-top:18px;border-bottom:1px solid var(--border)}.cp-tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--text3);padding:11px 13px;font:10px var(--mono);white-space:nowrap;cursor:pointer}.cp-tab.active{color:var(--text);border-bottom-color:var(--accent)}.cp-panel{padding:20px 0}.cp-section-title{font-size:13px;font-weight:600;margin-bottom:13px}.cp-info-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.cp-info-card{padding:13px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.cp-info-label{font:8px var(--mono);color:var(--text3);text-transform:uppercase}.cp-info-value{margin-top:7px;font-size:11px;word-break:break-word}.cp-link{color:#87b9ff}.cp-cal-status{display:flex;gap:8px;align-items:center;padding:11px 13px;border:1px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:10px}.cp-cal-status span{color:var(--text3)}.cp-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}.cp-table{width:100%;border-collapse:collapse;min-width:760px;background:var(--surface)}.cp-table th,.cp-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:10px}.cp-table th{font:8px var(--mono);color:var(--text3);text-transform:uppercase;background:var(--surface2)}.cp-timeline-row{display:grid;grid-template-columns:105px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--border)}.cp-timeline-date{font:9px var(--mono);color:var(--text3)}.cp-timeline-title{font-size:11px;font-weight:600}.cp-timeline-meta{margin-top:4px;font:9px var(--mono);color:var(--text3)}.cp-timeline-note{margin-top:6px;font-size:10px;color:var(--text2)}.cp-modal-backdrop{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.7)}.cp-modal{width:min(640px,100%);max-height:90vh;overflow:auto;border:1px solid var(--border2);border-radius:12px;background:var(--surface)}.cp-modal-head{display:flex;justify-content:space-between;padding:18px;border-bottom:1px solid var(--border)}.cp-modal-title{font-size:14px;font-weight:600}.cp-modal-sub{font:9px var(--mono);color:var(--text3);margin-top:4px}.cp-modal-close{border:0;background:transparent;color:var(--text3);font-size:22px}.cp-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px}.cp-form-grid label{display:flex;flex-direction:column;gap:5px}.cp-form-grid label span{font:8px var(--mono);text-transform:uppercase;color:var(--text3)}.cp-form-grid input,.cp-form-grid select,.cp-form-grid textarea{width:100%;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);padding:9px 10px}.cp-form-full{grid-column:1/-1}.cp-modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:0 18px 18px}.cp-backdrop{display:none}@media(max-width:1050px){.cp-info-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:900px){.cp-main{margin-left:0}.cp-menu-btn{display:block}.cp-sidebar{transform:translateX(-103%);transition:transform .2s}.cp-sidebar.open{transform:translateX(0)}.cp-backdrop{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55)}.cp-backdrop.open{display:block}.cp-info-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.cp-content{padding:14px}.cp-hero{flex-direction:column}.cp-hero-actions{width:100%}.cp-hero-actions .cp-btn{flex:1}.cp-info-grid{grid-template-columns:1fr}.cp-form-grid{grid-template-columns:1fr}.cp-form-full{grid-column:auto}.cp-timeline-row{grid-template-columns:1fr;gap:5px}}
+
+/* ============================================================
+   COMPONENT TICKET - TECHNICIAN PICKER
+   ============================================================ */
+
+.cp-picker{
+  position:relative;
+  min-height:40px;
+  padding:5px 8px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:var(--surface2);
+}
+
+.cp-picker:focus-within{
+  border-color:var(--accent);
+}
+
+.cp-picker-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+.cp-picker-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 7px;
+  border:1px solid var(--border2);
+  border-radius:999px;
+  background:var(--surface3);
+  color:var(--text2);
+  font:9px var(--mono);
+}
+
+.cp-picker-tag button{
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--text3);
+  cursor:pointer;
+  font-size:13px;
+  line-height:1;
+}
+
+.cp-picker-input{
+  border:0!important;
+  background:transparent!important;
+  padding:6px 2px!important;
+  box-shadow:none!important;
+  outline:none!important;
+}
+
+.cp-picker-dropdown{
+  display:none;
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 5px);
+  z-index:2100;
+  max-height:230px;
+  overflow:auto;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  background:var(--surface);
+  box-shadow:0 14px 35px rgba(0,0,0,.45);
+}
+
+.cp-picker-dropdown.open{
+  display:block;
+}
+
+.cp-picker-option{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:9px 10px;
+  color:var(--text2);
+  font-size:10px;
+  cursor:pointer;
+}
+
+.cp-picker-option:hover{
+  background:var(--surface2);
+  color:var(--text);
+}
+
+.cp-picker-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:27px;
+  height:27px;
+  flex:0 0 27px;
+  border-radius:50%;
+  background:var(--surface3);
+  border:1px solid var(--border2);
+  color:var(--accent);
+  font:9px var(--mono);
+}
+
+.cp-picker-empty{
+  padding:10px;
+  color:var(--text3);
+  font-size:10px;
+}
+
+
+/* ============================================================
+   COMPONENT INFO TAB
+   ============================================================ */
+.cp-subsection-title{
+  margin:20px 0 9px;
+  color:var(--text3);
+  font:9px var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.cp-section-title + .cp-subsection-title{
+  margin-top:0;
+}
+
+
+/* Technician chip alignment with Installed Equipment */
+.cp-picker-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 9px;
+}
+
+.cp-picker-tag button{
+  cursor:pointer;
+  font-size:12px;
+}
+
+.cp-picker-option{
+  user-select:none;
+}
+
+
+.cp-modal-confirm,
+.cp-modal-error{
+  display:none;
+  margin:0 18px 16px;
+  padding:12px 14px;
+  border-radius:9px;
+  white-space:pre-line;
+  font-size:10px;
+  line-height:1.55;
+}
+.cp-modal-confirm.show{
+  display:block;
+  border:1px solid rgba(95,209,154,.35);
+  background:rgba(95,209,154,.10);
+  color:#5fd19a;
+}
+.cp-modal-error.show{
+  display:block;
+  border:1px solid rgba(239,106,106,.35);
+  background:rgba(239,106,106,.10);
+  color:#ef6a6a;
+}
+
+.cp-parent-equipment-link{color:var(--text);text-decoration:none}
+.cp-parent-equipment-link:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}

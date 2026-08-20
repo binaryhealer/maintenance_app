@@ -21,6 +21,7 @@
   "custom_subject",
   "custom_parent_equipment",
   "custom_target_component_name",
+  "custom_priority",
   "section_break_dmjb",
   "custom_description",
   "column_break_dakm",
@@ -32,8 +33,8 @@
   "custom_region",
   "custom_assignment_review",
   "custom_rm_reviewer",
-  "custom_priority",
   "custom_external_vehicle",
+  "custom_company",
   "column_break_otsg",
   "custom_planned_starttime",
   "custom_planned_endtime",
@@ -839,12 +840,19 @@
    "label": "Hired / External Vehicle",
    "options": "Vehicle",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-10 10:13:55.535850",
+ "modified": "2026-08-18 18:01:19.760962",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

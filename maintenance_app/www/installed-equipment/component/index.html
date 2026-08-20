@@ -1,1 +1,68 @@
-ddd
+{% extends "templates/web.html" %}
+{% block title %}Equipment Component{% endblock %}
+{% block head_include %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/installed-equipment/component/component.css?v={{ asset_version }}">
+<link rel="stylesheet" href="/assets/maintenance_app/css/gmao-theme.css?v=1">
+{% endblock %}
+{% block page_content %}
+<div class="cp-shell">
+<aside class="cp-sidebar"><div class="cp-sidebar-logo"><div class="app-name">Gotech</div><div class="page-title">GMAO</div></div>
+<nav class="cp-sidebar-nav">
+<a class="cp-nav-item" href="/installed-equipment/maintenance-dashboard"><span class="cp-nav-dot"></span> Maintenance Dashboard</a>
+<a class="cp-nav-item" href="/installed-equipment"><span class="cp-nav-dot"></span> Installed Equipment</a>
+<a class="cp-nav-item" href="/installed-equipment/service-tickets"><span class="cp-nav-dot"></span> Service Tickets</a>
+<a class="cp-nav-item" href="/installed-equipment/tech-missions"><span class="cp-nav-dot"></span> Tech Missions</a>
+<a class="cp-nav-item" href="/installed-equipment/interventions"><span class="cp-nav-dot"></span> Interventions</a>
+<a class="cp-nav-item" href="/installed-equipment/remote-assist"><span class="cp-nav-dot"></span> Remote Assist</a>
+<a class="cp-nav-item" href="/app"><span class="cp-nav-dot"></span> ERPNext Desk</a>
+</nav><div class="cp-sidebar-footer">Logged in as {{ frappe.session.user }}</div></aside>
+<div class="cp-backdrop" id="cp-backdrop" onclick="cpCloseMenu()"></div>
+<main class="cp-main"><header class="cp-topbar"><button class="cp-menu-btn" onclick="cpToggleMenu()"><span></span><span></span><span></span></button><div class="cp-breadcrumb"><a href="/installed-equipment">Installed Equipment</a><span>›</span><span id="cp-breadcrumb-name">Component</span></div>
+      <button type="button" class="gmao-theme-toggle" id="gmao-theme-toggle">
+  <span class="gmao-theme-toggle-icon">☾</span>
+  <span class="gmao-theme-toggle-label">Dark</span>
+</button>
+    </header><div class="cp-content" id="cp-content"><div class="cp-loading">Loading component…</div></div></main></div>
+<div class="cp-modal-backdrop" id="cp-ticket-modal" style="display:none"><div class="cp-modal"><div class="cp-modal-head"><div><div class="cp-modal-title">Open Component Ticket</div><div class="cp-modal-sub" id="cp-ticket-target"></div></div><button class="cp-modal-close" onclick="cpCloseTicketModal()">×</button></div><div class="cp-form-grid">
+<label><span>Request Type</span><select id="cp-ticket-request-type" onchange="cpUpdateTicketTypeOptions()"><option value="Breakdown">Breakdown</option><option value="Maintenance Request">Maintenance Request</option><option value="General Request">General Request</option></select></label>
+<label><span>Ticket Type</span><select id="cp-ticket-type"><option value="Repair">Repair</option><option value="Service">Service</option></select></label>
+<label><span>Priority</span><select id="cp-ticket-priority"><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></label>
+<label class="cp-form-full"><span>Subject</span><input id="cp-ticket-subject"></label>
+<label class="cp-form-full"><span>Description</span><textarea id="cp-ticket-description" rows="4"></textarea></label>
+
+<label class="cp-form-full">
+  <span>Suggested Technicians</span>
+  <div class="cp-picker" id="cp-tech-picker">
+    <div class="cp-picker-tags" id="cp-tech-tags"></div>
+    <input
+      type="text"
+      id="cp-tech-search"
+      class="cp-picker-input"
+      placeholder="Type technician name or email…"
+      autocomplete="off"
+      oninput="cpRenderTechnicianSuggestions()"
+      onfocus="cpRenderTechnicianSuggestions()"
+      onkeydown="cpTechSearchKeydown(event)"
+    >
+    <div class="cp-picker-dropdown" id="cp-tech-suggestions"></div>
+  </div>
+</label>
+
+<label class="cp-form-full">
+  <span>Applicant / Contact</span>
+  <select id="cp-ticket-applicant">
+    <option value="">Loading contacts…</option>
+  </select>
+</label>
+
+</div><div class="cp-modal-confirm" id="cp-modal-confirm"></div>
+<div class="cp-modal-error" id="cp-modal-error"></div>
+
+<div class="cp-modal-actions"><button class="cp-btn cp-btn-ghost" onclick="cpCloseTicketModal()">Cancel</button>
+<button class="cp-btn cp-btn-ghost" id="cp-btn-open-ticket-desk" onclick="cpOpenCreatedTicketInDesk()" style="display:none">Open in Desk ↗</button><button class="cp-btn cp-btn-primary" id="cp-create-ticket-btn" onclick="cpCreateTicket()">Create Ticket</button></div></div></div>
+<script src="/assets/maintenance_app/js/gmao-theme.js?v=1"></script>
+<script src="/installed-equipment/component/component.js?v={{ asset_version }}"></script>
+{% endblock %}

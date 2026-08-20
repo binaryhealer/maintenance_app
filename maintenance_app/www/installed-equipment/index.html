@@ -5,6 +5,7 @@
 {% block head_include %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/installed-equipment/installed-equipment.css?v={{ asset_version }}">
+<link rel="stylesheet" href="/assets/maintenance_app/css/gmao-theme.css?v=1">
 {% endblock %}
 
 {% block content %}
@@ -39,6 +40,10 @@
 
       <a class="eq-nav-item" href="/installed-equipment/remote-assist">
         <span class="eq-nav-dot"></span> Remote Assist
+      </a>
+
+      <a class="eq-nav-item" href="/app">
+        <span class="eq-nav-dot"></span> ERPNext Desk
       </a>
     </nav>
 
@@ -79,6 +84,11 @@
           oninput="eqOnSearch(this.value)"
         >
       </div>
+    
+      <button type="button" class="gmao-theme-toggle" id="gmao-theme-toggle">
+  <span class="gmao-theme-toggle-icon">☾</span>
+  <span class="gmao-theme-toggle-label">Dark</span>
+</button>
     </header>
 
     <section class="eq-content" id="eq-content">
@@ -169,5 +179,6 @@
   </div>
 </div>
 
+<script src="/assets/maintenance_app/js/gmao-theme.js?v=1"></script>
 <script src="/installed-equipment/installed-equipment.js?v={{ asset_version }}"></script>
 {% endblock %}

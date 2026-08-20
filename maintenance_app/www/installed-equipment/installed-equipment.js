@@ -17,6 +17,9 @@ var EQ = {
   categoryFilter: "All",
   activeTab: "overview",
   historyFilter: "all",
+  historyFrom: "",
+  historyTo: "",
+  componentGroupFilter: "All",
 
   modalEq: null,
   modalComponentId: "",
@@ -70,6 +73,7 @@ const IE_FIELDS = [
   "custom_replacement_date",
   "custom_commissioned_date",
   "custom_installed_date",
+  "custom_installation_year",
   "custom_commissioning_status",
   "custom_last_calibration_date",
   "custom_next_calibration_date",
@@ -246,6 +250,98 @@ function eqFormatDateTime(value) {
 
   return match ? date + " " + eqEscape(match[1]) : date;
 }
+
+
+function eqEquipmentAge(installedDate, installationYear) {
+  var today = eqToday();
+
+  // Full installed date has priority.
+  if (installedDate) {
+    var installed = eqParseDate(installedDate);
+
+    if (installed) {
+      var years = today.getFullYear() - installed.getFullYear();
+      var months = today.getMonth() - installed.getMonth();
+
+      if (today.getDate() < installed.getDate()) {
+        months -= 1;
+      }
+
+      if (months < 0) {
+        years -= 1;
+        months += 12;
+      }
+
+      if (years < 0) return "—";
+
+      if (years === 0) {
+        return months + " month" + (months === 1 ? "" : "s");
+      }
+
+      if (months === 0) {
+        return years + " year" + (years === 1 ? "" : "s");
+      }
+
+      return years + " year" + (years === 1 ? "" : "s")
+        + " " + months + " month" + (months === 1 ? "" : "s");
+    }
+  }
+
+  // When only a year is known, make it clear that age is approximate.
+  var year = parseInt(installationYear, 10);
+
+  if (!isNaN(year) && year > 1900 && year <= today.getFullYear()) {
+    var approxYears = today.getFullYear() - year;
+
+    if (approxYears === 0) {
+      return "Less than 1 year";
+    }
+
+    return "Approx. " + approxYears + " year" + (approxYears === 1 ? "" : "s");
+  }
+
+  return "—";
+}
+
+function eqEquipmentAgeShort(installedDate, installationYear) {
+  var today = eqToday();
+
+  if (installedDate) {
+    var installed = eqParseDate(installedDate);
+
+    if (installed) {
+      var years = today.getFullYear() - installed.getFullYear();
+      var months = today.getMonth() - installed.getMonth();
+
+      if (today.getDate() < installed.getDate()) {
+        months -= 1;
+      }
+
+      if (months < 0) {
+        years -= 1;
+        months += 12;
+      }
+
+      if (years < 0) return "";
+
+      if (years === 0) {
+        return months + " mo";
+      }
+
+      return years + " yr" + (years === 1 ? "" : "s");
+    }
+  }
+
+  var year = parseInt(installationYear, 10);
+
+  if (!isNaN(year) && year > 1900 && year <= today.getFullYear()) {
+    var approxYears = today.getFullYear() - year;
+    return "~" + approxYears + " yr" + (approxYears === 1 ? "" : "s");
+  }
+
+  return "";
+}
+
 
 function eqDateStatus(value, futureLabel) {
   if (!value) {
@@ -662,6 +758,13 @@ function eqSetCategoryFilter(category) {
 
 function eqRender() {
   eqRenderBreadcrumb();
+
+  // Once a customer is selected, the search is customer-wide.
+  // It returns both Branch/Site matches and Equipment matches.
+  if (EQ.state.customerId && EQ.searchVal) {
+    eqRenderCustomerSearchResults();
+    return;
+  }
 
   switch (EQ.state.level) {
     case "customers":
@@ -1115,6 +1218,9 @@ function eqRenderEquipment() {
           + (eq.custom_asset_id ? 'S/N ' + eqEscape(eq.custom_asset_id) + '<br>' : '')
           + (eq.custom_site_id ? eqEscape(eq.custom_site_id) + ' · ' : '')
           + eqEscape(eq.custom_asset_status || "—")
+          + (eqEquipmentAgeShort(eq.custom_installed_date, eq.custom_installation_year)
+              ? '<br>Age ' + eqEscape(eqEquipmentAgeShort(eq.custom_installed_date, eq.custom_installation_year))
+              : '')
           + '</div>'
           + '<div class="eq-unit-alerts">'
           + eqUnitAlert("Maintenance", maintenanceState)
@@ -1144,6 +1250,320 @@ function eqUnitAlert(label, state) {
     + (state.detail ? ' · ' + eqEscape(state.detail) : '')
     + '</span>'
     + '</div>';
+}
+
+
+
+// ============================================================
+// CUSTOMER-WIDE MIXED SEARCH
+// Branch / Site matches + Equipment matches
+// ============================================================
+
+function eqLoadCustomerEquipment(customerId) {
+  return eqLoadBranches(customerId)
+    .then(function(branches) {
+      return eqLoadRegions().then(function() {
+        return branches;
+      });
+    })
+    .then(function(branches) {
+      if (!branches.length) return [];
+
+      var jobs = branches.map(function(branch) {
+        return eqLoadBranchEquipment(branch.name)
+          .then(function(rows) {
+            return (rows || []).map(function(eq) {
+              return {
+                equipment: eq,
+                branchId: branch.name,
+                branchName: branch.branch_name || branch.name,
+                branchAddress: branch.address || "",
+                clientType: branch.custom_site_type || "",
+                regionId: branch.custom_region || "",
+                regionName: eqGetRegionLabel(branch.custom_region)
+              };
+            });
+          })
+          .catch(function(err) {
+            console.error("Could not load equipment for branch " + branch.name, err);
+            return [];
+          });
+      });
+
+      return Promise.all(jobs).then(function(groups) {
+        return groups.reduce(function(all, group) {
+          return all.concat(group);
+        }, []);
+      });
+    });
+}
+
+function eqOpenCustomerSearchResult(equipmentId, clientType, regionId, branchId) {
+  EQ.state.clientType = clientType || null;
+  EQ.state.region = regionId || null;
+  EQ.state.branchId = branchId || null;
+
+  eqGo("detail", {
+    equipmentId: equipmentId
+  });
+}
+
+function eqOpenCustomerBranchResult(clientType, regionId, branchId) {
+  EQ.state.clientType = clientType || null;
+  EQ.state.region = regionId || null;
+  EQ.state.branchId = branchId || null;
+  EQ.state.equipmentId = null;
+  EQ.state.level = "equipment";
+
+  EQ.searchVal = "";
+  EQ.categoryFilter = "All";
+
+  var search = document.getElementById("eq-search");
+  if (search) search.value = "";
+
+  eqRender();
+}
+
+function eqRenderCustomerSearchResults() {
+  var el = document.getElementById("eq-content");
+  eqLoading();
+
+  var query = EQ.searchVal;
+  var customerId = EQ.state.customerId;
+
+  Promise.all([
+    eqLoadBranches(customerId).then(function(branches) {
+      return eqLoadRegions().then(function() {
+        return branches;
+      });
+    }),
+    eqLoadCustomerEquipment(customerId)
+  ])
+    .then(function(results) {
+      var branches = results[0] || [];
+      var equipmentRecords = results[1] || [];
+
+      var branchMatches = branches.filter(function(branch) {
+        var regionName = eqGetRegionLabel(branch.custom_region);
+
+        var haystack = (
+          (branch.branch_name || "") + " "
+          + (branch.name || "") + " "
+          + (branch.address || "") + " "
+          + (branch.custom_site_type || "") + " "
+          + (regionName || "")
+        ).toLowerCase();
+
+        return haystack.includes(query);
+      });
+
+      var equipmentMatches = equipmentRecords.filter(function(record) {
+        var eq = record.equipment;
+
+        var haystack = (
+          (eq.custom_asset_name || "") + " "
+          + (eq.custom_display_name || "") + " "
+          + (eq.custom_make || "") + " "
+          + (eq.custom_model || "") + " "
+          + (eq.custom_asset_id || "") + " "
+          + (eq.custom_client_asset_code || "") + " "
+          + (eq.custom_site_id || "") + " "
+          + (eq.custom_asset_category || "") + " "
+          + (record.branchName || "") + " "
+          + (record.branchAddress || "") + " "
+          + (record.clientType || "") + " "
+          + (record.regionName || "")
+        ).toLowerCase();
+
+        return haystack.includes(query);
+      });
+
+      var total = branchMatches.length + equipmentMatches.length;
+
+      var html = '<div class="eq-page-head"><div>'
+        + '<div class="eq-page-title">Search Results</div>'
+        + '<div class="eq-page-subtitle">'
+        + eqEscape(eqGetCustomerLabel(customerId))
+        + ' · '
+        + total
+        + ' result'
+        + (total === 1 ? '' : 's')
+        + ' for “'
+        + eqEscape(query)
+        + '”'
+        + '</div>'
+        + '</div></div>';
+
+      if (!total) {
+        html += eqEmpty("🔎", "No branch/site or equipment found for this customer.");
+        el.innerHTML = html;
+        return;
+      }
+
+      // -------------------------------------------------------
+      // Branch / Site matches
+      // -------------------------------------------------------
+      if (branchMatches.length) {
+        html += '<div class="eq-search-section">'
+          + '<div class="eq-search-section-head">'
+          + '<div class="eq-search-section-title">Branches / Sites</div>'
+          + '<div class="eq-search-section-count">' + branchMatches.length + '</div>'
+          + '</div>'
+          + '<div class="eq-search-branch-grid">';
+
+        branchMatches.forEach(function(branch) {
+          var regionName = eqGetRegionLabel(branch.custom_region);
+
+          html += '<div class="eq-search-branch-card" onclick="eqOpenCustomerBranchResult(\''
+            + eqJs(branch.custom_site_type || "") + '\',\''
+            + eqJs(branch.custom_region || "") + '\',\''
+            + eqJs(branch.name) + '\')">'
+            + '<div class="eq-search-branch-top">'
+            + '<div>'
+            + '<div class="eq-unit-name">'
+            + eqEscape(branch.branch_name || branch.name)
+            + '</div>'
+            + '<div class="eq-search-result-path">'
+            + eqEscape([
+                branch.custom_site_type,
+                regionName
+              ].filter(Boolean).join(" · "))
+            + '</div>'
+            + '</div>'
+            + '<div class="eq-search-open-label">Open Branch →</div>'
+            + '</div>'
+            + (branch.address
+                ? '<div class="eq-search-branch-address">'
+                  + eqEscape(branch.address)
+                  + '</div>'
+                : '')
+            + '<div class="eq-search-branch-footer">'
+            + eqEscape(String(branch.equipment_count || 0))
+            + ' equipment'
+            + '</div>'
+            + '</div>';
+        });
+
+        html += '</div></div>';
+      }
+
+      // -------------------------------------------------------
+      // Equipment matches
+      // -------------------------------------------------------
+      if (equipmentMatches.length) {
+        html += '<div class="eq-search-section">'
+          + '<div class="eq-search-section-head">'
+          + '<div class="eq-search-section-title">Equipment</div>'
+          + '<div class="eq-search-section-count">' + equipmentMatches.length + '</div>'
+          + '</div>'
+          + '<div class="eq-search-results-list">';
+
+        equipmentMatches.forEach(function(record) {
+          var eq = record.equipment;
+
+          var health = eq.custom_equipment_health || "Unknown";
+          var hCls = health === "Good"
+            ? "h-good"
+            : health === "Warning"
+              ? "h-warn"
+              : health === "Critical"
+                ? "h-crit"
+                : "h-unk";
+
+          var covKey = eq.custom_coverage_type || "";
+          var cov = COV_MAP[covKey] || {
+            cls: "cov-unknown",
+            label: covKey || "Not Set"
+          };
+
+          var maintenanceState = eqDateStatus(
+            eq.custom_next_maintenance_date,
+            "Scheduled"
+          );
+
+          var calibrationRequired = eqIsTruthy(
+            eq.custom_calibration_required
+          );
+
+          var calibrationState = calibrationRequired
+            ? eqDateStatus(eq.custom_next_calibration_date, "Valid")
+            : null;
+
+          var age = eqEquipmentAgeShort(
+            eq.custom_installed_date,
+            eq.custom_installation_year
+          );
+
+          html += '<div class="eq-search-result-card" onclick="eqOpenCustomerSearchResult(\''
+            + eqJs(eq.name) + '\',\''
+            + eqJs(record.clientType) + '\',\''
+            + eqJs(record.regionId) + '\',\''
+            + eqJs(record.branchId) + '\')">'
+
+            + '<div class="eq-search-result-main">'
+            + '<div class="eq-search-result-title-row">'
+            + '<div>'
+            + '<div class="eq-unit-name">'
+            + eqEscape(eq.custom_asset_name || eq.custom_display_name || eq.name)
+            + '</div>'
+            + '<div class="eq-unit-model">'
+            + eqEscape(
+                ((eq.custom_make || "") + " " + (eq.custom_model || "")).trim()
+                || "—"
+              )
+            + '</div>'
+            + '</div>'
+            + '<div class="health-dot ' + hCls + '" title="' + eqEscapeAttr(health) + '"></div>'
+            + '</div>'
+
+            + '<div class="eq-search-result-path">'
+            + eqEscape(
+                [record.clientType, record.regionName, record.branchName]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
+            + '</div>'
+
+            + '<div class="eq-unit-meta">'
+            + (eq.custom_asset_id
+                ? 'S/N ' + eqEscape(eq.custom_asset_id)
+                : '')
+            + (eq.custom_client_asset_code
+                ? (eq.custom_asset_id ? ' · ' : '') + 'Tag ' + eqEscape(eq.custom_client_asset_code)
+                : '')
+            + ((eq.custom_asset_id || eq.custom_client_asset_code)
+                ? '<br>'
+                : '')
+            + eqEscape(eq.custom_asset_status || "—")
+            + (age ? ' · Age ' + eqEscape(age) : '')
+            + '</div>'
+            + '</div>'
+
+            + '<div class="eq-search-result-side">'
+            + eqUnitAlert("Maintenance", maintenanceState)
+            + (calibrationRequired
+                ? eqUnitAlert("Calibration", calibrationState)
+                : '')
+            + '<span class="cov-badge ' + cov.cls + '">'
+            + eqEscape(cov.label)
+            + '</span>'
+            + '</div>'
+
+            + '</div>';
+        });
+
+        html += '</div></div>';
+      }
+
+      el.innerHTML = html;
+    })
+    .catch(function(err) {
+      console.error("Customer mixed search failed", err);
+      el.innerHTML = eqEmpty(
+        "⚠️",
+        "Could not search branches/sites and equipment for this customer."
+      );
+    });
 }
 
 
@@ -1304,6 +1724,8 @@ function eqBuildOverviewTab(eq) {
     + eqSummaryCard("Site Position", eqEscape(eq.custom_site_id || "—"), true)
     + eqSummaryCard("Equipment Type", eqEscape(eq.custom_asset_type || "—"))
     + eqSummaryCard("Installed Date", eqFormatDate(eq.custom_installed_date))
+    + eqSummaryCard("Installation Year", eq.custom_installation_year ? eqEscape(eq.custom_installation_year) : "—")
+    + eqSummaryCard("Equipment Age", eqEscape(eqEquipmentAge(eq.custom_installed_date, eq.custom_installation_year)))
     + eqSummaryCard("Commissioned Date", eqFormatDate(eq.custom_commissioned_date))
     + eqSummaryCard("Commissioning Status", eqEscape(eq.custom_commissioning_status || "—"))
     + eqSummaryCard("Commissioning Record", eqDocLink("Commissioning Record", eq.custom_last_commissioning_record))
@@ -1432,13 +1854,51 @@ function eqBuildHistoryAndComponents(logs) {
 
 function eqSetHistoryFilter(filter) {
   EQ.historyFilter = filter;
+  eqRefreshHistoryPanel();
+}
 
+function eqSetHistoryDate(field, value) {
+  if (field === "from") {
+    EQ.historyFrom = value || "";
+  } else if (field === "to") {
+    EQ.historyTo = value || "";
+  }
+
+  eqRefreshHistoryPanel();
+}
+
+function eqClearHistoryDates() {
+  EQ.historyFrom = "";
+  EQ.historyTo = "";
+  eqRefreshHistoryPanel();
+}
+
+function eqRefreshHistoryPanel() {
   var logs = EQ.cache.logs[EQ.state.equipmentId];
   var panel = document.getElementById("eq-tab-history");
 
   if (logs && panel) {
     panel.innerHTML = eqBuildHistoryTab(logs);
   }
+}
+
+function eqHistoryDateOnly(value) {
+  if (!value) return "";
+
+  var text = String(value).trim();
+
+  // Frappe date/datetime values begin YYYY-MM-DD.
+  var match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+
+  var parsed = new Date(text);
+  if (isNaN(parsed.getTime())) return "";
+
+  var year = parsed.getFullYear();
+  var month = String(parsed.getMonth() + 1).padStart(2, "0");
+  var day = String(parsed.getDate()).padStart(2, "0");
+
+  return year + "-" + month + "-" + day;
 }
 
 function eqBuildHistoryTab(logs) {
@@ -1486,15 +1946,34 @@ function eqBuildHistoryTab(logs) {
     });
   }
 
+  if (EQ.historyFrom || EQ.historyTo) {
+    rows = rows.filter(function(r) {
+      var rowDate = eqHistoryDateOnly(r.date);
+
+      if (!rowDate) return false;
+      if (EQ.historyFrom && rowDate < EQ.historyFrom) return false;
+      if (EQ.historyTo && rowDate > EQ.historyTo) return false;
+
+      return true;
+    });
+  }
+
   rows.sort(function(a, b) {
     return String(b.date || "").localeCompare(String(a.date || ""));
   });
 
-  var html = '<div class="eq-history-filters">'
+  var html = '<div class="eq-history-toolbar">'
+    + '<div class="eq-history-date-range">'
+    + '<label><span>From</span><input type="date" value="' + eqEscapeAttr(EQ.historyFrom || "") + '" onchange="eqSetHistoryDate(\'from\', this.value)"></label>'
+    + '<label><span>To</span><input type="date" value="' + eqEscapeAttr(EQ.historyTo || "") + '" onchange="eqSetHistoryDate(\'to\', this.value)"></label>'
+    + '<button type="button" class="eq-history-clear" onclick="eqClearHistoryDates()">Clear</button>'
+    + '</div>'
+    + '<div class="eq-history-filters">'
     + eqHistoryFilterButton("all", "All")
     + eqHistoryFilterButton("service", "Service")
     + eqHistoryFilterButton("lifecycle", "Lifecycle")
     + eqHistoryFilterButton("config", "Config Changes")
+    + '</div>'
     + '</div>';
 
   if (!rows.length) {
@@ -1529,17 +2008,67 @@ function eqHistoryFilterButton(id, label) {
     + '</button>';
 }
 
+function eqSetComponentGroupFilter(group) {
+  EQ.componentGroupFilter = group || "All";
+
+  var logs = EQ.cache.logs[EQ.state.equipmentId];
+  var panel = document.getElementById("eq-tab-components");
+
+  if (logs && panel) {
+    panel.innerHTML = eqBuildComponents(logs.components || []);
+  }
+}
+
 function eqBuildComponents(comps) {
   if (!comps.length) {
     return eqEmpty("🔩", "No components registered.");
   }
 
-  var html = '<div class="eq-table-wrap"><table class="eq-log-table">'
+  var groups = [];
+  comps.forEach(function(c) {
+    var group = c.custom_component_group || c.custom_item_group || "Uncategorized";
+    if (!groups.includes(group)) {
+      groups.push(group);
+    }
+  });
+
+  groups.sort(function(a, b) {
+    return String(a).localeCompare(String(b));
+  });
+
+  if (EQ.componentGroupFilter !== "All" && !groups.includes(EQ.componentGroupFilter)) {
+    EQ.componentGroupFilter = "All";
+  }
+
+  var filtered = comps.filter(function(c) {
+    var group = c.custom_component_group || c.custom_item_group || "Uncategorized";
+    return EQ.componentGroupFilter === "All" || group === EQ.componentGroupFilter;
+  });
+
+  var html = '<div class="eq-component-filter-wrap">'
+    + '<label class="eq-component-filter-control">'
+    + '<span class="eq-component-filter-label">Component Group</span>'
+    + '<select onchange="eqSetComponentGroupFilter(this.value)">'
+    + '<option value="All"' + (EQ.componentGroupFilter === "All" ? " selected" : "") + '>All Component Groups</option>';
+
+  groups.forEach(function(group) {
+    html += '<option value="' + eqEscapeAttr(group) + '"'
+      + (EQ.componentGroupFilter === group ? " selected" : "")
+      + '>' + eqEscape(group) + '</option>';
+  });
+
+  html += '</select></label></div>';
+
+  if (!filtered.length) {
+    return html + eqEmpty("🔩", "No components in this group.");
+  }
+
+  html += '<div class="eq-table-wrap"><table class="eq-log-table">'
     + '<thead><tr>'
     + '<th>Component</th><th>Group</th><th>Serial</th><th>Brand</th><th>Model</th><th>Status</th><th></th>'
     + '</tr></thead><tbody>';
 
-  comps.forEach(function(c) {
+  filtered.forEach(function(c) {
     var status = c.custom_status || "Installed";
     if (status === "Active") status = "Installed";
 
@@ -1549,7 +2078,11 @@ function eqBuildComponents(comps) {
         ? "cs-replaced"
         : "cs-other";
 
-    var componentId = c.name || c.component_id || c.custom_component_id || c.row_id || "";
+    var componentId = c.custom_equipment_component
+      || c.equipment_component
+      || c.component_id
+      || c.custom_component_id
+      || "";
     var label = c.custom_display_name
       || c.custom_equipment_type
       || c.custom_component_item
@@ -1557,7 +2090,7 @@ function eqBuildComponents(comps) {
       || componentId
       || "—";
 
-    var group = c.custom_component_group || c.custom_item_group || "—";
+    var group = c.custom_component_group || c.custom_item_group || "Uncategorized";
 
     html += '<tr>'
       + '<td>'
@@ -1607,6 +2140,35 @@ function eqDeskLink(doctype, name) {
 // ============================================================
 // TICKET MODAL
 // ============================================================
+
+
+function eqGetTicketTypesForRequestType(requestType) {
+  var map = {
+    "Breakdown": ["Repair", "Service"],
+    "Maintenance Request": ["Preventive Maintenance", "Service", "Calibration", "Commissioning"],
+    "General Request": ["Installation", "Survey", "Training", "Audit", "Incident Investigation", "Asset Relocation", "Config Change", "Swap", "Loan", "Service", "Decommissioning"]
+  };
+  return map[requestType] || [];
+}
+
+function eqUpdateTicketTypeOptions() {
+  var requestSelect = document.getElementById("eq-ticket-request-type");
+  var ticketSelect = document.getElementById("eq-ticket-type");
+  if (!requestSelect || !ticketSelect) return;
+
+  var types = eqGetTicketTypesForRequestType(requestSelect.value);
+  var previous = ticketSelect.value;
+
+  ticketSelect.innerHTML = types.map(function(type) {
+    return '<option value="' + eqEscapeAttr(type) + '">' + eqEscape(type) + '</option>';
+  }).join("");
+
+  if (types.indexOf(previous) !== -1) {
+    ticketSelect.value = previous;
+  } else if (types.length) {
+    ticketSelect.value = types[0];
+  }
+}
 
 function eqOpenTicketModal(eqName, componentId) {
   eqGetEquipmentDetail(eqName).then(function(eq) {
@@ -2038,11 +2600,74 @@ function eqHandleResponsiveMenu() {
   }
 }
 
+
+function eqOpenEquipmentFromUrl(equipmentName) {
+  if (!equipmentName) return Promise.resolve(false);
+
+  return eqCall("frappe.client.get", {
+    doctype: "Installed Equipment",
+    name: equipmentName
+  }).then(function(eq) {
+    if (!eq || !eq.name) return false;
+
+    EQ.state.customerId = eq.custom_parent_customer || null;
+    EQ.state.branchId = eq.custom_branch || null;
+    EQ.state.equipmentId = eq.name;
+    EQ.state.level = "detail";
+    EQ.activeTab = "overview";
+    EQ.historyFilter = "all";
+    EQ.historyFrom = "";
+    EQ.historyTo = "";
+    EQ.componentGroupFilter = "All";
+    EQ.searchVal = "";
+    EQ.categoryFilter = "All";
+
+    EQ.cache.equipmentDetail[eq.name] = eq;
+
+    if (!EQ.state.customerId || !EQ.state.branchId) {
+      eqRender();
+      return true;
+    }
+
+    return eqLoadBranches(EQ.state.customerId)
+      .then(function(branches) {
+        var branch = (branches || []).find(function(row) {
+          return row.name === EQ.state.branchId;
+        });
+
+        if (branch) {
+          EQ.state.clientType = branch.custom_site_type || null;
+          EQ.state.region = branch.custom_region || null;
+        }
+
+        return eqLoadRegions();
+      })
+      .then(function() {
+        eqRender();
+        return true;
+      });
+  }).catch(function(err) {
+    console.error("Could not open equipment from URL", err);
+    return false;
+  });
+}
+
 // ============================================================
 // INITIALIZE
 // ============================================================
 
 frappe.ready(function() {
+  var directEquipment = new URLSearchParams(window.location.search).get("equipment");
+
+  if (directEquipment) {
+    eqOpenEquipmentFromUrl(directEquipment).then(function(opened) {
+      if (!opened) {
+        eqGo("customers");
+      }
+    });
+    return;
+  }
+
   eqGo("customers");
 });
 

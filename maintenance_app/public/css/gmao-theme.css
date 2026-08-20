@@ -1,0 +1,322 @@
+
+/* ============================================================
+   GOTECH GMAO — SHARED THEME SYSTEM
+   Used by all internal GMAO web views.
+   ------------------------------------------------------------
+   Theme values are applied after each page's own CSS.
+   ============================================================ */
+
+/* ----------------------------
+   DARK
+   ---------------------------- */
+html[data-gmao-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b0d10;
+  --surface: #11151a;
+  --surface2: #171c22;
+  --surface3: #1c222a;
+  --border: #252c35;
+  --border2: #39424e;
+
+  --text: #f1f4f7;
+  --text2: #b8c0ca;
+  --text3: #77818d;
+
+  --accent: #ff8a3d;
+  --ok: #5fd19a;
+  --warn: #f3bc5b;
+  --bad: #ef6a6a;
+
+  --gmao-sidebar: #0d1014;
+  --gmao-topbar: rgba(11,13,16,.94);
+  --gmao-input: #171c22;
+  --gmao-hover: #171c22;
+  --gmao-overlay: rgba(0,0,0,.64);
+  --gmao-shadow: rgba(0,0,0,.35);
+}
+
+/* ----------------------------
+   LIGHT
+   ---------------------------- */
+html[data-gmao-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --surface3: #eef2f6;
+  --border: #dbe2ea;
+  --border2: #c7d0da;
+
+  --text: #17202a;
+  --text2: #465363;
+  --text3: #7a8796;
+
+  --accent: #ff7a2f;
+  --ok: #178a59;
+  --warn: #b56e00;
+  --bad: #c43d3d;
+
+  --gmao-sidebar: #ffffff;
+  --gmao-topbar: rgba(255,255,255,.94);
+  --gmao-input: #ffffff;
+  --gmao-hover: #f3f6f9;
+  --gmao-overlay: rgba(33,43,54,.34);
+  --gmao-shadow: rgba(20,30,45,.12);
+}
+
+/* ----------------------------
+   SHARED PAGE SURFACES
+   ---------------------------- */
+
+html[data-gmao-theme] body {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* IE + Component shells */
+html[data-gmao-theme] .eq-shell,
+html[data-gmao-theme] .eq-main,
+html[data-gmao-theme] .cp-shell,
+html[data-gmao-theme] .cp-main {
+  background: var(--bg) !important;
+}
+
+/* Sidebars */
+html[data-gmao-theme] .eq-sidebar,
+html[data-gmao-theme] .cp-sidebar {
+  background: var(--gmao-sidebar) !important;
+  border-color: var(--border) !important;
+}
+
+/* Topbars */
+html[data-gmao-theme] .eq-topbar,
+html[data-gmao-theme] .cp-topbar {
+  background: var(--gmao-topbar) !important;
+  border-color: var(--border) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Cards / panels */
+html[data-gmao-theme] .eq-card,
+html[data-gmao-theme] .eq-unit-card,
+html[data-gmao-theme] .eq-nav-card,
+html[data-gmao-theme] .eq-info-card,
+html[data-gmao-theme] .eq-detail-card,
+html[data-gmao-theme] .eq-panel,
+html[data-gmao-theme] .eq-modal,
+html[data-gmao-theme] .eq-search-result-card,
+html[data-gmao-theme] .eq-search-branch-card,
+
+html[data-gmao-theme] .cp-hero,
+html[data-gmao-theme] .cp-parent-strip,
+html[data-gmao-theme] .cp-info-card,
+html[data-gmao-theme] .cp-panel,
+html[data-gmao-theme] .cp-modal {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Light-theme subtle card shadow */
+html[data-gmao-theme="light"] .eq-card,
+html[data-gmao-theme="light"] .eq-unit-card,
+html[data-gmao-theme="light"] .eq-nav-card,
+html[data-gmao-theme="light"] .eq-info-card,
+html[data-gmao-theme="light"] .eq-detail-card,
+html[data-gmao-theme="light"] .eq-modal,
+html[data-gmao-theme="light"] .cp-hero,
+html[data-gmao-theme="light"] .cp-parent-strip,
+html[data-gmao-theme="light"] .cp-info-card,
+html[data-gmao-theme="light"] .cp-modal {
+  box-shadow: 0 1px 2px rgba(20,30,45,.05);
+}
+
+/* Hover surfaces */
+html[data-gmao-theme] .eq-card:hover,
+html[data-gmao-theme] .eq-unit-card:hover,
+html[data-gmao-theme] .eq-nav-card:hover,
+html[data-gmao-theme] .eq-search-result-card:hover,
+html[data-gmao-theme] .eq-search-branch-card:hover {
+  background: var(--gmao-hover) !important;
+  border-color: var(--border2) !important;
+}
+
+/* Inputs */
+html[data-gmao-theme] .eq-form-row input,
+html[data-gmao-theme] .eq-form-row select,
+html[data-gmao-theme] .eq-form-row textarea,
+html[data-gmao-theme] .eq-picker,
+html[data-gmao-theme] .eq-picker-input,
+html[data-gmao-theme] .eq-search input,
+html[data-gmao-theme] .eq-search-wrap input,
+html[data-gmao-theme] .eq-search-box input,
+html[data-gmao-theme] .eq-topbar-search input,
+
+html[data-gmao-theme] .cp-form-grid input,
+html[data-gmao-theme] .cp-form-grid select,
+html[data-gmao-theme] .cp-form-grid textarea,
+html[data-gmao-theme] .cp-picker,
+html[data-gmao-theme] .cp-picker-input {
+  background: var(--gmao-input) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Dropdowns */
+html[data-gmao-theme] .eq-picker-dropdown,
+html[data-gmao-theme] .cp-picker-dropdown {
+  background: var(--surface) !important;
+  border-color: var(--border2) !important;
+  box-shadow: 0 14px 35px var(--gmao-shadow) !important;
+}
+
+html[data-gmao-theme] .eq-picker-option:hover,
+html[data-gmao-theme] .cp-picker-option:hover {
+  background: var(--gmao-hover) !important;
+}
+
+/* Tables */
+html[data-gmao-theme] .eq-table,
+html[data-gmao-theme] .eq-table-wrap,
+html[data-gmao-theme] .cp-table,
+html[data-gmao-theme] .cp-table-wrap {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-gmao-theme] .eq-table th,
+html[data-gmao-theme] .cp-table th {
+  background: var(--surface2) !important;
+  color: var(--text3) !important;
+}
+
+html[data-gmao-theme] .eq-table td,
+html[data-gmao-theme] .eq-table th,
+html[data-gmao-theme] .cp-table td,
+html[data-gmao-theme] .cp-table th {
+  border-color: var(--border) !important;
+}
+
+/* Ghost controls */
+html[data-gmao-theme] .eq-btn-ghost,
+html[data-gmao-theme] .eq-filter-btn,
+html[data-gmao-theme] .eq-picker-tag,
+html[data-gmao-theme] .eq-picker-avatar,
+
+html[data-gmao-theme] .cp-btn-ghost,
+html[data-gmao-theme] .cp-picker-tag,
+html[data-gmao-theme] .cp-picker-avatar {
+  background: var(--surface2) !important;
+  color: var(--text2) !important;
+  border-color: var(--border) !important;
+}
+
+/* Primary buttons */
+html[data-gmao-theme] .eq-btn-primary,
+html[data-gmao-theme] .eq-filter-btn.active,
+html[data-gmao-theme] .cp-btn-primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* Navigation */
+html[data-gmao-theme] .eq-nav-item,
+html[data-gmao-theme] .cp-nav-item {
+  color: var(--text3) !important;
+}
+
+html[data-gmao-theme] .eq-nav-item:hover,
+html[data-gmao-theme] .eq-nav-item.active,
+html[data-gmao-theme] .cp-nav-item:hover {
+  background: var(--gmao-hover) !important;
+  color: var(--text) !important;
+}
+
+/* Tabs */
+html[data-gmao-theme] .eq-tab,
+html[data-gmao-theme] .cp-tab {
+  color: var(--text3) !important;
+}
+
+html[data-gmao-theme] .eq-tab.active,
+html[data-gmao-theme] .cp-tab.active {
+  color: var(--text) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+/* Backdrops */
+html[data-gmao-theme] .eq-modal-overlay,
+html[data-gmao-theme] .eq-mobile-backdrop,
+html[data-gmao-theme] .cp-modal-backdrop,
+html[data-gmao-theme] .cp-backdrop {
+  background: var(--gmao-overlay) !important;
+}
+
+/* Success / Error */
+html[data-gmao-theme="light"] .eq-modal-confirm.show,
+html[data-gmao-theme="light"] .cp-modal-confirm.show {
+  background: #edf9f3 !important;
+  border-color: #b9e6ce !important;
+  color: #13794e !important;
+}
+
+html[data-gmao-theme="light"] .eq-modal-error.show,
+html[data-gmao-theme="light"] .cp-modal-error.show {
+  background: #fff1f1 !important;
+  border-color: #f1c0c0 !important;
+  color: #b73232 !important;
+}
+
+/* Parent equipment direct link */
+html[data-gmao-theme] .cp-parent-equipment-link {
+  color: var(--text) !important;
+}
+html[data-gmao-theme] .cp-parent-equipment-link:hover {
+  color: var(--accent) !important;
+}
+
+/* ============================================================
+   SHARED THEME TOGGLE
+   ============================================================ */
+
+.gmao-theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text2);
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.gmao-theme-toggle:hover {
+  background: var(--gmao-hover);
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.gmao-theme-toggle-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+@media (max-width: 560px) {
+  .gmao-theme-toggle-label {
+    display: none;
+  }
+
+  .gmao-theme-toggle {
+    width: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+}
