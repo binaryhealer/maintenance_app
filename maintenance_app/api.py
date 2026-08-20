@@ -2779,22 +2779,12 @@ def create_service_ticket_from_equipment(
     if not equipment_name:
         frappe.throw("Equipment is required.")
 
-    equipment = frappe.db.get_value(
-        "Installed Equipment",
-        equipment_name,
-        [
-            "name",
-            "custom_parent_customer",
-            "custom_branch",
-            "custom_display_name",
-            "custom_asset_name",
-            "custom_asset_id"
-        ],
-        as_dict=True
-    )
-
-    if not equipment:
+    if not frappe.db.exists("Installed Equipment", equipment_name):
         frappe.throw("Installed Equipment not found: " + str(equipment_name))
+
+    # Use the full Installed Equipment document so the Service Ticket
+    # inherits operational context from the equipment record.
+    equipment = frappe.get_doc("Installed Equipment", equipment_name)
 
     component_row = None
     target_label = (
@@ -2844,9 +2834,39 @@ def create_service_ticket_from_equipment(
     ticket = frappe.new_doc("Service Ticket")
 
     _safe_set(ticket, "custom_target_equipment", equipment.name)
-    _safe_set(ticket, "custom_customer", equipment.custom_parent_customer)
-    _safe_set(ticket, "custom_client_branch", equipment.custom_branch)
-    _safe_set(ticket, "custom_company", equipment.get("custom_company"))
+    _safe_set(ticket, "custom_customer", equipment.get("custom_parent_customer"))
+    _safe_set(ticket, "custom_client_branch", equipment.get("custom_branch"))
+
+    # --------------------------------------------------------
+    # Equipment / site context
+    # --------------------------------------------------------
+    # Company is the service provider for this Installed Equipment.
+    # Support both field names used across the GMAO build.
+    company_value = (
+        equipment.get("custom_company")
+        or equipment.get("custom_company_workshop")
+    )
+
+    # Prefer values stored directly on Installed Equipment.
+    client_type_value = equipment.get("custom_client_type")
+    region_value = equipment.get("custom_region")
+
+    # Older equipment may not have the classification fields populated.
+    # In that case Client Branch remains the fallback/source of truth.
+    branch_name = equipment.get("custom_branch")
+
+    if branch_name and frappe.db.exists("Client Branch", branch_name):
+        branch_doc = frappe.get_doc("Client Branch", branch_name)
+
+        if not client_type_value:
+            client_type_value = branch_doc.get("custom_site_type")
+
+        if not region_value:
+            region_value = branch_doc.get("custom_region")
+
+    _safe_set(ticket, "custom_company", company_value)
+    _safe_set(ticket, "custom_client_type", client_type_value)
+    _safe_set(ticket, "custom_region", region_value)
 
     _safe_set(ticket, "custom_target_component_name", target_label)
 
