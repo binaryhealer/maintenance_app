@@ -32,4 +32,4 @@ def get_context(context):
 
     context.title = "Installed Equipment"
     context.page_url = "/installed-equipment"
-    context.asset_version = "25"
+    context.asset_version = "26"

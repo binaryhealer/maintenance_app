@@ -108,24 +108,32 @@ const COV_MAP = {
 };
 
 const TICKET_TYPE_BY_REQUEST_TYPE = {
-  "Breakdown": ["Repair", "Service"],
+  "Breakdown": [
+    "Repair",
+    "Service"
+  ],
+
   "Maintenance Request": [
     "Preventive Maintenance",
     "Service",
     "Calibration",
     "Commissioning"
   ],
+
   "General Request": [
     "Installation",
     "Survey",
     "Training",
     "Audit",
+    "Incident Investigation",
     "Asset Relocation",
     "Config Change",
     "Swap",
     "Loan",
     "Service",
-    "Incident Investigation"
+    "Decommissioning",
+    "Inspection",
+    "Specialised Testing"
   ]
 };
 

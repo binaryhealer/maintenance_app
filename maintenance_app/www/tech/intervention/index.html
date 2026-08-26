@@ -892,6 +892,40 @@
             </div>
         </details>
 
+        {% if mi.custom_intervention_type == "Specialised Testing" %}
+        <div class="mi-card">
+            <div class="section-title">Specialised Testing</div>
+
+            {% if mi.docstatus == 0 and not mi.custom_start_time %}
+                <div class="mb-2">
+                    <label class="form-label" for="specialised_testing_type">
+                        <b>Specialised Testing Type</b>
+                    </label>
+                    <select id="specialised_testing_type" class="form-control">
+                        <option value="">Select testing type</option>
+                        {% for testing_type in specialised_testing_types %}
+                            <option
+                                value="{{ testing_type.name }}"
+                                {% if mi.custom_specialised_testing_type == testing_type.name %}selected{% endif %}>
+                                {{ testing_type.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="field-help">
+                        Required before Check In.
+                    </div>
+                </div>
+            {% else %}
+                <div class="summary-item">
+                    <div class="info-label">Specialised Testing Type</div>
+                    <div class="info-value">
+                        {{ mi.custom_specialised_testing_type or "-" }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <details class="mi-card accordion-card" {% if mi.custom_start_time and not mi.custom_work_outcome and mi.docstatus == 0 %}open{% endif %}>
             <summary>
                 <div class="d-flex justify-content-between align-items-center">
@@ -1560,6 +1594,26 @@ function get_current_gps() {
 }
 
 function check_in(mi_name) {
+    let intervention_type = "{{ mi.custom_intervention_type or '' }}";
+    let specialised_testing_type = "";
+
+    if (intervention_type === "Specialised Testing") {
+        let testing_type_el = document.getElementById(
+            "specialised_testing_type"
+        );
+
+        specialised_testing_type = testing_type_el
+            ? testing_type_el.value
+            : "{{ mi.custom_specialised_testing_type or '' }}";
+
+        if (!specialised_testing_type) {
+            frappe.msgprint(
+                __("Please select Specialised Testing Type before Check In.")
+            );
+            return;
+        }
+    }
+
     get_current_gps().then(function(gps) {
         frappe.call({
             method: "maintenance_app.www.tech.intervention.index.pwa_check_in",
@@ -1567,7 +1621,8 @@ function check_in(mi_name) {
                 mi_name: mi_name,
                 latitude: gps ? gps.latitude : null,
                 longitude: gps ? gps.longitude : null,
-                accuracy: gps ? gps.accuracy : null
+                accuracy: gps ? gps.accuracy : null,
+                specialised_testing_type: specialised_testing_type || null
             },
             freeze: true,
             freeze_message: __("Checking in..."),

@@ -90,6 +90,7 @@
   "custom_resolved_by",
   "custom_fault_type",
   "custom_primary_remote_session_ref",
+  "custom_specialised_testing_type",
   "column_break_roia",
   "custom_primary_planning_ref",
   "custom_resolution_source_mi",
@@ -225,7 +226,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing"
   },
   {
    "default": "Billable",
@@ -847,12 +848,18 @@
    "label": "Company",
    "options": "Company",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_specialised_testing_type",
+   "fieldtype": "Data",
+   "label": "Specialised Testing Type",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-18 18:01:19.760962",
+ "modified": "2026-08-26 05:27:41.590608",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

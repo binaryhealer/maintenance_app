@@ -21,6 +21,7 @@
   "custom_asset_id",
   "custom_intervention_type",
   "custom_start_date",
+  "custom_specialised_testing_type",
   "section_break_pmao",
   "custom_work_progress",
   "section_break_bzvm",
@@ -275,7 +276,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing"
   },
   {
    "fieldname": "custom_parts_table",
@@ -1003,13 +1004,21 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "depends_on": "eval:doc.custom_intervention_type==\"Specialised Testing\"",
+   "fieldname": "custom_specialised_testing_type",
+   "fieldtype": "Link",
+   "label": "Specialised Testing Type",
+   "mandatory_depends_on": "eval:doc.custom_intervention_type==\"Specialised Testing\"",
+   "options": "Specialised Testing Type"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-18 18:22:04.908406",
+ "modified": "2026-08-26 05:34:48.870669",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

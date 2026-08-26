@@ -909,7 +909,7 @@ window.toggleReportsSubmenu = function(event) {
 
             tbody.insertAdjacentHTML('beforeend', `
                 <tr class="asset-row" onclick="window.openEquipmentWorkspace('${window.cpEsc(eq.name)}')">
-                    <td><div class="cp-equipment-name">${window.cpEsc(eq.equipment_display || eq.custom_display_name || eq.custom_asset_name || eq.name)} ${ticketTag}</div>${(eq.equipment_reference || eq.custom_client_asset_code || eq.custom_asset_id) ? `<div class="cp-equipment-id">${window.cpEsc(eq.equipment_reference || eq.custom_client_asset_code || eq.custom_asset_id)}</div>` : ''}</td>
+                    <td><div class="cp-equipment-name">${window.cpEsc(eq.custom_asset_name || eq.custom_display_name || eq.name)} ${ticketTag}</div><div class="cp-equipment-id">${window.cpEsc(eq.name)}</div></td>
                     <td><strong>${window.cpEsc(eq.custom_branch || '—')}</strong></td>
                     <td>${window.cpEsc(eq.custom_asset_category || '—')}</td>
                     <td>${window.cpEsc(eq.custom_model || '—')}</td>

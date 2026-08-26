@@ -3576,162 +3576,6 @@ def client_portal_get_branches(customer=None):
     )
 
 
-'''@frappe.whitelist()
-def client_portal_get_equipment(customer, branch=None):
-    if not customer:
-        return []
-
-    filters = {"custom_parent_customer": customer}
-    if branch:
-        filters["custom_branch"] = branch
-
-    # 1. Fetch parent records
-    equipment_list = frappe.get_all(
-        "Installed Equipment",
-        filters=filters,
-        fields=[
-            "name",
-            "custom_branch",
-            "custom_asset_name",
-            "custom_asset_category",
-            "custom_model",
-            "custom_asset_status",
-            "custom_equipment_health",
-            "custom_last_service_date",
-            "custom_next_maintenance_date"
-        ],
-        order_by="custom_asset_category, custom_asset_name"
-    )
-
-    # 2. Map and stitch child components dynamically
-    for eq in equipment_list:
-        eq["components"] = frappe.get_all(
-            "Installed Equipment Component",
-            filters={"parent": eq["name"], "parenttype": "Installed Equipment"},
-            fields=[
-                "name",
-                "custom_component_group",
-                "custom_display_name",
-                "custom_component",
-                "custom_status",
-                "custom_serial_number"
-            ]
-        )
-    
-    return equipment_list '''
-
-
-'''@frappe.whitelist()
-def client_portal_get_tickets(customer):
-    if not customer:
-        return []
-
-    return frappe.get_all(
-        "Service Ticket",
-        filters={"custom_customer": customer},
-        fields=[
-            "name",
-            "custom_subject",
-            "custom_ticket_status",
-            "custom_service_type",
-            "custom_client_branch",
-            "custom_target_equipment",
-            "custom_opening_date",
-            "creation"
-        ],
-        order_by="creation desc",
-        limit=50
-    )
-
-
-@frappe.whitelist()
-def client_portal_get_contracts(customer):
-    if not customer:
-        return []
-
-    return frappe.get_all(
-        "Maintenance Contract",
-        filters={
-            "custom_customer": customer,
-            "custom_status": "Active"
-        },
-        fields=[
-            "name",
-            "custom_contract_title",
-            "custom_contract_type",
-            "custom_start_date",
-            "custom_end_date",
-            "custom_status"
-        ],
-        order_by="custom_end_date asc"
-    ) '''
-
-
-
-# ============================================================
-# Build installed Equipment components
-# ============================================================
-
-'''@frappe.whitelist()
-def build_components_for_equipment(equipment_name):
-    equipment = frappe.get_doc("Installed Equipment", equipment_name)
-
-    if not equipment.get("custom_equipment_template"):
-        frappe.throw("Please select Equipment Template first.")
-
-    template = frappe.get_doc(
-        "Equipment Template",
-        equipment.custom_equipment_template
-    )
-
-    created = 0
-
-    for row in template.get("custom_components") or []:
-        qty = row.get("custom_qty") or 1
-
-        for i in range(qty):
-            component = frappe.new_doc("Equipment Component")
-
-            component.custom_parent_equipment = equipment.name
-            component.custom_customer = equipment.get("custom_parent_customer")
-            component.custom_branch = equipment.get("custom_branch")
-            component.custom_component_group = row.get("custom_component_group")
-            component.custom_equipment_type = row.get("custom_equipment_type")
-            component.custom_status = "Active"
-
-            type_name = row.get("custom_equipment_type") or "Component"
-
-            component.custom_display_name = (
-                f"{equipment.get('custom_display_name') or equipment.name} - {type_name}"
-            )
-
-            if qty > 1:
-                component.custom_display_name = (
-                    f"{equipment.get('custom_display_name') or equipment.name} - "
-                    f"{type_name} {i + 1}"
-                )
-
-            component.insert(ignore_permissions=True)
-
-            equipment.append("custom_installed_components", {
-                "custom_component": component.name,
-                "custom_display_name": component.custom_display_name,
-                "custom_component_group": component.custom_component_group,
-                "custom_equipment_type": component.custom_equipment_type,
-                "custom_brand": component.get("custom_make"),
-                "custom_model": component.get("custom_model"),
-                "custom_serial_number": component.get("custom_serial_number"),
-                "custom_status": "Active"
-            })
-
-            created += 1
-
-    equipment.save(ignore_permissions=True)
-    frappe.db.commit()
-
-    return {
-        "created": created
-    }'''
 
 @frappe.whitelist()
 def build_components_for_equipment(equipment_name):
@@ -3936,18 +3780,6 @@ def create_component_ticket(equipment_name, component_name, request_type, subjec
 # 🖥️ DEDICATED CLIENT PORTAL WORKSPACE API ENDPOINTS
 # ============================================================
 
-'''@frappe.whitelist()
-def client_portal_get_branches(customer):
-    """Fetches unique branch physical locations assigned to a customer entity."""
-    if not customer:
-        return []
-    return frappe.get_all(
-        "Client Branch",
-        filters={"custom_parent_customer": customer},
-        fields=["name", "custom_branch", "custom_address", "custom_site_type"],
-        order_by="custom_branch asc"
-    )'''
-
 
 import frappe
 from frappe import _
@@ -3955,9 +3787,9 @@ from frappe import _
 @frappe.whitelist()
 def client_portal_get_equipment(customer, branch=None):
     """
-    Master equipment fetcher for the client portal dashboard workspace.
-    Queries parent assets and deeply resolves properties hidden inside linked 
-    Equipment Component master entries to fix blank Make, Model, and Serials.
+    Client-safe equipment fetcher for the Client Portal.
+    The internal Installed Equipment document name (SITE-ASSET-xxxxx) remains
+    the API key but is not intended as the client-facing label.
     """
     ctx = get_client_portal_context()
 
@@ -3967,8 +3799,9 @@ def client_portal_get_equipment(customer, branch=None):
 
     if ctx["scope"] == "Branch Level":
         filters["custom_branch"] = ctx["branch"]
+    elif branch:
+        filters["custom_branch"] = branch
 
-    # 1. Fetch parent records cleanly
     equipment_list = frappe.get_all(
         "Installed Equipment",
         filters=filters,
@@ -3976,6 +3809,9 @@ def client_portal_get_equipment(customer, branch=None):
             "name",
             "custom_branch",
             "custom_asset_name",
+            "custom_display_name",
+            "custom_client_asset_code",
+            "custom_asset_id",
             "custom_asset_category",
             "custom_model",
             "custom_asset_status",
@@ -3986,8 +3822,23 @@ def client_portal_get_equipment(customer, branch=None):
         order_by="custom_asset_category, custom_asset_name"
     )
 
-    # 2. INTEGRATED FRIEND FIX: Deeply crack open data keys across the linked templates
     for eq in equipment_list:
+        # Client-facing identity. Keep name only as the final fallback/API key.
+        eq["equipment_display"] = (
+            eq.get("custom_display_name")
+            or eq.get("custom_asset_name")
+            or eq.get("custom_client_asset_code")
+            or eq.get("custom_asset_id")
+            or eq.get("name")
+        )
+
+        # Optional second line; never expose SITE-ASSET-xxxxx as the display ref.
+        eq["equipment_reference"] = (
+            eq.get("custom_client_asset_code")
+            or eq.get("custom_asset_id")
+            or ""
+        )
+
         try:
             child_rows = frappe.db.get_values(
                 "Installed Equipment Component",
@@ -4015,7 +3866,6 @@ def client_portal_get_equipment(customer, branch=None):
             for row in child_rows:
                 component_doc = None
 
-                # Look into the master record link if it exists on this child row
                 if row.get("custom_component"):
                     try:
                         component_doc = frappe.db.get_value(
@@ -4036,7 +3886,6 @@ def client_portal_get_equipment(customer, branch=None):
                     except Exception:
                         component_doc = None
 
-                # Smart title matching resolution
                 display_name = (
                     (component_doc or {}).get("custom_display_name")
                     or row.get("custom_display_name")
@@ -4045,7 +3894,6 @@ def client_portal_get_equipment(customer, branch=None):
                     or "Unnamed Component"
                 )
 
-                # Append perfectly structured payload mapping definitions for client side scripts
                 components.append({
                     "name": row.get("custom_component") or row.get("name"),
                     "custom_component": row.get("custom_component"),
@@ -4089,20 +3937,8 @@ def client_portal_get_equipment(customer, branch=None):
                 f"Portal component load failure for asset {eq.get('name')}: {str(e)}"
             )
             eq["components"] = []
-    
+
     return equipment_list
-
-
-'''@frappe.whitelist()
-def client_portal_get_branches(customer):
-    """Fetches all operating branches linked to the active Customer profile."""
-    if not customer:
-        return []
-    return frappe.get_all(
-        "Client Branch",
-        filters={"custom_parent_customer": customer},
-        fields=["name", "custom_branch", "custom_address", "custom_site_type"]
-    ) '''
 
 
 @frappe.whitelist()
@@ -4153,130 +3989,599 @@ def client_portal_get_tickets(customer):
 # DEDICATED CLIENT PORTAL Helpder FOR rENDERING TICKET/SERVICE LOGS AND mi PAGES        =
 # =======================================================================================
 
-@frappe.whitelist()
+def _cp_existing_fields(doctype, requested):
+    """Return only fields which exist on the current site's DocType."""
+    meta = frappe.get_meta(doctype)
+    always = {"name", "creation", "modified", "docstatus", "owner"}
+    return [f for f in requested if f in always or meta.has_field(f)]
+
+def _cp_display_equipment(equipment_name):
+    if not equipment_name or not frappe.db.exists("Installed Equipment", equipment_name):
+        return equipment_name
+
+    meta = frappe.get_meta("Installed Equipment")
+
+    for fieldname in (
+        "custom_display_name",
+        "custom_asset_name",
+        "custom_client_asset_code",
+    ):
+        if meta.has_field(fieldname):
+            value = frappe.db.get_value(
+                "Installed Equipment",
+                equipment_name,
+                fieldname
+            )
+
+            if value:
+                return value
+
+    return equipment_name
+
+'''@frappe.whitelist()
 def client_portal_get_ticket_detail(ticket_name):
+    """
+    Client-safe Service Ticket case view.
+
+    Security:
+      Website User -> Contact -> Customer -> optional Branch Level restriction.
+      The browser cannot use this endpoint to read another Customer's ticket.
+    """
     if not ticket_name:
         frappe.throw("Ticket is required.")
 
     ctx = get_client_portal_context()
 
+    ticket_fields = _cp_existing_fields("Service Ticket", [
+        "name", "creation", "modified",
+        "custom_customer", "custom_subject", "custom_description",
+        "custom_ticket_status", "custom_client_status", "custom_priority",
+        "custom_request_type", "custom_ticket_type", "custom_service_type",
+        "custom_client_branch", "custom_region",
+        "custom_target_equipment", "custom_parent_equipment",
+        "custom_target_component_name", "custom_target_component",
+        "custom_applicant", "custom_applicant_email", "custom_applicant_phone",
+        "custom_opening_date", "custom_resolution_date", "custom_closed_date",
+        "custom_resolution_details", "custom_resolution_source_mi",
+        "custom_response_due", "custom_resolution_due",
+        "custom_response_time_hours", "custom_resolution_time_hours",
+        "custom_wrong_equipment_reported", "custom_actual_equipment",
+        "custom_equipment_change_reason", "custom_equipment_changed",
+        "custom_commercial_status", "custom_maintenance_contract",
+        "custom_sla_rule", "custom_hold_reason"
+    ])
+
     ticket = frappe.db.get_value(
-        "Service Ticket",
-        ticket_name,
-        [
-            "name",
-            "custom_customer",
-            "custom_subject",
-            "custom_description",
-            "custom_ticket_status",
-            "custom_priority",
-            "custom_request_type",
-            "custom_client_branch",
-            "custom_target_equipment",
-            "custom_parent_equipment",
-            "custom_target_component_name",
-            "custom_target_component",
-            "custom_applicant",
-            "custom_applicant_email",
-            "custom_applicant_phone",
-            "custom_opening_date",
-            "custom_resolution_date",
-            "custom_closed_date",
-            "custom_resolution_details",
-            "custom_wrong_equipment_reported",
-            "custom_actual_equipment",
-            "custom_equipment_change_reason"
-        ],
-        as_dict=True
+        "Service Ticket", ticket_name, ticket_fields, as_dict=True
     )
 
-    equipment_display = None
-
-    if ticket.get("custom_target_equipment"):
-        equipment_display = frappe.db.get_value(
-            "Installed Equipment",
-            ticket.get("custom_target_equipment"),
-            "custom_display_name"
-        ) or frappe.db.get_value(
-            "Installed Equipment",
-            ticket.get("custom_target_equipment"),
-            "custom_asset_name"
-        )
-
-    ticket["target_equipment_display"] = equipment_display or ticket.get("custom_target_equipment")
-
-    #frappe.throw(str(ticket))
     if not ticket:
         frappe.throw("Ticket not found.")
 
     if ticket.get("custom_customer") != ctx["customer"]:
         frappe.throw("You are not allowed to view this ticket.", frappe.PermissionError)
 
-    if ctx["scope"] == "Branch Level" and ticket.get("custom_client_branch") != ctx["branch"]:
+    if ctx.get("scope") == "Branch Level" and ticket.get("custom_client_branch") != ctx.get("branch"):
         frappe.throw("You are not allowed to view this ticket.", frappe.PermissionError)
+
+    # Customer / branch display data
+    ticket["customer_display"] = (
+        frappe.db.get_value("Customer", ticket.get("custom_customer"), "customer_name")
+        if ticket.get("custom_customer") else None
+    ) or ticket.get("custom_customer")
+
+    ticket["branch_display"] = ticket.get("custom_client_branch")
+    if ticket.get("custom_client_branch") and frappe.db.exists("Client Branch", ticket.get("custom_client_branch")):
+        branch_meta = frappe.get_meta("Client Branch")
+        for fieldname in ("custom_branch", "branch_name", "title"):
+            if branch_meta.has_field(fieldname):
+                v = frappe.db.get_value("Client Branch", ticket.get("custom_client_branch"), fieldname)
+                if v:
+                    ticket["branch_display"] = v
+                    break
+
+    ticket["target_equipment_display"] = _cp_display_equipment(ticket.get("custom_target_equipment"))
+    ticket["actual_equipment_display"] = _cp_display_equipment(ticket.get("custom_actual_equipment"))
+
+    # All MIs for this case
+    mi_fields = _cp_existing_fields("Mission Intervention", [
+        "name", "creation", "modified", "custom_service_ticket",
+        "custom_start_time", "custom_end_time", "custom_technician",
+        "custom_intervention_type", "custom_service_type",
+        "custom_work_outcome", "custom_hours_worked", "custom_work_progress",
+        "custom_additional_mi", "custom_additional_mi_reason",
+        "custom_is_rework", "custom_rework_of"
+    ])
+    interventions = frappe.get_all(
+        "Mission Intervention",
+        filters={"custom_service_ticket": ticket_name},
+        fields=mi_fields,
+        order_by="creation asc",
+        limit_page_length=500
+    )
+
+    for mi in interventions:
+        tech = mi.get("custom_technician")
+        if tech:
+            mi["technician_display"] = frappe.db.get_value("User", tech, "full_name") or tech
+
+    # Sales Invoices linked explicitly to this ST. Never infer by customer/date.
+    invoices = []
+    si_meta = frappe.get_meta("Sales Invoice")
+    if si_meta.has_field("custom_service_ticket"):
+        si_fields = _cp_existing_fields("Sales Invoice", [
+            "name", "posting_date", "customer", "currency", "grand_total",
+            "outstanding_amount", "status", "docstatus"
+        ])
+        invoices = frappe.get_all(
+            "Sales Invoice",
+            filters={
+                "custom_service_ticket": ticket_name,
+                "customer": ctx["customer"],
+                "docstatus": ["!=", 2]
+            },
+            fields=si_fields,
+            order_by="posting_date asc, creation asc",
+            limit_page_length=100
+        )
+
+        # The standard ERPNext Customer Portal / invoice print pages still perform
+        # their own permission checks. We only return links after customer validation.
+        from urllib.parse import quote
+        default_format = getattr(si_meta, "default_print_format", None) or "Standard"
+        for inv in invoices:
+            inv["portal_url"] = "/invoices/" + quote(inv.name)
+            inv["print_url"] = (
+                "/printview?doctype=Sales%20Invoice&name=" + quote(inv.name) +
+                "&trigger_print=1&format=" + quote(default_format) +
+                "&no_letterhead=0"
+            )
+
+    # Client-facing activity stream assembled only from records already authorised above.
+    timeline = []
+    if ticket.get("custom_opening_date") or ticket.get("creation"):
+        timeline.append({
+            "datetime": ticket.get("custom_opening_date") or ticket.get("creation"),
+            "title": "Ticket reported",
+            "detail": ticket.get("custom_subject") or ""
+        })
+
+    for mi in interventions:
+        if mi.get("custom_start_time"):
+            timeline.append({
+                "datetime": mi.get("custom_start_time"),
+                "title": f"{mi.name} started",
+                "detail": mi.get("custom_intervention_type") or "Intervention",
+                "intervention": mi.name
+            })
+        if mi.get("custom_end_time"):
+            timeline.append({
+                "datetime": mi.get("custom_end_time"),
+                "title": f"{mi.name} completed",
+                "detail": mi.get("custom_work_outcome") or "",
+                "intervention": mi.name
+            })
+
+    if ticket.get("custom_resolution_date"):
+        timeline.append({
+            "datetime": ticket.get("custom_resolution_date"),
+            "title": "Ticket resolved",
+            "detail": ticket.get("custom_resolution_details") or ""
+        })
+
+    for inv in invoices:
+        timeline.append({
+            "datetime": inv.get("posting_date"),
+            "title": "Invoice issued",
+            "detail": inv.name,
+            "invoice": inv.name,
+            "view_url": inv.get("portal_url")
+        })
+
+    if ticket.get("custom_closed_date"):
+        timeline.append({
+            "datetime": ticket.get("custom_closed_date"),
+            "title": "Ticket closed",
+            "detail": ""
+        })
+
+    timeline.sort(key=lambda x: str(x.get("datetime") or ""))
+
+    return {
+        "ticket": ticket,
+        "interventions": interventions,
+        "invoices": invoices,
+        "timeline": timeline
+    }
+
+    '''
+
+@frappe.whitelist()
+def client_portal_get_ticket_detail(ticket_name):
+    """
+    Client-safe Service Ticket case view.
+
+    Security:
+      Website User -> Contact -> Customer -> optional Branch Level restriction.
+      The browser cannot use this endpoint to read another Customer's ticket.
+    """
+    if not ticket_name:
+        frappe.throw("Ticket is required.")
+
+    ctx = get_client_portal_context()
+
+    ticket_fields = _cp_existing_fields("Service Ticket", [
+        "name", "creation", "modified",
+        "custom_customer", "custom_subject", "custom_description",
+        "custom_ticket_status", "custom_client_status", "custom_priority",
+        "custom_request_type", "custom_ticket_type", "custom_service_type",
+        "custom_client_branch", "custom_region",
+        "custom_target_equipment", "custom_parent_equipment",
+        "custom_target_component_name", "custom_target_component",
+        "custom_applicant", "custom_applicant_email", "custom_applicant_phone",
+        "custom_opening_date", "custom_resolution_date", "custom_closed_date",
+        "custom_resolution_details", "custom_resolution_source_mi",
+        "custom_response_due", "custom_resolution_due",
+        "custom_response_time_hours", "custom_resolution_time_hours",
+        "custom_wrong_equipment_reported", "custom_actual_equipment",
+        "custom_equipment_change_reason", "custom_equipment_changed",
+        "custom_commercial_status", "custom_maintenance_contract",
+        "custom_sla_rule", "custom_hold_reason"
+    ])
+
+    ticket = frappe.db.get_value(
+        "Service Ticket",
+        ticket_name,
+        ticket_fields,
+        as_dict=True
+    )
+
+    if not ticket:
+        frappe.throw("Ticket not found.")
+
+    # ---------------------------------------------------------
+    # SECURITY: Customer isolation
+    # ---------------------------------------------------------
+    if ticket.get("custom_customer") != ctx["customer"]:
+        frappe.throw(
+            "You are not allowed to view this ticket.",
+            frappe.PermissionError
+        )
+
+    # ---------------------------------------------------------
+    # SECURITY: Branch isolation for Branch Level contacts
+    # ---------------------------------------------------------
+    if (
+        ctx.get("scope") == "Branch Level"
+        and ticket.get("custom_client_branch") != ctx.get("branch")
+    ):
+        frappe.throw(
+            "You are not allowed to view this ticket.",
+            frappe.PermissionError
+        )
+
+    # ---------------------------------------------------------
+    # Customer display
+    # ---------------------------------------------------------
+    ticket["customer_display"] = (
+        frappe.db.get_value(
+            "Customer",
+            ticket.get("custom_customer"),
+            "customer_name"
+        )
+        if ticket.get("custom_customer")
+        else None
+    ) or ticket.get("custom_customer")
+
+    # ---------------------------------------------------------
+    # Branch display
+    # ---------------------------------------------------------
+    ticket["branch_display"] = ticket.get("custom_client_branch")
+
+    if (
+        ticket.get("custom_client_branch")
+        and frappe.db.exists(
+            "Client Branch",
+            ticket.get("custom_client_branch")
+        )
+    ):
+        branch_meta = frappe.get_meta("Client Branch")
+
+        for fieldname in (
+            "custom_branch",
+            "branch_name",
+            "title"
+        ):
+            if branch_meta.has_field(fieldname):
+                value = frappe.db.get_value(
+                    "Client Branch",
+                    ticket.get("custom_client_branch"),
+                    fieldname
+                )
+
+                if value:
+                    ticket["branch_display"] = value
+                    break
+
+    # ---------------------------------------------------------
+    # Reported By / Applicant display
+    # ---------------------------------------------------------
+    ticket["applicant_display"] = (
+        ticket.get("custom_applicant") or ""
+    )
+
+    if (
+        ticket.get("custom_applicant")
+        and frappe.db.exists(
+            "Contact",
+            ticket.get("custom_applicant")
+        )
+    ):
+        contact = frappe.get_doc(
+            "Contact",
+            ticket.get("custom_applicant")
+        )
+
+        applicant_name = (
+            contact.get("full_name")
+            or " ".join(
+                part
+                for part in [
+                    contact.get("first_name"),
+                    contact.get("middle_name"),
+                    contact.get("last_name"),
+                ]
+                if part
+            )
+            or ticket.get("custom_applicant")
+        )
+
+        ticket["applicant_display"] = applicant_name
+
+        # Fill snapshot values only for display if they were not stored on ST.
+        if not ticket.get("custom_applicant_email"):
+            primary_email = None
+
+            for row in contact.get("email_ids") or []:
+                if row.get("is_primary"):
+                    primary_email = row.get("email_id")
+                    break
+
+            if not primary_email and contact.get("email_ids"):
+                primary_email = contact.email_ids[0].get("email_id")
+
+            ticket["custom_applicant_email"] = primary_email or ""
+
+        if not ticket.get("custom_applicant_phone"):
+            primary_phone = None
+
+            for row in contact.get("phone_nos") or []:
+                if row.get("is_primary_phone"):
+                    primary_phone = row.get("phone")
+                    break
+
+            if not primary_phone and contact.get("phone_nos"):
+                primary_phone = contact.phone_nos[0].get("phone")
+
+            ticket["custom_applicant_phone"] = primary_phone or ""
+
+    # ---------------------------------------------------------
+    # Equipment display
+    # ---------------------------------------------------------
+    ticket["target_equipment_display"] = _cp_display_equipment(
+        ticket.get("custom_target_equipment")
+    )
+
+    ticket["actual_equipment_display"] = _cp_display_equipment(
+        ticket.get("custom_actual_equipment")
+    )
+
+    # ---------------------------------------------------------
+    # Mission Interventions linked to this ticket
+    # ---------------------------------------------------------
+    mi_fields = _cp_existing_fields("Mission Intervention", [
+        "name", "creation", "modified",
+        "custom_service_ticket",
+        "custom_start_time", "custom_end_time",
+        "custom_technician",
+        "custom_intervention_type", "custom_service_type",
+        "custom_work_outcome",
+        "custom_hours_worked",
+        "custom_work_progress",
+        "custom_additional_mi",
+        "custom_additional_mi_reason",
+        "custom_is_rework",
+        "custom_rework_of"
+    ])
 
     interventions = frappe.get_all(
         "Mission Intervention",
         filters={
             "custom_service_ticket": ticket_name
         },
-        fields=[
+        fields=mi_fields,
+        order_by="creation asc",
+        limit_page_length=500
+    )
+
+    for mi in interventions:
+        tech = mi.get("custom_technician")
+
+        if tech:
+            mi["technician_display"] = (
+                frappe.db.get_value(
+                    "User",
+                    tech,
+                    "full_name"
+                )
+                or tech
+            )
+
+    # ---------------------------------------------------------
+    # Sales Invoices explicitly linked to this Service Ticket
+    # ---------------------------------------------------------
+    invoices = []
+
+    si_meta = frappe.get_meta("Sales Invoice")
+
+    if si_meta.has_field("custom_service_ticket"):
+
+        si_fields = _cp_existing_fields("Sales Invoice", [
             "name",
-            "custom_start_time",
-            "custom_end_time",
-            "custom_technician",
-            "custom_intervention_type",
-            "custom_work_outcome",
-            "custom_hours_worked",
-            "custom_work_progress"
-        ],
-        order_by="creation asc"
+            "posting_date",
+            "customer",
+            "currency",
+            "grand_total",
+            "outstanding_amount",
+            "status",
+            "docstatus"
+        ])
+
+        invoices = frappe.get_all(
+            "Sales Invoice",
+            filters={
+                "custom_service_ticket": ticket_name,
+                "customer": ctx["customer"],
+                "docstatus": ["!=", 2]
+            },
+            fields=si_fields,
+            order_by="posting_date asc, creation asc",
+            limit_page_length=100
+        )
+
+        from urllib.parse import quote
+
+        default_format = (
+            getattr(si_meta, "default_print_format", None)
+            or "Standard"
+        )
+
+        for inv in invoices:
+
+            # ERPNext customer portal invoice page
+            inv["portal_url"] = (
+                "/invoices/" + quote(inv.name)
+            )
+
+            # Official ERPNext Sales Invoice print view
+            inv["print_url"] = (
+                "/printview"
+                "?doctype=Sales%20Invoice"
+                "&name=" + quote(inv.name)
+                + "&trigger_print=1"
+                + "&format=" + quote(default_format)
+                + "&no_letterhead=0"
+            )
+
+    # ---------------------------------------------------------
+    # Client-facing timeline
+    # ---------------------------------------------------------
+    timeline = []
+
+    if (
+        ticket.get("custom_opening_date")
+        or ticket.get("creation")
+    ):
+        timeline.append({
+            "datetime": (
+                ticket.get("custom_opening_date")
+                or ticket.get("creation")
+            ),
+            "title": "Ticket reported",
+            "detail": ticket.get("custom_subject") or ""
+        })
+
+    for mi in interventions:
+
+        if mi.get("custom_start_time"):
+            timeline.append({
+                "datetime": mi.get("custom_start_time"),
+                "title": f"{mi.name} started",
+                "detail": (
+                    mi.get("custom_intervention_type")
+                    or "Intervention"
+                ),
+                "intervention": mi.name
+            })
+
+        if mi.get("custom_end_time"):
+            timeline.append({
+                "datetime": mi.get("custom_end_time"),
+                "title": f"{mi.name} completed",
+                "detail": (
+                    mi.get("custom_work_outcome") or ""
+                ),
+                "intervention": mi.name
+            })
+
+    if ticket.get("custom_resolution_date"):
+        timeline.append({
+            "datetime": ticket.get("custom_resolution_date"),
+            "title": "Ticket resolved",
+            "detail": (
+                ticket.get("custom_resolution_details")
+                or ""
+            )
+        })
+
+    for inv in invoices:
+        timeline.append({
+            "datetime": inv.get("posting_date"),
+            "title": "Invoice issued",
+            "detail": inv.name,
+            "invoice": inv.name,
+            "view_url": inv.get("portal_url")
+        })
+
+    if ticket.get("custom_closed_date"):
+        timeline.append({
+            "datetime": ticket.get("custom_closed_date"),
+            "title": "Ticket closed",
+            "detail": ""
+        })
+
+    timeline.sort(
+        key=lambda x: str(
+            x.get("datetime") or ""
+        )
     )
 
     return {
         "ticket": ticket,
-        "interventions": interventions
-    }
+        "interventions": interventions,
+        "invoices": invoices,
+        "timeline": timeline
+    }    
 
 @frappe.whitelist()
 def client_portal_get_intervention_detail(intervention_name):
+    """
+    Client-safe Mission Intervention report data.
+    Designed for the report-style /client-portal/intervention HTML page.
+    """
     if not intervention_name:
         frappe.throw("Intervention is required.")
 
     ctx = get_client_portal_context()
 
+    mi_fields = _cp_existing_fields("Mission Intervention", [
+        "name", "creation", "modified", "custom_service_ticket",
+        "custom_parent_mission", "custom_parent_customer", "custom_branch",
+        "custom_asset", "custom_target_component_name", "custom_component_item",
+        "custom_component_group", "custom_component_serial",
+        "custom_intervention_type", "custom_service_type", "custom_technician",
+        "custom_start_time", "custom_end_time", "custom_hours_worked",
+        "custom_work_outcome", "custom_work_progress",
+        "custom_technical_progress_notes", "custom_signatory_name",
+        "custom_client_signature", "custom_tech_signature",
+        "custom_quality_score", "custom_hse_score",
+        "custom_swap_classification", "custom_new_asset",
+        "custom_asset_change_reason", "custom_vehicle",
+        "custom_assigned_vehicle", "custom_external_vehicle", "custom_subject"
+    ])
+
     mi = frappe.db.get_value(
-        "Mission Intervention",
-        intervention_name,
-        [
-            "name",
-            "custom_service_ticket",
-            "custom_parent_mission",
-            "custom_parent_customer",
-            "custom_branch",
-            "custom_asset",
-            "custom_target_component_name",
-            "custom_component_item",
-            "custom_component_group",
-            "custom_component_serial",
-            "custom_intervention_type",
-            "custom_service_type",
-            "custom_technician",
-            "custom_start_time",
-            "custom_end_time",
-            "custom_hours_worked",
-            "custom_work_outcome",
-            "custom_work_progress",
-            "custom_signatory_name",
-            "custom_client_signature",
-            "custom_tech_signature",
-            "custom_quality_score",
-            "custom_hse_score",
-            "custom_swap_classification",            
-            "custom_new_asset",
-            "custom_asset_change_reason"
-        ],
-        as_dict=True
+        "Mission Intervention", intervention_name, mi_fields, as_dict=True
     )
 
     if not mi:
@@ -4285,128 +4590,129 @@ def client_portal_get_intervention_detail(intervention_name):
     if mi.get("custom_parent_customer") != ctx["customer"]:
         frappe.throw("You are not allowed to view this intervention.", frappe.PermissionError)
 
-    if ctx["scope"] == "Branch Level" and mi.get("custom_branch") != ctx["branch"]:
+    if ctx.get("scope") == "Branch Level" and mi.get("custom_branch") != ctx.get("branch"):
         frappe.throw("You are not allowed to view this intervention.", frappe.PermissionError)
 
-    equipment_display = None
-    if mi.get("custom_asset"):
-        equipment_display = frappe.db.get_value(
-            "Installed Equipment",
-            mi.get("custom_asset"),
-            "custom_asset_name"
-        )
+    # Parent ST is independently constrained to the same customer/branch context.
+    ticket = {}
+    if mi.get("custom_service_ticket") and frappe.db.exists("Service Ticket", mi.get("custom_service_ticket")):
+        t_fields = _cp_existing_fields("Service Ticket", [
+            "name", "custom_customer", "custom_client_branch", "custom_subject",
+            "custom_request_type", "custom_ticket_type", "custom_service_type",
+            "custom_applicant", "custom_applicant_email", "custom_applicant_phone"
+        ])
+        ticket = frappe.db.get_value(
+            "Service Ticket", mi.get("custom_service_ticket"), t_fields, as_dict=True
+        ) or {}
+        if ticket.get("custom_customer") != ctx["customer"]:
+            frappe.throw("You are not allowed to view this intervention.", frappe.PermissionError)
+        if ctx.get("scope") == "Branch Level" and ticket.get("custom_client_branch") != ctx.get("branch"):
+            frappe.throw("You are not allowed to view this intervention.", frappe.PermissionError)
 
-    new_equipment_display = None
-    if mi.get("custom_new_asset"):
-        new_equipment_display = frappe.db.get_value(
-            "Installed Equipment",
-            mi.get("custom_new_asset"),
-            "custom_asset_name"
-        )
+    # Equipment report columns
+    equipment = {}
+    if mi.get("custom_asset") and frappe.db.exists("Installed Equipment", mi.get("custom_asset")):
+        e_fields = _cp_existing_fields("Installed Equipment", [
+            "name", "custom_parent_customer", "custom_branch", "custom_display_name",
+            "custom_asset_name", "custom_asset_type", "custom_equipment_type",
+            "custom_make", "custom_brand", "custom_model",
+            "custom_serial_no", "custom_serial_number", "custom_client_asset_code"
+        ])
+        equipment = frappe.db.get_value(
+            "Installed Equipment", mi.get("custom_asset"), e_fields, as_dict=True
+        ) or {}
+
+        # Defence in depth: MI and Installed Equipment must belong to this customer.
+        if equipment.get("custom_parent_customer") and equipment.get("custom_parent_customer") != ctx["customer"]:
+            frappe.throw("You are not allowed to view this equipment.", frappe.PermissionError)
+
+    # Branch / region / address for the report header
+    branch = {}
+    branch_display = mi.get("custom_branch")
+    branch_address = None
+    region_display = None
+    if mi.get("custom_branch") and frappe.db.exists("Client Branch", mi.get("custom_branch")):
+        b_fields = _cp_existing_fields("Client Branch", [
+            "name", "custom_parent_customer", "custom_branch", "custom_address",
+            "custom_region", "custom_site_type"
+        ])
+        branch = frappe.db.get_value("Client Branch", mi.get("custom_branch"), b_fields, as_dict=True) or {}
+        if branch.get("custom_parent_customer") and branch.get("custom_parent_customer") != ctx["customer"]:
+            frappe.throw("You are not allowed to view this branch.", frappe.PermissionError)
+        branch_display = branch.get("custom_branch") or mi.get("custom_branch")
+        branch_address = branch.get("custom_address")
+        #region_display = branch.get("custom_region")
+        region = branch.get("custom_region")
+        region_display = region
+
+        if region and frappe.db.exists("Region", region):
+            region_display = (
+                frappe.db.get_value(
+                    "Region",
+                    region,
+                    "custom_region_name"
+                )
+                or region
+            )
+
+    customer_display = (
+        frappe.db.get_value("Customer", ctx["customer"], "customer_name")
+        if ctx.get("customer") else None
+    ) or ctx.get("customer")
 
     technician_display = mi.get("custom_technician")
-    if mi.get("custom_technician"):
-        technician_display = frappe.db.get_value(
-            "User",
-            mi.get("custom_technician"),
-            "full_name"
-        ) or mi.get("custom_technician")
+    if technician_display:
+        technician_display = frappe.db.get_value("User", technician_display, "full_name") or technician_display
 
+    # Parts child table — tolerate existing field-name variations.
     parts = []
     mi_doc = frappe.get_doc("Mission Intervention", intervention_name)
-
     for row in mi_doc.get("custom_parts_table") or []:
         parts.append({
-            "item_code": row.get("custom_item_code"),
-            "item_name": row.get("custom_item_name"),
-            "qty": row.get("custom_qty"),
+            "item_code": row.get("custom_item_code") or row.get("custom_part"),
+            "item_name": row.get("custom_item_name") or row.get("item_name"),
+            "qty": row.get("custom_qty") or row.get("custom_quantity") or row.get("qty"),
             "serial_no": row.get("custom_serial_no") or row.get("custom_serial_number")
         })
 
+    # Optional photo child tables. Only inspect tables that exist on this site's MI.
+    photos = []
+    for table_field in ("custom_photos", "custom_photo_table", "custom_service_photos"):
+        if mi_doc.meta.has_field(table_field):
+            for row in mi_doc.get(table_field) or []:
+                url = row.get("custom_photo") or row.get("photo") or row.get("file")
+                if url:
+                    photos.append({
+                        "url": url,
+                        "label": row.get("custom_label") or row.get("label") or "Photo"
+                    })
+
     return {
         "intervention": mi,
-        "equipment_display": equipment_display or mi.get("custom_asset"),
-        "new_equipment_display": new_equipment_display or mi.get("custom_new_asset"),
+        "ticket": ticket,
+        "equipment": equipment,
+        "equipment_display": _cp_display_equipment(mi.get("custom_asset")),
+        "customer_display": customer_display,
+        "branch": branch,
+        "branch_display": branch_display,
+        "branch_address": branch_address,
+        "region_display": region_display,
         "technician_display": technician_display,
-        "parts": parts
+        "parts": parts,
+        "photos": photos
     }
-
-'''@frappe.whitelist()
-def client_portal_get_service_logs(asset=None, component=None, component_serial=None, date_from=None, date_to=None, branch=None):
-    ctx = get_client_portal_context()
-
-    filters = {
-        "custom_customer": ctx["customer"]
-    }
-
-    if ctx["scope"] == "Branch Level":
-        filters["custom_branch"] = ctx["branch"]
-    elif branch:
-        filters["custom_branch"] = branch
-
-    if asset:
-        filters["custom_related_asset"] = asset
-
-    if component_serial:
-        filters["custom_component_serial"] = component_serial
-    elif component:
-        filters["custom_component_item"] = component
-
-    if date_from:
-        filters["custom_end_time"] = [">=", date_from]
-
-    if date_to:
-        filters["custom_end_time"] = ["<=", date_to]
-
-    logs = frappe.get_all(
-        "Asset Service Log",
-        filters=filters,
-        fields=[
-            "name",
-            "creation",
-            "custom_end_time",
-            "custom_related_asset",
-            "custom_branch",
-            "custom_service_ticket",
-            "custom_mission_ref",
-            "custom_intervention_ref",
-            "custom_technician",
-            "custom_intervention_type",
-            "custom_work_outcome",
-            "custom_notes",
-            "custom_duration",
-            "custom_component_item",
-            "custom_component_group",
-            "custom_component_serial"
-        ],
-        order_by="custom_end_time desc, creation desc",
-        limit=200
-    )
-
-    for row in logs:
-        row["equipment_display"] = frappe.db.get_value(
-            "Installed Equipment",
-            row.get("custom_related_asset"),
-            "custom_asset_name"
-        ) or row.get("custom_related_asset")
-
-        row["technician_display"] = frappe.db.get_value(
-            "User",
-            row.get("custom_technician"),
-            "full_name"
-        ) or row.get("custom_technician")
-
-    return logs'''
 
 @frappe.whitelist()
-def client_portal_get_service_logs(asset=None, component=None, component_serial=None, date_from=None, date_to=None, branch=None):
+def client_portal_get_service_logs(asset=None, component=None, component_serial=None, date_from=None, date_to=None, branch=None, equipment_type=None, intervention_type=None):
+    """Client-safe Asset Service Log feed.
+
+    Company/branch isolation is always applied server-side.  Equipment type and
+    component metadata are returned so the portal can build cascading filters
+    without querying internal data directly.
+    """
     ctx = get_client_portal_context()
 
-    # Initialize filters as a list of conditions to prevent key overwriting
-    filters = [
-        ["custom_customer", "=", ctx["customer"]]
-    ]
-
+    filters = [["custom_customer", "=", ctx["customer"]]]
     if ctx["scope"] == "Branch Level":
         filters.append(["custom_branch", "=", ctx["branch"]])
     elif branch:
@@ -4414,55 +4720,82 @@ def client_portal_get_service_logs(asset=None, component=None, component_serial=
 
     if asset:
         filters.append(["custom_related_asset", "=", asset])
-
     if component_serial:
         filters.append(["custom_component_serial", "=", component_serial])
     elif component:
-        filters.append(["custom_component_item", "=", component])
-
+        meta = frappe.get_meta("Asset Service Log")
+        if meta.has_field("custom_equipment_component"):
+            filters.append(["custom_equipment_component", "=", component])
+        else:
+            filters.append(["custom_component_item", "=", component])
     if date_from:
         filters.append(["custom_end_time", ">=", date_from])
-
     if date_to:
-        filters.append(["custom_end_time", "<=", date_to])
+        filters.append(["custom_end_time", "<=", date_to + " 23:59:59"] if len(str(date_to)) == 10 else ["custom_end_time", "<=", date_to])
+    if intervention_type:
+        filters.append(["custom_intervention_type", "=", intervention_type])
+
+    meta = frappe.get_meta("Asset Service Log")
+    requested = [
+        "name", "creation", "custom_end_time", "custom_related_asset",
+        "custom_branch", "custom_service_ticket", "custom_mission_ref",
+        "custom_intervention_ref", "custom_technician",
+        "custom_intervention_type", "custom_work_outcome", "custom_notes",
+        "custom_duration", "custom_component_item", "custom_component_group",
+        "custom_component_serial", "custom_component_brand", "custom_component_model",
+        "custom_equipment_component"
+    ]
+    fields = [f for f in requested if f in {"name", "creation"} or meta.has_field(f)]
 
     logs = frappe.get_all(
-        "Asset Service Log",
-        filters=filters,
-        fields=[
-            "name",
-            "creation",
-            "custom_end_time",
-            "custom_related_asset",
-            "custom_branch",
-            "custom_service_ticket",
-            "custom_mission_ref",
-            "custom_intervention_ref",
-            "custom_technician",
-            "custom_intervention_type",
-            "custom_work_outcome",
-            "custom_notes",
-            "custom_duration",
-            "custom_component_item",
-            "custom_component_group",
-            "custom_component_serial"
-        ],
-        order_by="custom_end_time desc, creation desc",
-        limit=200
+        "Asset Service Log", filters=filters, fields=fields,
+        order_by="custom_end_time desc, creation desc", limit_page_length=1000
     )
 
+    eq_cache = {}
+    comp_cache = {}
     for row in logs:
-        row["equipment_display"] = frappe.db.get_value(
-            "Installed Equipment",
-            row.get("custom_related_asset"),
-            "custom_asset_name"
-        ) or row.get("custom_related_asset")
+        eq_name = row.get("custom_related_asset")
+        if eq_name:
+            if eq_name not in eq_cache:
+                eq_cache[eq_name] = frappe.db.get_value(
+                    "Installed Equipment", eq_name,
+                    ["name", "custom_asset_name", "custom_display_name", "custom_asset_type", "custom_parent_customer", "custom_branch"],
+                    as_dict=True
+                ) or {}
+            eq = eq_cache[eq_name]
+            # Defence in depth: never return a row whose parent equipment is outside the portal context.
+            if eq and eq.get("custom_parent_customer") and eq.get("custom_parent_customer") != ctx["customer"]:
+                continue
+            row["equipment_display"] = eq.get("custom_display_name") or eq.get("custom_asset_name") or eq_name
+            row["equipment_type"] = eq.get("custom_asset_type") or ""
+        else:
+            row["equipment_display"] = ""
+            row["equipment_type"] = ""
 
-        row["technician_display"] = frappe.db.get_value(
-            "User",
-            row.get("custom_technician"),
-            "full_name"
-        ) or row.get("custom_technician")
+        tech = row.get("custom_technician")
+        row["technician_display"] = frappe.db.get_value("User", tech, "full_name") or tech if tech else ""
+
+        comp_name = row.get("custom_equipment_component")
+        if comp_name:
+            if comp_name not in comp_cache:
+                cmeta = frappe.get_meta("Equipment Component") if frappe.db.exists("DocType", "Equipment Component") else None
+                if cmeta:
+                    wanted = ["name", "custom_display_name", "custom_component_name", "custom_equipment_type", "custom_serial_number"]
+                    cfields = [f for f in wanted if f == "name" or cmeta.has_field(f)]
+                    comp_cache[comp_name] = frappe.db.get_value("Equipment Component", comp_name, cfields, as_dict=True) or {}
+                else:
+                    comp_cache[comp_name] = {}
+            comp = comp_cache[comp_name]
+            row["component_display"] = comp.get("custom_display_name") or comp.get("custom_component_name") or comp.get("custom_equipment_type") or row.get("custom_component_item") or comp_name
+        else:
+            row["component_display"] = row.get("custom_component_item") or ""
+
+    if equipment_type:
+        logs = [
+            r for r in logs
+            if r.get("equipment_type") == equipment_type
+        ]
 
     return logs
 
@@ -6867,7 +7200,10 @@ def create_ticket_from_installed_equipment(
             "Config Change",
             "Swap",
             "Loan",
-            "Service"
+            "Service",
+            "Decommissioning",
+            "Inspection",
+            "Specialised Testing",
         ]
     }
 
@@ -7364,3 +7700,205 @@ def get_component_webview_data(component_name):
         "config":_component_get_config_logs(component),
     }
 
+
+
+# ============================================================
+# CLIENT PORTAL - UNIFIED EQUIPMENT / COMPONENT WORKSPACE
+# ============================================================
+
+def _client_portal_existing_fields(doctype, fields):
+    meta = frappe.get_meta(doctype)
+    base = {"name", "creation", "modified", "docstatus"}
+    return [field for field in fields if field in base or meta.has_field(field)]
+
+
+def _client_portal_assert_equipment_access(equipment_name):
+    if not equipment_name or not frappe.db.exists("Installed Equipment", equipment_name):
+        frappe.throw("Equipment not found.")
+
+    ctx = get_client_portal_context()
+    equipment = frappe.db.get_value(
+        "Installed Equipment",
+        equipment_name,
+        ["name", "custom_parent_customer", "custom_branch"],
+        as_dict=True,
+    )
+
+    if not equipment or equipment.get("custom_parent_customer") != ctx.get("customer"):
+        frappe.throw("You are not allowed to view this equipment.", frappe.PermissionError)
+
+    if ctx.get("scope") == "Branch Level" and equipment.get("custom_branch") != ctx.get("branch"):
+        frappe.throw("You are not allowed to view this equipment.", frappe.PermissionError)
+
+    return ctx
+
+
+@frappe.whitelist()
+def client_portal_get_equipment_workspace(equipment_name):
+    """Secure client-facing equivalent of the internal Installed Equipment detail view."""
+    ctx = _client_portal_assert_equipment_access(equipment_name)
+
+    fields = _client_portal_existing_fields("Installed Equipment", [
+        "name", "custom_parent_customer", "custom_branch", "custom_asset_name", "custom_display_name",
+        "custom_item_code", "custom_make", "custom_model", "custom_asset_category", "custom_asset_id",
+        "custom_asset_type", "custom_site_id", "custom_equipment_template", "custom_client_type",
+        "custom_next_maintenance_date", "custom_ownership", "custom_asset_status", "custom_operational_status",
+        "custom_warranty", "custom_maint_frequency", "custom_warranty_period_years", "custom_coverage_type",
+        "custom_client_asset_code", "custom_location_status", "custom_equipment_health", "custom_region",
+        "custom_maintenance_contract", "custom_sla_rule", "custom_last_service_date", "custom_replaces_equipment",
+        "custom_replaced_by_equipment", "custom_replacement_reason", "custom_replacement_date",
+        "custom_commissioned_date", "custom_installed_date", "custom_installation_year", "custom_commissioning_status",
+        "custom_last_calibration_date", "custom_next_calibration_date", "custom_last_calibration_record",
+        "custom_last_commissioning_record", "custom_calibration_required"
+    ])
+    equipment = frappe.db.get_value("Installed Equipment", equipment_name, fields, as_dict=True) or {}
+
+    # get_eq_logs is reused only after ownership has been proven above.
+    logs = get_eq_logs(equipment_name) or {"service": [], "lifecycle": [], "config": [], "components": []}
+
+    ticket_filters = {
+        "custom_customer": ctx["customer"],
+        "custom_target_equipment": equipment_name,
+    }
+    if ctx.get("scope") == "Branch Level":
+        ticket_filters["custom_client_branch"] = ctx.get("branch")
+
+    ticket_fields = _client_portal_existing_fields("Service Ticket", [
+        "name", "creation", "custom_opening_date", "custom_subject", "custom_ticket_status", "custom_priority",
+        "custom_request_type", "custom_ticket_type", "custom_client_branch", "custom_target_equipment",
+        "custom_target_component_name", "custom_equipment_component", "custom_target_component"
+    ])
+    tickets = frappe.get_all("Service Ticket", filters=ticket_filters, fields=ticket_fields, order_by="creation desc", limit_page_length=500)
+
+    branch_display = equipment.get("custom_branch")
+    if equipment.get("custom_branch") and frappe.db.exists("Client Branch", equipment.get("custom_branch")):
+        branch_display = frappe.db.get_value("Client Branch", equipment.get("custom_branch"), "custom_branch") or equipment.get("custom_branch")
+
+    customer_display = frappe.db.get_value("Customer", ctx["customer"], "customer_name") or ctx["customer"]
+
+    return {
+        "equipment": equipment,
+        "logs": logs,
+        "tickets": tickets,
+        "customer_display": customer_display,
+        "branch_display": branch_display,
+    }
+
+
+def _client_portal_component_access(component_name):
+    if not component_name or not frappe.db.exists("Equipment Component", component_name):
+        frappe.throw("Equipment Component not found.")
+
+    component = frappe.get_doc("Equipment Component", component_name)
+    parent_equipment = component.get("custom_parent_equipment")
+    if not parent_equipment:
+        frappe.throw("This component is not currently linked to Installed Equipment.")
+
+    ctx = _client_portal_assert_equipment_access(parent_equipment)
+    return ctx, component
+
+
+@frappe.whitelist()
+def client_portal_get_component_workspace(component_name):
+    """Secure client-facing component detail, kept visually inside the equipment workspace."""
+    ctx, component = _client_portal_component_access(component_name)
+
+    component_fields = _client_portal_existing_fields("Equipment Component", [
+        "name", "custom_requires_calibration", "custom_parent_equipment", "custom_customer", "custom_branch",
+        "custom_company_workshop", "custom_component_group", "custom_equipment_type", "custom_make", "custom_model",
+        "custom_serial_number", "custom_part_number", "custom_status", "custom_installation_date", "custom_display_name",
+        "custom_item", "custom_commissioning_status", "custom_commissioned_date", "custom_last_commissioning_record",
+        "custom_last_calibration_record", "custom_last_calibration_date", "custom_next_calibration_date",
+        "custom_calibration_interval_months"
+    ])
+    c = {field: component.get(field) for field in component_fields}
+
+    parent = component.get("custom_parent_equipment")
+    eq_fields = _client_portal_existing_fields("Installed Equipment", [
+        "name", "custom_asset_name", "custom_display_name", "custom_asset_id", "custom_client_asset_code",
+        "custom_parent_customer", "custom_branch"
+    ])
+    eq = frappe.db.get_value("Installed Equipment", parent, eq_fields, as_dict=True) or {}
+
+    customer_display = frappe.db.get_value("Customer", ctx["customer"], "customer_name") or ctx["customer"]
+    branch_display = component.get("custom_branch") or eq.get("custom_branch")
+    if branch_display and frappe.db.exists("Client Branch", branch_display):
+        branch_display = frappe.db.get_value("Client Branch", branch_display, "custom_branch") or branch_display
+
+    # Component helper functions already correlate the permanent COMP id with tickets/logs.
+    tickets = _component_get_tickets(component.name)
+    tickets = [row for row in tickets if frappe.db.get_value("Service Ticket", row.get("name"), "custom_customer") == ctx["customer"]]
+    if ctx.get("scope") == "Branch Level":
+        tickets = [row for row in tickets if row.get("custom_client_branch") == ctx.get("branch")]
+
+    service = _component_get_service_logs(component, tickets)
+    lifecycle = _component_get_lifecycle_logs(component)
+    config = _component_get_config_logs(component)
+
+    # Do not expose history from another customer's asset if a permanent component was previously moved.
+    service = [row for row in service if not row.get("custom_related_asset") or row.get("custom_related_asset") == parent]
+    lifecycle = [row for row in lifecycle if not row.get("custom_related_asset") or row.get("custom_related_asset") == parent]
+    config = [row for row in config if not row.get("custom_related_asset") or row.get("custom_related_asset") == parent]
+
+    return {
+        "component": c,
+        "context": {
+            "customer_display": customer_display,
+            "branch_display": branch_display,
+            "equipment": eq,
+        },
+        "tickets": tickets,
+        "service": service,
+        "lifecycle": lifecycle,
+        "config": config,
+    }
+# ============================================================================
+# Client Portal uses this secured wrapper instead of calling the internal helper
+# directly. It re-validates Customer + Branch + Component ownership server-side.
+# ============================================================================
+
+@frappe.whitelist()
+def client_portal_create_service_ticket(
+    equipment_name,
+    component_name=None,
+    request_type=None,
+    subject=None,
+    description=None,
+):
+    if not subject or not str(subject).strip():
+        frappe.throw("Subject is required.")
+    if not description or not str(description).strip():
+        frappe.throw("Description is required.")
+
+    # This proves the equipment belongs to the logged-in portal Customer and,
+    # for Branch Level contacts, to the permitted branch.
+    _client_portal_assert_equipment_access(equipment_name)
+
+    component_name = (component_name or "").strip() or None
+    if component_name:
+        if not frappe.db.exists("Equipment Component", component_name):
+            frappe.throw("Component not found.")
+
+        component = frappe.get_doc("Equipment Component", component_name)
+        if component.get("custom_parent_equipment") != equipment_name:
+            frappe.throw(
+                "This component does not belong to the selected equipment.",
+                frappe.PermissionError,
+            )
+
+        # Independent component ownership check. This resolves the parent
+        # equipment again and applies the same Customer / Branch isolation.
+        _client_portal_component_access(component_name)
+
+    allowed_request_types = {"Breakdown", "Maintenance", "General"}
+    request_type = request_type if request_type in allowed_request_types else "Breakdown"
+
+    # Reuse the established internal ticket-creation logic only AFTER portal
+    # ownership checks above have passed.
+    return create_service_ticket_from_equipment(
+        equipment_name=equipment_name,
+        component_row_id=component_name,
+        request_type=request_type,
+        subject=str(subject).strip(),
+        description=str(description).strip(),
+    )

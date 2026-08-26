@@ -1,621 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ticket Details</title>
-    <style>
-        :root {
-            --primary: #3b82f6;
-            --primary-dark: #2563eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-700: #374151;
-            --gray-900: #111827;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: var(--gray-50);
-            color: var(--gray-900);
-            line-height: 1.6;
-        }
-
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-
-        /* HEADER */
-        .ticket-header {
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-        }
-
-        .ticket-title-section h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--primary);
-        }
-
-        .ticket-meta {
-            font-size: 14px;
-            color: var(--gray-600);
-        }
-
-        .ticket-status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-        }
-
-        .status-open {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--primary);
-        }
-
-        .status-in-progress {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-        }
-
-        .status-resolved {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-        }
-
-        .status-closed {
-            background: rgba(107, 114, 128, 0.1);
-            color: var(--gray-600);
-        }
-
-        /* GRID LAYOUT */
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 768px) {
-            .details-grid { grid-template-columns: 1fr; }
-            .ticket-header { flex-direction: column; }
-        }
-
-        /* CARD */
-        .card {
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-
-        .card-title {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--gray-900);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .card-title::before {
-            content: '';
-            width: 4px;
-            height: 20px;
-            background: var(--primary);
-            border-radius: 2px;
-        }
-
-        /* FIELD */
-        .field {
-            margin-bottom: 16px;
-        }
-
-        .field-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .field-value {
-            font-size: 14px;
-            color: var(--gray-900);
-            padding: 8px 12px;
-            background: var(--gray-50);
-            border-radius: 4px;
-            border-left: 3px solid var(--primary);
-        }
-
-        .field-value.empty {
-            color: var(--gray-500);
-            font-style: italic;
-        }
-
-        /* PRIORITY BADGE */
-        .priority-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .priority-low { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .priority-medium { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
-        .priority-high { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .priority-urgent { background: #8B0000; color: white; }
-
-        /* INTERVENTIONS */
-        .intervention-item {
-            padding: 16px;
-            border: 1px solid var(--gray-200);
-            border-radius: 6px;
-            margin-bottom: 12px;
-            background: var(--gray-50);
-        }
-
-        .intervention-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .intervention-date {
-            font-size: 12px;
-            color: var(--gray-600);
-        }
-
-        .intervention-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            font-size: 13px;
-        }
-
-        .intervention-detail {
-            padding: 8px;
-            background: white;
-            border-radius: 4px;
-        }
-
-        .intervention-detail-label {
-            color: var(--gray-600);
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .intervention-detail-value {
-            color: var(--gray-900);
-        }
-
-        /* EQUIPMENT SECTION */
-        .equipment-badge {
-            display: inline-block;
-            padding: 8px 12px;
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--primary);
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 600;
-            margin: 4px 4px 4px 0;
-        }
-
-        /* BUTTONS */
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .btn-secondary {
-            background: var(--gray-200);
-            color: var(--gray-900);
-        }
-
-        .btn-secondary:hover {
-            background: var(--gray-300);
-        }
-
-        /* TIMELINE */
-        .timeline {
-            position: relative;
-            padding: 20px 0;
-        }
-
-        .timeline-item {
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 3px solid var(--gray-300);
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -9px;
-            top: 20px;
-            width: 12px;
-            height: 12px;
-            background: white;
-            border: 3px solid var(--primary);
-            border-radius: 50%;
-        }
-
-        .timeline-item.completed::before {
-            background: var(--success);
-            border-color: var(--success);
-        }
-
-        .timeline-label {
-            font-weight: 600;
-            color: var(--gray-900);
-            margin-bottom: 4px;
-        }
-
-        .timeline-date {
-            font-size: 12px;
-            color: var(--gray-600);
-        }
-
-        /* LOADING */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--gray-500);
-        }
-
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid var(--gray-200);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            padding: 16px;
-            border-radius: 6px;
-            border-left: 4px solid var(--danger);
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Ticket</title>
+<style>
+:root{--blue:#2563eb;--blue2:#eff6ff;--green:#059669;--amber:#d97706;--red:#dc2626;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--ink)}
+.page{max-width:1080px;margin:0 auto;padding:24px}.toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 14px;font-weight:650;cursor:pointer}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.report{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.06)}
+.hero{padding:26px 30px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:24px;background:linear-gradient(180deg,#fff,#fbfdff)}
+.eyebrow{font-size:12px;letter-spacing:.12em;font-weight:800;color:var(--muted)}h1{margin:5px 0 6px;font-size:30px}.subject{font-size:17px;color:#334155}.badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.badge{padding:7px 11px;border-radius:999px;font-size:12px;font-weight:800;background:#eef2ff;color:#3730a3}.badge.green{background:#ecfdf5;color:#047857}.badge.amber{background:#fffbeb;color:#b45309}.badge.red{background:#fef2f2;color:#b91c1c}
+.section{padding:24px 30px;border-bottom:1px solid var(--line)}.section:last-child{border-bottom:0}.section-title{font-size:13px;font-weight:850;letter-spacing:.08em;color:#334155;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.kv{border:1px solid var(--line);border-radius:9px;padding:12px;background:#fff}.k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:750;margin-bottom:5px}.v{font-size:14px;font-weight:650;word-break:break-word}.prose{white-space:pre-wrap;line-height:1.65;color:#334155;background:#f8fafc;border-radius:9px;padding:14px}
+.sla-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.sla{border:1px solid var(--line);border-radius:10px;padding:14px}.sla .big{font-size:18px;font-weight:800;margin-top:4px}.sla.ok{border-left:4px solid var(--green)}.sla.bad{border-left:4px solid var(--red)}
+.notice{border:1px solid #fde68a;background:#fffbeb;border-radius:10px;padding:14px;color:#92400e}.notice strong{color:#78350f}.timeline{position:relative;margin-left:6px}.timeline:before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:#dbe4ef}.tl{position:relative;padding:0 0 20px 34px}.tl:before{content:"";position:absolute;left:1px;top:4px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--blue)}.tl-time{font-size:12px;color:var(--muted);font-weight:700}.tl-title{font-weight:800;margin:3px 0}.tl-detail{font-size:13px;color:#475569}.link{color:var(--blue);text-decoration:none;font-weight:750}
+.cards{display:grid;gap:12px}.mi-card,.invoice-card{border:1px solid var(--line);border-radius:10px;padding:15px;display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr auto;gap:12px;align-items:center}.mi-name,.inv-name{font-weight:850}.small{font-size:12px;color:var(--muted)}.empty{padding:14px;border:1px dashed #cbd5e1;border-radius:9px;color:var(--muted);text-align:center}.commercial{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.invoice-actions{display:flex;gap:8px;flex-wrap:wrap}.mini-btn{display:inline-block;padding:8px 10px;border-radius:7px;border:1px solid var(--line);text-decoration:none;color:#0f172a;font-size:12px;font-weight:750}.mini-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+#error{display:none;margin-bottom:16px;padding:14px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+@media(max-width:820px){.page{padding:12px}.hero{padding:20px;flex-direction:column}.badges{justify-content:flex-start}.section{padding:20px}.grid,.sla-grid,.commercial{grid-template-columns:1fr 1fr}.mi-card,.invoice-card{grid-template-columns:1fr 1fr}.toolbar{position:sticky;top:0;z-index:3;background:var(--bg);padding:8px 0}.grid.two{grid-template-columns:1fr}}
+@media(max-width:520px){.grid,.sla-grid,.commercial,.mi-card,.invoice-card{grid-template-columns:1fr}h1{font-size:25px}}
+@media print{body{background:#fff}.page{max-width:none;padding:0}.toolbar{display:none}.report{border:0;box-shadow:none;border-radius:0}.section,.hero{break-inside:avoid}.mini-btn{display:none}}
+</style>
 </head>
 <body>
-<div class="container">
-    <!-- HEADER -->
-    <div class="ticket-header" id="ticket-header">
-    <div class="ticket-title-section">
-        <h1 id="ticket-id">-</h1>
-        <div class="ticket-meta">
-            <p>Opened: <span id="opening-date">-</span></p>
-            <p>Priority: <span id="priority-display">-</span></p>
-        </div>
-    </div>
-    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
-        <a href="/client-portal" style="color: var(--primary); font-weight: 600; text-decoration: none; padding: 8px 16px; border: 1px solid var(--gray-200); border-radius: 6px; display: inline-block; transition: all 0.2s; font-size: 14px;">
-            ← Back to Portal
-        </a>
-        <div class="ticket-status-badge" id="status-badge">-</div>
-    </div>
+<div class="page">
+  <div class="toolbar"><a class="btn" href="/client-portal" style="text-decoration:none;color:inherit">← Back to Portal</a><button class="btn primary" onclick="window.print()">Print / Save PDF</button></div>
+  <div id="error"></div>
+  <article class="report">
+    <header class="hero">
+      <div><div class="eyebrow">SERVICE TICKET</div><h1 id="ticket-name">—</h1><div class="subject" id="ticket-subject">Loading…</div></div>
+      <div class="badges" id="badges"></div>
+    </header>
+
+    <section class="section"><div class="section-title">CUSTOMER, SITE & EQUIPMENT</div><div class="grid">
+      <div class="kv"><div class="k">Customer</div><div class="v" id="customer">—</div></div>
+      <div class="kv"><div class="k">Branch / Site</div><div class="v" id="branch">—</div></div>
+      <div class="kv"><div class="k">Equipment</div><div class="v" id="equipment">—</div></div>
+      <div class="kv"><div class="k">Component</div><div class="v" id="component">—</div></div>
+    </div><div id="equipment-change" style="margin-top:14px"></div></section>
+
+    <section class="section"><div class="section-title">REQUEST DETAILS</div><div class="grid">
+      <div class="kv"><div class="k">Reported</div><div class="v" id="opened">—</div></div>
+      <div class="kv"><div class="k">Request Type</div><div class="v" id="request-type">—</div></div>
+      <div class="kv"><div class="k">Ticket Type</div><div class="v" id="ticket-type">—</div></div>
+      <div class="kv"><div class="k">Reported By</div><div class="v" id="applicant">—</div></div>
+    </div><div style="margin-top:14px"><div class="k">Issue Reported</div><div class="prose" id="description">—</div></div></section>
+
+    <section class="section"><div class="section-title">SERVICE RESPONSE / SLA</div><div class="sla-grid" id="sla-grid"></div></section>
+
+    <section class="section" id="rework-section"><div class="section-title">REWORK / RETURN VISITS</div><div id="rework-content"></div></section>
+
+    <section class="section"><div class="section-title">ACTIVITY TIMELINE</div><div class="timeline" id="timeline"></div></section>
+
+    <section class="section"><div class="section-title">INTERVENTIONS</div><div class="cards" id="interventions"></div></section>
+
+    <section class="section"><div class="section-title">COMMERCIAL SUMMARY</div><div class="commercial" id="commercial"></div><div class="cards" id="invoices" style="margin-top:14px"></div></section>
+
+    <section class="section" id="resolution-section"><div class="section-title">RESOLUTION</div><div class="prose" id="resolution">—</div></section>
+  </article>
 </div>
-
-    <!-- TICKET DETAILS -->
-    <div class="details-grid">
-        <!-- LEFT COLUMN -->
-        <div>
-            <!-- TICKET INFO -->
-            <div class="card">
-                <div class="card-title">📋 Ticket Information</div>
-                
-                <div class="field">
-                    <div class="field-label">Subject</div>
-                    <div class="field-value" id="subject">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Description</div>
-                    <div class="field-value" id="description">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Request Type</div>
-                    <div class="field-value" id="request-type">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Status</div>
-                    <div class="field-value" id="status-detail">-</div>
-                </div>
-            </div>
-
-            <!-- APPLICANT INFO -->
-            <div class="card">
-                <div class="card-title">👤 Applicant Information</div>
-                
-                <div class="field">
-                    <div class="field-label">Name</div>
-                    <div class="field-value" id="applicant-name">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Email</div>
-                    <div class="field-value" id="applicant-email">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Phone</div>
-                    <div class="field-value" id="applicant-phone">-</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div>
-            <!-- EQUIPMENT INFO -->
-            <div class="card">
-                <div class="card-title">⚙️ Equipment Details</div>
-                
-                <div class="field">
-                    <div class="field-label">Equipment</div>
-                    <div class="field-value" id="target-equipment">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Branch</div>
-                    <div class="field-value" id="branch">-</div>
-                </div>
-
-                <div class="field">
-                    <div class="field-label">Component</div>
-                    <div class="field-value" id="component">-</div>
-                </div>
-            </div>
-
-            <!-- DATES -->
-            <div class="card">
-                <div class="card-title">📅 Timeline</div>
-                
-                <div class="timeline">
-                    <div class="timeline-item">
-                        <div class="timeline-label">Opened</div>
-                        <div class="timeline-date" id="timeline-opened">-</div>
-                    </div>
-                    
-                    <div class="timeline-item" id="timeline-resolved-item" style="display: none;">
-                        <div class="timeline-label">Resolved</div>
-                        <div class="timeline-date" id="timeline-resolved">-</div>
-                    </div>
-                    
-                    <div class="timeline-item" id="timeline-closed-item" style="display: none;">
-                        <div class="timeline-label">Closed</div>
-                        <div class="timeline-date" id="timeline-closed">-</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- INTERVENTIONS -->
-    <div class="card" id="interventions-card">
-        <div class="card-title">🔧 Service Interventions</div>
-        <div id="interventions-list"></div>
-    </div>
-
-    <!-- RESOLUTION DETAILS -->
-    <div class="card" id="resolution-card" style="display: none;">
-        <div class="card-title">✓ Resolution Details</div>
-        <div class="field">
-            <div class="field-label">Resolution Notes</div>
-            <div class="field-value" id="resolution-details">-</div>
-        </div>
-    </div>
-
-    <!-- ACTIONS -->
-    <div class="button-group">
-        <button class="btn-secondary" onclick="history.back()">← Back to Tickets</button>
-        <button class="btn-primary" onclick="printTicket()">🖨 Print</button>
-    </div>
-</div>
-
 <script>
-// Get ticket ID from URL
-function showError(message) {
-    console.error(message);
-
-    let err = document.getElementById("page-error");
-
-    if (err) {
-        err.style.display = "block";
-        err.innerHTML = message;
-    } else {
-        alert(message);
-    }
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const fmt=d=>{if(!d)return '—';const x=new Date(d);return isNaN(x)?esc(d):x.toLocaleString([], {dateStyle:'medium',timeStyle:'short'})};
+const val=(o,...keys)=>{for(const k of keys){if(o&&o[k]!==undefined&&o[k]!==null&&o[k]!=='')return o[k]}return null};
+function err(m){const e=document.getElementById('error');e.style.display='block';e.textContent=m}
+function badge(text,cls=''){if(!text)return'';return `<span class="badge ${cls}">${esc(text)}</span>`}
+function kv(label,value){return `<div class="kv"><div class="k">${esc(label)}</div><div class="v">${esc(value||'—')}</div></div>`}
+function hoursDiff(a,b){if(!a||!b)return null;const x=new Date(a),y=new Date(b);if(isNaN(x)||isNaN(y))return null;return (y-x)/3600000}
+function duration(h){if(h===null||h===undefined||isNaN(h))return '—';if(h<1)return `${Math.round(h*60)} min`;return `${h.toFixed(h<10?2:1)} h`}
+const qp=new URLSearchParams(location.search);const name=qp.get('name')||qp.get('ticket');
+if(!name)err('No ticket specified.');else load(name);
+async function load(ticket){try{const fd=new FormData();fd.append('ticket_name',ticket);const r=await fetch('/api/method/maintenance_app.api.client_portal_get_ticket_detail',{method:'POST',body:fd});const j=await r.json();if(j.exc)throw new Error('Access denied or ticket unavailable.');render(j.message||{});}catch(e){console.error(e);err(e.message||'Unable to load ticket.')}}
+function render(data){const t=data.ticket||{}, mis=data.interventions||[], invs=data.invoices||[], timeline=data.timeline||[];
+ document.getElementById('ticket-name').textContent=t.name||'—';document.title=`${t.name||'Service Ticket'} - Service Ticket`;document.getElementById('ticket-subject').textContent=t.custom_subject||'—';
+ let bs='';bs+=badge(t.client_status||t.custom_ticket_status,(t.custom_ticket_status||'').match(/Resolved|Closed/i)?'green':'');bs+=badge(t.custom_service_type||t.custom_ticket_type||'', '');bs+=badge(t.custom_priority||'',String(t.custom_priority||'').match(/High|Urgent/i)?'red':'');document.getElementById('badges').innerHTML=bs;
+ document.getElementById('customer').textContent=t.customer_display||t.custom_customer||'—';document.getElementById('branch').textContent=t.branch_display||t.custom_client_branch||'—';document.getElementById('equipment').textContent=t.target_equipment_display||t.custom_target_equipment||'—';document.getElementById('component').textContent=t.custom_target_component_name||t.custom_target_component||'—';
+ document.getElementById('opened').textContent=fmt(t.custom_opening_date||t.creation);document.getElementById('request-type').textContent=t.custom_request_type||'—';document.getElementById('ticket-type').textContent=t.custom_ticket_type||'—';document.getElementById('applicant').textContent=t.applicant_display||t.custom_applicant||t.custom_applicant_email||'—';document.getElementById('description').textContent=t.custom_description||'—';
+ if(t.custom_wrong_equipment_reported||t.custom_actual_equipment||t.custom_equipment_change_reason){document.getElementById('equipment-change').innerHTML=`<div class="notice"><strong>Equipment correction recorded</strong><br>Originally reported: ${esc(t.target_equipment_display||t.custom_target_equipment||'—')}<br>Corrected equipment: ${esc(t.actual_equipment_display||t.custom_actual_equipment||'—')}${t.custom_equipment_change_reason?`<br>Reason: ${esc(t.custom_equipment_change_reason)}`:''}</div>`}
+ const firstStart=mis.map(x=>x.custom_start_time).filter(Boolean).sort()[0];const firstEnd=mis.map(x=>x.custom_end_time).filter(Boolean).sort()[0];
+ const sla=[['Response Due',fmt(t.custom_response_due),t.custom_response_due&&firstStart?new Date(firstStart)<=new Date(t.custom_response_due):null],['First Technician Check-in',fmt(firstStart),null],['Resolution Due',fmt(t.custom_resolution_due),t.custom_resolution_due&&t.custom_resolution_date?new Date(t.custom_resolution_date)<=new Date(t.custom_resolution_due):null],['Resolved',fmt(t.custom_resolution_date),null],['Response Time',duration(t.custom_response_time_hours ?? hoursDiff(t.custom_opening_date,firstStart)),null],['Resolution Time',duration(t.custom_resolution_time_hours ?? hoursDiff(t.custom_opening_date,t.custom_resolution_date)),null]];
+ document.getElementById('sla-grid').innerHTML=sla.map(([l,v,ok])=>`<div class="sla ${ok===true?'ok':ok===false?'bad':''}"><div class="k">${esc(l)}</div><div class="big">${v}</div>${ok===true?'<div class="small">Within target</div>':ok===false?'<div class="small" style="color:#b91c1c">Target exceeded</div>':''}</div>`).join('');
+ const reworks=mis.filter(x=>/rework/i.test(x.custom_intervention_type||'')||x.custom_is_rework||x.custom_rework_of);if(!reworks.length){document.getElementById('rework-content').innerHTML='<div class="empty">No rework intervention recorded.</div>'}else{document.getElementById('rework-content').innerHTML=reworks.map(x=>`<div class="notice"><strong>${esc(x.name)}</strong> — ${esc(x.custom_intervention_type||'Rework')}<br>${esc(x.custom_additional_mi_reason||x.custom_work_outcome||'Return intervention')}</div>`).join('<div style="height:8px"></div>')}
+ document.getElementById('timeline').innerHTML=(timeline.length?timeline:buildTimeline(t,mis,invs)).map(x=>`<div class="tl"><div class="tl-time">${fmt(x.datetime||x.date)}</div><div class="tl-title">${esc(x.title||'Activity')}</div><div class="tl-detail">${esc(x.detail||'')}${x.intervention?` · <a class="link" href="/client-portal/intervention?name=${encodeURIComponent(x.intervention)}">View report</a>`:''}${x.invoice&&x.view_url?` · <a class="link" href="${esc(x.view_url)}" target="_blank">View invoice</a>`:''}</div></div>`).join('')||'<div class="empty">No activity yet.</div>';
+ document.getElementById('interventions').innerHTML=mis.length?mis.map(x=>`<div class="mi-card"><div><div class="mi-name"><a class="link" href="/client-portal/intervention?name=${encodeURIComponent(x.name)}">${esc(x.name)}</a></div><div class="small">${fmt(x.custom_start_time)}</div></div><div><div class="k">Type</div>${esc(x.custom_intervention_type||'—')}</div><div><div class="k">Technician</div>${esc(x.technician_display||x.custom_technician||'—')}</div><div><div class="k">Outcome</div>${esc(x.custom_work_outcome||'—')}</div><div><a class="mini-btn primary" href="/client-portal/intervention?name=${encodeURIComponent(x.name)}">View Report</a></div></div>`).join(''):'<div class="empty">No intervention recorded yet.</div>';
+ const commercial=[['Coverage',t.custom_service_type||'—'],['Commercial Status',t.custom_commercial_status||'—'],['Maintenance Contract',t.custom_maintenance_contract||'—']];document.getElementById('commercial').innerHTML=commercial.map(x=>kv(x[0],x[1])).join('');
+ document.getElementById('invoices').innerHTML=invs.length?invs.map(i=>`<div class="invoice-card"><div><div class="inv-name">${esc(i.name)}</div><div class="small">${fmt(i.posting_date)}</div></div><div><div class="k">Total</div>${esc(i.currency||'')} ${esc(i.grand_total_formatted||i.grand_total||'—')}</div><div><div class="k">Outstanding</div>${esc(i.currency||'')} ${esc(i.outstanding_amount_formatted||i.outstanding_amount||'—')}</div><div><div class="k">Status</div>${esc(i.status||'—')}</div><div class="invoice-actions">${i.portal_url?`<a class="mini-btn" href="${esc(i.portal_url)}" target="_blank">View Invoice</a>`:''}${i.print_url?`<a class="mini-btn primary" href="${esc(i.print_url)}" target="_blank">Print / PDF</a>`:''}</div></div>`).join(''):'<div class="empty">No Sales Invoice linked to this ticket yet.</div>';
+ document.getElementById('resolution').textContent=t.custom_resolution_details||'No resolution notes recorded.';
 }
-
-const urlParams = new URLSearchParams(window.location.search);
-const ticketId = urlParams.get("name") || urlParams.get("ticket");
-
-if (!ticketId) {
-    showError("No ticket specified.");
-} else {
-    loadTicketDetails(ticketId);
-}
-
-function loadTicketDetails(ticketId) {
-    const formData = new FormData();
-    formData.append("ticket_name", ticketId);
-
-    fetch("/api/method/maintenance_app.api.client_portal_get_ticket_detail", {
-        method: "POST",
-        body: formData
-    })
-    .then(function(response) {
-        return response.json();
-    })
-    .then(function(data) {
-        console.log("Ticket detail response:", data);
-
-        if (!data.message) {
-            showError("No ticket data returned. Check console response.");
-            return;
-        }
-
-        renderTicket(data.message.ticket || {});
-        renderInterventions(data.message.interventions || []);
-    })
-    .catch(function(error) {
-        console.error(error);
-        showError("Unable to load ticket.");
-    });
-}
-
-function renderTicket(ticket) {
-    const statusClass = 'status-' + (ticket.custom_ticket_status || 'open').toLowerCase();
-    
-    document.getElementById('ticket-id').textContent = ticket.name;
-    document.getElementById('opening-date').textContent = formatDate(ticket.custom_opening_date);
-    document.getElementById('subject').textContent = ticket.custom_subject || '-';
-    document.getElementById('description').textContent = ticket.custom_description || '-';
-    document.getElementById('request-type').textContent = ticket.custom_request_type || '-';
-    document.getElementById('status-detail').textContent = ticket.custom_ticket_status || '-';
-    document.getElementById('applicant-name').textContent = ticket.custom_applicant || '-';
-    document.getElementById('applicant-email').textContent = ticket.custom_applicant_email || '-';
-    document.getElementById('applicant-phone').textContent = ticket.custom_applicant_phone || '-';
-    document.getElementById('target-equipment').textContent = ticket.target_equipment_display || ticket.custom_target_equipment || '-';
-    document.getElementById('branch').textContent = ticket.custom_client_branch || '-';
-    document.getElementById('component').textContent = ticket.custom_target_component_name || ticket.custom_target_component || '-';
-    
-    // Priority
-    const priorityClass = 'priority-' + (ticket.custom_priority || 'medium').toLowerCase();
-    document.getElementById('priority-display').innerHTML = 
-        `<span class="priority-badge ${priorityClass}">${ticket.custom_priority}</span>`;
-    
-    // Status badge
-    const badge = document.getElementById('status-badge');
-    badge.className = 'ticket-status-badge ' + statusClass;
-    badge.textContent = ticket.custom_ticket_status;
-    
-    // Timeline
-    document.getElementById('timeline-opened').textContent = formatDate(ticket.custom_opening_date);
-    
-    if (ticket.custom_resolution_date) {
-        document.getElementById('timeline-resolved-item').style.display = 'block';
-        document.getElementById('timeline-resolved').textContent = formatDate(ticket.custom_resolution_date);
-    }
-    
-    if (ticket.custom_closed_date) {
-        document.getElementById('timeline-closed-item').style.display = 'block';
-        document.getElementById('timeline-closed').textContent = formatDate(ticket.custom_closed_date);
-    }
-    
-    // Resolution details
-    if (ticket.custom_resolution_details) {
-        document.getElementById('resolution-card').style.display = 'block';
-        document.getElementById('resolution-details').textContent = ticket.custom_resolution_details;
-    }
-}
-
-function renderInterventions(interventions) {
-    const list = document.getElementById('interventions-list');
-    
-    if (!interventions || interventions.length === 0) {
-        list.innerHTML = '<p style="color: var(--gray-500);">No interventions recorded yet</p>';
-        return;
-    }
-    
-    list.innerHTML = interventions.map(intervention => `
-        <div class="intervention-item">
-            <div class="intervention-header">
-                <a href="/client-portal/intervention?name=${encodeURIComponent(intervention.name)}" style="color:#3b82f6;font-weight:700;text-decoration:none;">
-                    🔧 ${intervention.name}
-                </a>
-                <span class="intervention-date">${formatDate(intervention.custom_start_time)}</span>
-            </div>
-            
-            <div class="intervention-details">
-                <div class="intervention-detail">
-                    <div class="intervention-detail-label">Technician</div>
-                    <div class="intervention-detail-value">${intervention.custom_technician || '-'}</div>
-                </div>
-                
-                <div class="intervention-detail">
-                    <div class="intervention-detail-label">Hours Worked</div>
-                    <div class="intervention-detail-value">${intervention.custom_hours_worked || '-'}</div>
-                </div>
-                
-                <div class="intervention-detail">
-                    <div class="intervention-detail-label">Outcome</div>
-                    <div class="intervention-detail-value">${intervention.custom_work_outcome || '-'}</div>
-                </div>
-                
-                <div class="intervention-detail">
-                    <div class="intervention-detail-label">Progress</div>
-                    <div class="intervention-detail-value">${intervention.custom_work_progress || '-'}</div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-
-function printTicket() {
-    window.print();
-}
+function buildTimeline(t,mis,invs){let a=[];if(t.custom_opening_date||t.creation)a.push({datetime:t.custom_opening_date||t.creation,title:'Ticket reported',detail:t.custom_subject||''});mis.forEach(x=>{if(x.custom_start_time)a.push({datetime:x.custom_start_time,title:`${x.name} started`,detail:x.custom_intervention_type||'',intervention:x.name});if(x.custom_end_time)a.push({datetime:x.custom_end_time,title:`${x.name} completed`,detail:x.custom_work_outcome||'',intervention:x.name})});if(t.custom_resolution_date)a.push({datetime:t.custom_resolution_date,title:'Ticket resolved',detail:t.custom_resolution_details||''});invs.forEach(i=>a.push({datetime:i.posting_date,title:'Invoice issued',detail:i.name,invoice:i.name,view_url:i.portal_url}));if(t.custom_closed_date)a.push({datetime:t.custom_closed_date,title:'Ticket closed',detail:''});return a.sort((x,y)=>new Date(x.datetime||0)-new Date(y.datetime||0))}
 </script>
-</body>
-</html>
+</body></html>

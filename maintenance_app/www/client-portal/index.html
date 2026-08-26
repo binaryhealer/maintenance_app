@@ -74,6 +74,65 @@
     </div>
 </div>
 
+
+<div id="ticket-modal" class="cp-modal-backdrop" style="display:none;">
+    <div class="cp-ticket-modal" role="dialog" aria-modal="true" aria-labelledby="ticket-modal-title">
+        <div class="cp-ticket-modal-head">
+            <div>
+                <div class="cp-eyebrow">Client Service Request</div>
+                <h3 id="ticket-modal-title">Raise Service Ticket</h3>
+                <p>Provide only the issue details. Customer, branch, equipment and component access are validated by the portal.</p>
+            </div>
+            <button type="button" class="cp-modal-close" onclick="window.closeTicketModal()">×</button>
+        </div>
+
+        <form id="create-ticket-form" onsubmit="window.submitServiceTicket(event)">
+            <div class="cp-ticket-context-grid">
+                <div><span>Customer</span><strong id="modal-customer-display">{{ customer_company or "—" }}</strong></div>
+                <div><span>Branch</span><strong id="modal-branch-display">—</strong></div>
+            </div>
+
+            <label class="cp-ticket-field">
+                <span>Equipment *</span>
+                <select id="modal-equipment-select" required onchange="window.refreshTicketModalContext('')">
+                    <option value="">-- Choose Equipment --</option>
+                </select>
+            </label>
+
+            <label class="cp-ticket-field">
+                <span>Component</span>
+                <select id="modal-component-select">
+                    <option value="">-- Equipment only / No component --</option>
+                </select>
+            </label>
+
+            <label class="cp-ticket-field">
+                <span>Request Type</span>
+                <select id="modal-request-type">
+                    <option value="Breakdown">Breakdown</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="General">General</option>
+                </select>
+            </label>
+
+            <label class="cp-ticket-field">
+                <span>Subject *</span>
+                <input id="modal-subject" type="text" required maxlength="180" placeholder="Short description of the issue">
+            </label>
+
+            <label class="cp-ticket-field">
+                <span>Description *</span>
+                <textarea id="modal-description" required rows="5" placeholder="Describe the fault, symptoms, or request"></textarea>
+            </label>
+
+            <div class="cp-ticket-modal-actions">
+                <button type="button" class="cp-secondary-btn" onclick="window.closeTicketModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% include "www/client-portal/style.html" %}
 {% endblock %}
 

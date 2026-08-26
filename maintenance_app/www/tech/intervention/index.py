@@ -205,6 +205,22 @@ def get_context(context):
         mi.get("custom_technician_signatory")
     )
 
+    # Specialised Testing Type choices used by the PWA before Check In.
+    context.specialised_testing_types = []
+    if mi.get("custom_intervention_type") == "Specialised Testing":
+        testing_meta = frappe.get_meta("Specialised Testing Type")
+        filters = {}
+        if testing_meta.has_field("custom_active"):
+            filters["custom_active"] = 1
+
+        context.specialised_testing_types = frappe.get_all(
+            "Specialised Testing Type",
+            filters=filters,
+            fields=["name"],
+            order_by="name asc",
+            limit_page_length=500,
+        )
+
     report_email_defaults = _get_report_email_defaults(
         mi.get("custom_service_ticket")
     )
@@ -294,6 +310,7 @@ def create_follow_up_mi(
         "custom_component_model",
         "custom_subject",
         "custom_intervention_type",
+        "custom_specialised_testing_type",
         "custom_service_type",
         "custom_priority",
         "custom_response_due",
@@ -482,12 +499,42 @@ def _save_pwa_gps(mi, prefix, latitude=None, longitude=None, accuracy=None):
 
 
 @frappe.whitelist()
-def pwa_check_in(mi_name, latitude=None, longitude=None, accuracy=None):
+def pwa_check_in(
+    mi_name,
+    latitude=None,
+    longitude=None,
+    accuracy=None,
+    specialised_testing_type=None,
+):
     """Check into an MI from the technician PWA using server time."""
     mi = _get_pwa_mi_for_update(mi_name)
 
     if mi.get("custom_start_time"):
         frappe.throw("This intervention is already checked in.")
+
+    if mi.get("custom_intervention_type") == "Specialised Testing":
+        selected_testing_type = (
+            specialised_testing_type
+            or mi.get("custom_specialised_testing_type")
+            or ""
+        ).strip()
+
+        if not selected_testing_type:
+            frappe.throw(
+                "Please select Specialised Testing Type before Check In."
+            )
+
+        if not frappe.db.exists(
+            "Specialised Testing Type",
+            selected_testing_type,
+        ):
+            frappe.throw("Invalid Specialised Testing Type.")
+
+        _set_if_field(
+            mi,
+            "custom_specialised_testing_type",
+            selected_testing_type,
+        )
 
     checked_in_at = now_datetime()
 
