@@ -1397,12 +1397,23 @@
                 placeholder="Describe the additional work">
 
             <label class="form-label mt-3"><b>Intervention Type</b></label>
-            <select id="additional-mi-type" class="form-control">
-                <option value="Service">Service</option>
-                <option value="Repair">Repair</option>
-                <option value="Preventive Maintenance">Preventive Maintenance</option>
-                <option value="Inspection">Inspection</option>
+            <select id="additional-mi-type" class="form-control" onchange="additionalMITypeChanged()">
+                <option value="">Loading intervention types...</option>
             </select>
+
+            <div id="additional-mi-testing-type-wrap" style="display:none;">
+                <label class="form-label mt-3"><b>Specialised Testing Type</b></label>
+                <select id="additional-mi-testing-type" class="form-control">
+                    <option value="">Select testing type</option>
+                </select>
+                <div class="field-help">Required for Specialised Testing.</div>
+            </div>
+
+            <label class="form-label mt-3"><b>Applicant</b></label>
+            <select id="additional-mi-applicant" class="form-control">
+                <option value="">Loading contacts...</option>
+            </select>
+            <div class="field-help">Branch and head-office contacts for this customer only.</div>
 
         <label class="form-label mt-3"><b>Reason / Work Required</b></label>
         <textarea id="additional-mi-reason" class="form-control" rows="3"></textarea>
@@ -2990,9 +3001,14 @@ function showAdditionalMIDialog() {
             document.getElementById("additional-mi-component").innerHTML = "";
             document.getElementById("additional-mi-component-wrap").style.display = "none";
             document.getElementById("additional-mi-subject").value = "";
-            document.getElementById("additional-mi-type").value = "Service";
             document.getElementById("additional-mi-reason").value = "";
+            document.getElementById("additional-mi-testing-type-wrap").style.display = "none";
+            document.getElementById("additional-mi-testing-type").innerHTML = '<option value="">Select testing type</option>';
+            document.getElementById("additional-mi-applicant").innerHTML = '<option value="">Loading contacts...</option>';
             document.getElementById("additional-mi-modal").style.display = "flex";
+
+            loadAdditionalMIInterventionTypes();
+            loadAdditionalMIApplicants(select.value);
         },
         error: show_error
     });
@@ -3000,6 +3016,7 @@ function showAdditionalMIDialog() {
 
 function additionalMITargetChanged() {
     let asset_name = document.getElementById("additional-mi-equipment").value;
+    loadAdditionalMIApplicants(asset_name);
     let target_scope = document.getElementById("additional-mi-target-scope").value;
     let wrap = document.getElementById("additional-mi-component-wrap");
     let select = document.getElementById("additional-mi-component");
@@ -3044,6 +3061,100 @@ function additionalMITargetChanged() {
     });
 }
 
+function loadAdditionalMIInterventionTypes() {
+    let select = document.getElementById("additional-mi-type");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Loading intervention types...</option>';
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.get_additional_mi_intervention_types",
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select intervention type</option>';
+
+            rows.forEach(function(value) {
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+
+            if (rows.includes("Service")) {
+                select.value = "Service";
+            }
+            additionalMITypeChanged();
+        },
+        error: show_error
+    });
+}
+
+function additionalMITypeChanged() {
+    let type = document.getElementById("additional-mi-type").value || "";
+    let wrap = document.getElementById("additional-mi-testing-type-wrap");
+    let select = document.getElementById("additional-mi-testing-type");
+
+    if (type !== "Specialised Testing") {
+        wrap.style.display = "none";
+        select.innerHTML = '<option value="">Select testing type</option>';
+        return;
+    }
+
+    wrap.style.display = "block";
+    select.innerHTML = '<option value="">Loading testing types...</option>';
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.get_specialised_testing_types",
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select testing type</option>';
+            rows.forEach(function(row) {
+                let value = row.name || row;
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+        },
+        error: show_error
+    });
+}
+
+function loadAdditionalMIApplicants(asset_name) {
+    let select = document.getElementById("additional-mi-applicant");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Loading contacts...</option>';
+    if (!asset_name) {
+        select.innerHTML = '<option value="">Select equipment first</option>';
+        return;
+    }
+
+    frappe.call({
+        method: "maintenance_app.api.get_eq_applicants_for_equipment",
+        args: { equipment_name: asset_name },
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select applicant</option>';
+
+            rows.forEach(function(row) {
+                let value = row.contact || row.name || row.custom_contact || row.value;
+                if (!value) return;
+                let label = row.full_name || row.contact_name || row.custom_full_name || row.label || value;
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+
+            if (!rows.length) {
+                select.innerHTML = '<option value="">No valid contacts found</option>';
+            }
+        },
+        error: show_error
+    });
+}
+
 function closeAdditionalMIModal() {
     document.getElementById("additional-mi-modal").style.display = "none";
 }
@@ -3054,6 +3165,8 @@ function submitAdditionalMI() {
     let component_row_id = document.getElementById("additional-mi-component").value || "";
     let subject = document.getElementById("additional-mi-subject").value;
     let intervention_type = document.getElementById("additional-mi-type").value;
+    let specialised_testing_type = document.getElementById("additional-mi-testing-type").value || "";
+    let applicant = document.getElementById("additional-mi-applicant").value || "";
     let reason = document.getElementById("additional-mi-reason").value;
 
     if (!asset_name) {
@@ -3076,19 +3189,31 @@ function submitAdditionalMI() {
         return;
     }
 
+    if (intervention_type === "Specialised Testing" && !specialised_testing_type) {
+        frappe.msgprint("Please select Specialised Testing Type.");
+        return;
+    }
+
+    if (!applicant) {
+        frappe.msgprint("Please select Applicant.");
+        return;
+    }
+
     if (!reason || !reason.trim()) {
         frappe.msgprint("Reason / work required is mandatory.");
         return;
     }
 
     frappe.call({
-        method: "maintenance_app.api.create_additional_intervention_from_mission",
+        method: "maintenance_app.www.tech.intervention.index.create_additional_mi_from_pwa",
         args: {
             mission_name: "{{ mi.custom_parent_mission }}",
             asset_name: asset_name,
             reason: reason,
             subject: subject,
             intervention_type: intervention_type,
+            specialised_testing_type: specialised_testing_type,
+            applicant: applicant,
             target_scope: target_scope,
             component_row_id: target_scope === "Component" ? component_row_id : null
         },
