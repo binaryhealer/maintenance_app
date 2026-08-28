@@ -721,6 +721,149 @@ def create_follow_up_mi(
     }
 
 
+
+@frappe.whitelist()
+def get_additional_mi_intervention_types():
+    """Return live Select options from Mission Intervention.custom_intervention_type."""
+    field = frappe.get_meta("Mission Intervention").get_field(
+        "custom_intervention_type"
+    )
+
+    if not field:
+        frappe.throw(
+            "Mission Intervention field custom_intervention_type is missing."
+        )
+
+    return [
+        value.strip()
+        for value in (field.options or "").split("\n")
+        if value.strip()
+    ]
+
+
+@frappe.whitelist()
+def get_specialised_testing_types():
+    meta = frappe.get_meta("Specialised Testing Type")
+    filters = {}
+
+    if meta.has_field("custom_active"):
+        filters["custom_active"] = 1
+
+    return frappe.get_all(
+        "Specialised Testing Type",
+        filters=filters,
+        fields=["name"],
+        order_by="name asc",
+        limit_page_length=500,
+    )
+
+
+@frappe.whitelist()
+def create_additional_mi_from_pwa(
+    mission_name,
+    asset_name,
+    reason,
+    subject,
+    intervention_type,
+    target_scope="Equipment",
+    component_row_id=None,
+    specialised_testing_type=None,
+    applicant=None,
+):
+    """Create an Additional MI through the existing API, then apply PWA-only fields safely."""
+    if not applicant:
+        frappe.throw("Applicant is required.")
+
+    get_applicants = frappe.get_attr(
+        "maintenance_app.api.get_eq_applicants_for_equipment"
+    )
+    eligible_rows = get_applicants(asset_name) or []
+    eligible = set()
+
+    for row in eligible_rows:
+        if isinstance(row, dict):
+            value = (
+                row.get("contact")
+                or row.get("name")
+                or row.get("custom_contact")
+                or row.get("value")
+            )
+        else:
+            value = str(row) if row else ""
+
+        if value:
+            eligible.add(value)
+
+    if applicant not in eligible:
+        frappe.throw(
+            "Selected Applicant is not valid for this customer/branch."
+        )
+
+    if intervention_type == "Specialised Testing":
+        specialised_testing_type = (
+            specialised_testing_type or ""
+        ).strip()
+
+        if not specialised_testing_type:
+            frappe.throw("Specialised Testing Type is required.")
+
+        if not frappe.db.exists(
+            "Specialised Testing Type",
+            specialised_testing_type,
+        ):
+            frappe.throw("Invalid Specialised Testing Type.")
+    else:
+        specialised_testing_type = ""
+
+    create_method = frappe.get_attr(
+        "maintenance_app.api.create_additional_intervention_from_mission"
+    )
+
+    result = create_method(
+        mission_name=mission_name,
+        asset_name=asset_name,
+        reason=reason,
+        subject=subject,
+        intervention_type=intervention_type,
+        target_scope=target_scope,
+        component_row_id=component_row_id,
+    )
+
+    intervention = (
+        (result or {}).get("intervention")
+        if isinstance(result, dict)
+        else None
+    )
+
+    if not intervention:
+        frappe.throw(
+            "Additional MI was created but no intervention reference was returned."
+        )
+
+    new_mi = frappe.get_doc(
+        "Mission Intervention",
+        intervention,
+    )
+
+    _set_if_field(
+        new_mi,
+        "custom_applicant",
+        applicant,
+    )
+
+    if intervention_type == "Specialised Testing":
+        _set_if_field(
+            new_mi,
+            "custom_specialised_testing_type",
+            specialised_testing_type,
+        )
+
+    new_mi.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return result
+
+
 # -----------------------------------------------------------------------------
 # PWA CHECK-IN / CHECK-OUT
 # -----------------------------------------------------------------------------
