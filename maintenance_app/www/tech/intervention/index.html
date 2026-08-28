@@ -926,6 +926,41 @@
         </div>
         {% endif %}
 
+        {% if mi.custom_intervention_type == "General Installation" %}
+        <div class="mi-card">
+            <div class="section-title">General Installation</div>
+
+            {% if mi.docstatus == 0 and not mi.custom_start_time %}
+                <div class="mb-2">
+                    <label class="form-label" for="general_installation_type">
+                        <b>General Installation Type</b>
+                    </label>
+                    <select id="general_installation_type" class="form-control">
+                        <option value="">Select installation type</option>
+                        {% for installation_type in general_installation_types %}
+                            <option
+                                value="{{ installation_type.name }}"
+                                {% if mi.custom_general_installation_type == installation_type.name %}selected{% endif %}>
+                                {{ installation_type.custom_installation_type or installation_type.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="field-help">
+                        Required before Check In.
+                    </div>
+                </div>
+            {% else %}
+                <div class="summary-item">
+                    <div class="info-label">General Installation Type</div>
+                    <div class="info-value">
+                        {{ mi.custom_general_installation_type or "-" }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+
         <details class="mi-card accordion-card" {% if mi.custom_start_time and not mi.custom_work_outcome and mi.docstatus == 0 %}open{% endif %}>
             <summary>
                 <div class="d-flex justify-content-between align-items-center">
@@ -1607,6 +1642,7 @@ function get_current_gps() {
 function check_in(mi_name) {
     let intervention_type = "{{ mi.custom_intervention_type or '' }}";
     let specialised_testing_type = "";
+    let general_installation_type = "";
 
     if (intervention_type === "Specialised Testing") {
         let testing_type_el = document.getElementById(
@@ -1625,6 +1661,23 @@ function check_in(mi_name) {
         }
     }
 
+    if (intervention_type === "General Installation") {
+        let installation_type_el = document.getElementById(
+            "general_installation_type"
+        );
+
+        general_installation_type = installation_type_el
+            ? installation_type_el.value
+            : "{{ mi.custom_general_installation_type or '' }}";
+
+        if (!general_installation_type) {
+            frappe.msgprint(
+                __("Please select General Installation Type before Check In.")
+            );
+            return;
+        }
+    }
+
     get_current_gps().then(function(gps) {
         frappe.call({
             method: "maintenance_app.www.tech.intervention.index.pwa_check_in",
@@ -1633,7 +1686,8 @@ function check_in(mi_name) {
                 latitude: gps ? gps.latitude : null,
                 longitude: gps ? gps.longitude : null,
                 accuracy: gps ? gps.accuracy : null,
-                specialised_testing_type: specialised_testing_type || null
+                specialised_testing_type: specialised_testing_type || null,
+                general_installation_type: general_installation_type || null
             },
             freeze: true,
             freeze_message: __("Checking in..."),

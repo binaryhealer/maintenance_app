@@ -50,6 +50,181 @@ def _unique_emails(values):
     return result
 
 
+def _get_mi_company(mi):
+    """Resolve the Company used for Maintenance Email Profile lookup."""
+    company = (mi.get("custom_company") or "").strip()
+    if company:
+        return company
+
+    service_ticket = (mi.get("custom_service_ticket") or "").strip()
+    if service_ticket:
+        ticket_meta = frappe.get_meta("Service Ticket")
+        for fieldname in ("custom_company", "company"):
+            if ticket_meta.has_field(fieldname):
+                company = (
+                    frappe.db.get_value(
+                        "Service Ticket",
+                        service_ticket,
+                        fieldname,
+                    )
+                    or ""
+                ).strip()
+                if company:
+                    return company
+
+    parent_mission = (mi.get("custom_parent_mission") or "").strip()
+    if parent_mission:
+        mission_meta = frappe.get_meta("Tech Mission")
+        for fieldname in ("custom_company", "company"):
+            if mission_meta.has_field(fieldname):
+                company = (
+                    frappe.db.get_value(
+                        "Tech Mission",
+                        parent_mission,
+                        fieldname,
+                    )
+                    or ""
+                ).strip()
+                if company:
+                    return company
+
+    return ""
+
+
+def _get_maintenance_email_profile(company, usage_key):
+    """
+    Return the active default Maintenance Email Profile for Company + Usage Key.
+
+    The feature code knows only the stable usage key (for example
+    technician_pwa). Administrators can change which profile is assigned
+    to that usage without changing this code.
+    """
+    company = (company or "").strip()
+    usage_key = (usage_key or "").strip()
+
+    if not company or not usage_key:
+        return None
+
+    if not frappe.db.exists("DocType", "Maintenance Email Usage"):
+        return None
+
+    if not frappe.db.exists("DocType", "Maintenance Email Profile"):
+        return None
+
+    if not frappe.db.exists("DocType", "Maintenance Email Profile Usage"):
+        return None
+
+    usage = frappe.db.get_value(
+        "Maintenance Email Usage",
+        {
+            "custom_usage_key": usage_key,
+            "custom_active": 1,
+        },
+        "name",
+    )
+
+    if not usage:
+        return None
+
+    rows = frappe.get_all(
+        "Maintenance Email Profile Usage",
+        filters={
+            "parenttype": "Maintenance Email Profile",
+            "parentfield": "custom_usage_table",
+            "custom_usage": usage,
+            "custom_is_default": 1,
+            "custom_active": 1,
+        },
+        fields=["parent", "idx"],
+        order_by="idx asc",
+        limit_page_length=100,
+    )
+
+    for row in rows:
+        profile = frappe.get_doc(
+            "Maintenance Email Profile",
+            row.parent,
+        )
+
+        if not profile.get("custom_active"):
+            continue
+
+        if (profile.get("custom_company") or "").strip() != company:
+            continue
+
+        return profile
+
+    return None
+
+
+def _build_maintenance_email_identity(mi, usage_key):
+    """
+    Build sender/signature values for a maintenance email.
+
+    If no configured profile is found, Frappe keeps using its default outgoing
+    Email Account and the visible signature falls back to the Company name.
+    """
+    company = _get_mi_company(mi)
+    profile = _get_maintenance_email_profile(company, usage_key)
+
+    identity = {
+        "company": company,
+        "sender": None,
+        "closing": "Kind regards,",
+        "signature_name": company or "Support Team",
+        "support_email": "",
+        "support_phone": "",
+        "footer": "",
+        "profile": None,
+    }
+
+    if not profile:
+        return identity
+
+    sender_name = (profile.get("custom_sender_name") or "").strip()
+    sender_email = (profile.get("custom_sender_email") or "").strip()
+
+    if sender_email:
+        identity["sender"] = (
+            f"{sender_name} <{sender_email}>"
+            if sender_name
+            else sender_email
+        )
+
+    identity["closing"] = (
+        profile.get("custom_email_closing")
+        or identity["closing"]
+    ).strip()
+
+    identity["signature_name"] = (
+        profile.get("custom_signature_name")
+        or sender_name
+        or company
+        or identity["signature_name"]
+    ).strip()
+
+    identity["support_email"] = (
+        profile.get("custom_support_email") or ""
+    ).strip()
+
+    identity["support_phone"] = (
+        profile.get("custom_support_phone") or ""
+    ).strip()
+
+    identity["footer"] = (
+        profile.get("custom_email_footer") or ""
+    ).strip()
+
+    identity["profile"] = profile.name
+
+    return identity
+
+
+def _html_text(value):
+    """Escape plain text and preserve line breaks for HTML email output."""
+    return frappe.utils.escape_html(value or "").replace("\n", "<br>")
+
+
 def _get_report_email_defaults(service_ticket_name):
     """
     Email destination rule:
@@ -221,6 +396,26 @@ def get_context(context):
             limit_page_length=500,
         )
 
+    # General Installation Type choices used by the PWA before Check In.
+    # Load all records without an Active filter.  The master field used for the
+    # technician-facing label is custom_installation_type.
+    context.general_installation_types = []
+    if mi.get("custom_intervention_type") == "General Installation":
+        installation_meta = frappe.get_meta("General Installation Type")
+
+        fields = ["name"]
+        if installation_meta.has_field("custom_installation_type"):
+            fields.append("custom_installation_type")
+
+        context.general_installation_types = frappe.get_all(
+            "General Installation Type",
+            fields=fields,
+            order_by="custom_installation_type asc"
+                if installation_meta.has_field("custom_installation_type")
+                else "name asc",
+            limit_page_length=500,
+        )
+
     report_email_defaults = _get_report_email_defaults(
         mi.get("custom_service_ticket")
     )
@@ -311,6 +506,7 @@ def create_follow_up_mi(
         "custom_subject",
         "custom_intervention_type",
         "custom_specialised_testing_type",
+        "custom_general_installation_type",
         "custom_service_type",
         "custom_priority",
         "custom_response_due",
@@ -324,6 +520,21 @@ def create_follow_up_mi(
                 fieldname,
                 source.get(fieldname),
             )
+
+    # Keep General Installation follow-ups explicitly aligned with the source MI.
+    # The subtype is copied when available, but a blank subtype remains editable
+    # on the new draft MI before Check In.
+    if source.get("custom_intervention_type") == "General Installation":
+        _set_if_field(
+            follow_up,
+            "custom_intervention_type",
+            "General Installation",
+        )
+        _set_if_field(
+            follow_up,
+            "custom_general_installation_type",
+            source.get("custom_general_installation_type") or "",
+        )
 
     _set_if_field(
         follow_up,
@@ -340,6 +551,20 @@ def create_follow_up_mi(
         "custom_continuation_reason",
         reason or source.get("custom_work_progress") or "",
     )
+
+    # A follow-up MI is a fresh work session.
+    # Clear any DocType defaults / carried workflow state so the technician
+    # must choose the outcome for this new visit.  In particular, some sites
+    # default custom_work_outcome to "Work Completed", which caused follow-up
+    # MIs to skip the outcome selector in the PWA.
+    _set_if_field(follow_up, "custom_work_outcome", "")
+    _set_if_field(follow_up, "custom_work_progress", "")
+    _set_if_field(follow_up, "custom_start_time", None)
+    _set_if_field(follow_up, "custom_start_date", None)
+    _set_if_field(follow_up, "custom_end_time", None)
+    _set_if_field(follow_up, "custom_completed_time", None)
+    _set_if_field(follow_up, "custom_checkout_status", "Not Started")
+    _set_if_field(follow_up, "custom_client_signature_received", 0)
 
     if _has_field(follow_up, "custom_follow_up_sequence"):
         previous_sequence = (
@@ -372,6 +597,43 @@ def create_follow_up_mi(
         )
 
     follow_up.insert(ignore_permissions=True)
+
+    # Force the newly-created follow-up to remain a fresh work session even if
+    # a DocType default / server-side hook writes a default outcome during insert.
+    # The technician must explicitly choose the outcome for the follow-up.
+    reset_values = {}
+
+    if follow_up.meta.has_field("custom_work_outcome"):
+        reset_values["custom_work_outcome"] = ""
+
+    if follow_up.meta.has_field("custom_work_progress"):
+        reset_values["custom_work_progress"] = ""
+
+    if follow_up.meta.has_field("custom_start_time"):
+        reset_values["custom_start_time"] = None
+
+    if follow_up.meta.has_field("custom_start_date"):
+        reset_values["custom_start_date"] = None
+
+    if follow_up.meta.has_field("custom_end_time"):
+        reset_values["custom_end_time"] = None
+
+    if follow_up.meta.has_field("custom_completed_time"):
+        reset_values["custom_completed_time"] = None
+
+    if follow_up.meta.has_field("custom_checkout_status"):
+        reset_values["custom_checkout_status"] = "Not Started"
+
+    if reset_values:
+        frappe.db.set_value(
+            "Mission Intervention",
+            follow_up.name,
+            reset_values,
+            update_modified=False,
+        )
+
+        for fieldname, value in reset_values.items():
+            follow_up.set(fieldname, value)
 
     mission = frappe.get_doc(
         "Tech Mission",
@@ -422,7 +684,7 @@ def create_follow_up_mi(
                 live_row.set(fieldname, value)
 
     hold_reason_map = {
-        "Continue Work": "Follow-up Visit / Work to Continue",
+        "Continue Work": "Continue Work",
         "Waiting for Parts": "Waiting for Parts",
         "Waiting for Client": "Waiting for Client",
         "To Quote (Billable)": "To Quote",
@@ -430,7 +692,7 @@ def create_follow_up_mi(
     }
     hold_reason = hold_reason_map.get(
         source.get("custom_work_outcome"),
-        "Follow-up Visit / Work to Continue",
+        "Continue Work",
     )
 
     if mission.meta.has_field("custom_mission_status"):
@@ -458,114 +720,6 @@ def create_follow_up_mi(
         "intervention": follow_up.name,
     }
 
-
-
-@frappe.whitelist()
-def get_additional_mi_intervention_types():
-    """Return live Select options from Mission Intervention.custom_intervention_type."""
-    field = frappe.get_meta("Mission Intervention").get_field("custom_intervention_type")
-    if not field:
-        frappe.throw("Mission Intervention field custom_intervention_type is missing.")
-
-    return [
-        value.strip()
-        for value in (field.options or "").split("\n")
-        if value.strip()
-    ]
-
-
-@frappe.whitelist()
-def get_specialised_testing_types():
-    meta = frappe.get_meta("Specialised Testing Type")
-    filters = {}
-    if meta.has_field("custom_active"):
-        filters["custom_active"] = 1
-
-    return frappe.get_all(
-        "Specialised Testing Type",
-        filters=filters,
-        fields=["name"],
-        order_by="name asc",
-        limit_page_length=500,
-    )
-
-
-@frappe.whitelist()
-def create_additional_mi_from_pwa(
-    mission_name,
-    asset_name,
-    reason,
-    subject,
-    intervention_type,
-    target_scope="Equipment",
-    component_row_id=None,
-    specialised_testing_type=None,
-    applicant=None,
-):
-    """Create an Additional MI through the existing API, then apply PWA-only fields safely."""
-    if not applicant:
-        frappe.throw("Applicant is required.")
-
-    # Reuse the same equipment/customer/branch contact filter already used elsewhere.
-    get_applicants = frappe.get_attr(
-        "maintenance_app.api.get_eq_applicants_for_equipment"
-    )
-    eligible_rows = get_applicants(asset_name) or []
-    eligible = set()
-    for row in eligible_rows:
-        if isinstance(row, dict):
-            value = (
-                row.get("contact")
-                or row.get("name")
-                or row.get("custom_contact")
-                or row.get("value")
-            )
-        else:
-            value = str(row) if row else ""
-        if value:
-            eligible.add(value)
-
-    if applicant not in eligible:
-        frappe.throw("Selected Applicant is not valid for this customer/branch.")
-
-    if intervention_type == "Specialised Testing":
-        specialised_testing_type = (specialised_testing_type or "").strip()
-        if not specialised_testing_type:
-            frappe.throw("Specialised Testing Type is required.")
-        if not frappe.db.exists("Specialised Testing Type", specialised_testing_type):
-            frappe.throw("Invalid Specialised Testing Type.")
-    else:
-        specialised_testing_type = ""
-
-    create_method = frappe.get_attr(
-        "maintenance_app.api.create_additional_intervention_from_mission"
-    )
-    result = create_method(
-        mission_name=mission_name,
-        asset_name=asset_name,
-        reason=reason,
-        subject=subject,
-        intervention_type=intervention_type,
-        target_scope=target_scope,
-        component_row_id=component_row_id,
-    )
-
-    intervention = (result or {}).get("intervention") if isinstance(result, dict) else None
-    if not intervention:
-        frappe.throw("Additional MI was created but no intervention reference was returned.")
-
-    new_mi = frappe.get_doc("Mission Intervention", intervention)
-    _set_if_field(new_mi, "custom_applicant", applicant)
-    if intervention_type == "Specialised Testing":
-        _set_if_field(
-            new_mi,
-            "custom_specialised_testing_type",
-            specialised_testing_type,
-        )
-    new_mi.save(ignore_permissions=True)
-    frappe.db.commit()
-
-    return result
 
 # -----------------------------------------------------------------------------
 # PWA CHECK-IN / CHECK-OUT
@@ -613,6 +767,7 @@ def pwa_check_in(
     longitude=None,
     accuracy=None,
     specialised_testing_type=None,
+    general_installation_type=None,
 ):
     """Check into an MI from the technician PWA using server time."""
     mi = _get_pwa_mi_for_update(mi_name)
@@ -642,6 +797,30 @@ def pwa_check_in(
             mi,
             "custom_specialised_testing_type",
             selected_testing_type,
+        )
+
+    if mi.get("custom_intervention_type") == "General Installation":
+        selected_installation_type = (
+            general_installation_type
+            or mi.get("custom_general_installation_type")
+            or ""
+        ).strip()
+
+        if not selected_installation_type:
+            frappe.throw(
+                "Please select General Installation Type before Check In."
+            )
+
+        if not frappe.db.exists(
+            "General Installation Type",
+            selected_installation_type,
+        ):
+            frappe.throw("Invalid General Installation Type.")
+
+        _set_if_field(
+            mi,
+            "custom_general_installation_type",
+            selected_installation_type,
         )
 
     checked_in_at = now_datetime()
@@ -963,6 +1142,36 @@ def send_mi_report(
         f" - {mi.get('custom_parent_customer') or ''}"
     )
 
+    email_identity = _build_maintenance_email_identity(
+        mi,
+        "technician_pwa",
+    )
+
+    signature_lines = [
+        _html_text(email_identity.get("closing")),
+        _html_text(email_identity.get("signature_name")),
+    ]
+
+    if email_identity.get("support_email"):
+        signature_lines.append(
+            _html_text(email_identity.get("support_email"))
+        )
+
+    if email_identity.get("support_phone"):
+        signature_lines.append(
+            _html_text(email_identity.get("support_phone"))
+        )
+
+    signature_html = "<br>".join(
+        line for line in signature_lines if line
+    )
+
+    footer_html = ""
+    if email_identity.get("footer"):
+        footer_html = (
+            f"<p>{_html_text(email_identity.get('footer'))}</p>"
+        )
+
     message = f"""
         <p>Hello,</p>
         <p>Please find attached the intervention report
@@ -975,19 +1184,25 @@ def send_mi_report(
             <strong>Outcome:</strong>
             {frappe.utils.escape_html(mi.get('custom_work_outcome') or '-')}
         </p>
-        <p>Kind regards,<br>GoTech</p>
+        <p>{signature_html}</p>
+        {footer_html}
     """
 
-    frappe.sendmail(
-        recipients=to_list,
-        cc=cc_list,
-        subject=subject,
-        message=message,
-        attachments=attachments,
-        reference_doctype="Mission Intervention",
-        reference_name=mi.name,
-        now=False,
-    )
+    sendmail_args = {
+        "recipients": to_list,
+        "cc": cc_list,
+        "subject": subject,
+        "message": message,
+        "attachments": attachments,
+        "reference_doctype": "Mission Intervention",
+        "reference_name": mi.name,
+        "now": False,
+    }
+
+    if email_identity.get("sender"):
+        sendmail_args["sender"] = email_identity["sender"]
+
+    frappe.sendmail(**sendmail_args)
 
     if mi.meta.has_field("custom_email_status"):
         frappe.db.set_value(

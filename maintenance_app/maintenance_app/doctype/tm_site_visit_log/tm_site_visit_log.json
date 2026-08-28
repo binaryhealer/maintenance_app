@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-27 13:19:00.418676",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_technician",
+  "custom_arrival_time",
+  "custom_arrival_latitude",
+  "custom_arrival_longitude",
+  "custom_departure_time",
+  "custom_departure_latitude",
+  "custom_visit_status",
+  "custom_visit_notes",
+  "custom_is_primary_technician",
+  "custom_visit_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_arrival_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Arrival Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_arrival_latitude",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Arrival Latitude"
+  },
+  {
+   "fieldname": "custom_arrival_longitude",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Arrival Longitude"
+  },
+  {
+   "fieldname": "custom_departure_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Departure Time"
+  },
+  {
+   "fieldname": "custom_departure_latitude",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Departure Latitude"
+  },
+  {
+   "fieldname": "custom_visit_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Visit Status",
+   "options": "On Site\nDeparted"
+  },
+  {
+   "fieldname": "custom_visit_notes",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Visit Notes"
+  },
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Link",
+   "label": "Technician",
+   "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_is_primary_technician",
+   "fieldtype": "Check",
+   "label": "Is Primary Technician"
+  },
+  {
+   "fieldname": "custom_visit_date",
+   "fieldtype": "Date",
+   "label": "Visit Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-27 21:41:03.503990",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "TM Site Visit Log",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

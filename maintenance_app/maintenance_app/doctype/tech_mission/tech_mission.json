@@ -31,6 +31,8 @@
   "custom_intervention_table",
   "section_break_fhuw",
   "custom_change_history",
+  "section_break_yfns",
+  "custom_site_visit_log",
   "tab_2_tab",
   "custom_planned_starttime",
   "custom_planned_endtime",
@@ -251,7 +253,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing",
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation",
    "read_only": 1
   },
   {
@@ -409,19 +411,29 @@
    "fieldname": "custom_hold_reason",
    "fieldtype": "Select",
    "label": "Hold Reason",
-   "options": "Follow-up Visit / Work to Continue\nWaiting for Parts\nWaiting for Client\nTo Quote\nCould Not Complete\nOther"
+   "options": "\nContinue Work\nWaiting for Parts\nWaiting for Client\nTo Quote\nCould Not Complete\nOther"
   },
   {
    "fieldname": "custom_company",
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "section_break_yfns",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_site_visit_log",
+   "fieldtype": "Table",
+   "label": "Site Visit Log",
+   "options": "TM Site Visit Log"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-26 05:35:36.084850",
+ "modified": "2026-08-27 23:31:02.707895",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

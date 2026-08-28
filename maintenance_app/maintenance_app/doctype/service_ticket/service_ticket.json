@@ -91,13 +91,14 @@
   "custom_fault_type",
   "custom_primary_remote_session_ref",
   "custom_specialised_testing_type",
+  "custom_false_call",
   "column_break_roia",
   "custom_primary_planning_ref",
   "custom_resolution_source_mi",
   "custom_resolution_date",
   "custom_calibration_record",
   "custom_commissioning_record",
-  "custom_false_call",
+  "custom_installation_type",
   "section_break_jocs",
   "custom_resolution_details",
   "section_break_ecrg",
@@ -226,7 +227,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation"
   },
   {
    "default": "Billable",
@@ -299,7 +300,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Hold Reason",
-   "options": "Waiting for Client\nWaiting for Parts\nAwaiting Quote Approval\nWaiting for PO\nWaiting for Internal Review\nContinue Work\nCould Not Complete\nTo Quote",
+   "options": "\nWaiting for Client\nWaiting for Parts\nAwaiting Quote Approval\nWaiting for PO\nWaiting for Internal Review\nContinue Work\nCould Not Complete\nTo Quote",
    "read_only": 1
   },
   {
@@ -854,12 +855,18 @@
    "fieldtype": "Data",
    "label": "Specialised Testing Type",
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_installation_type",
+   "fieldtype": "Data",
+   "label": "Installation Type",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-26 05:27:41.590608",
+ "modified": "2026-08-27 23:30:28.611006",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

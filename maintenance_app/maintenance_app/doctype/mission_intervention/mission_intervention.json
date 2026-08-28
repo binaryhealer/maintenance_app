@@ -22,6 +22,7 @@
   "custom_intervention_type",
   "custom_start_date",
   "custom_specialised_testing_type",
+  "custom_general_installation_type",
   "section_break_pmao",
   "custom_work_progress",
   "section_break_bzvm",
@@ -137,6 +138,8 @@
   "custom_component_row_id",
   "custom_equipment_component",
   "custom_commissioning_record",
+  "custom_mi_purpose",
+  "custom_previous_intervention",
   "custom_sla_priority",
   "custom_priority",
   "custom_response_due",
@@ -276,7 +279,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation"
   },
   {
    "fieldname": "custom_parts_table",
@@ -1012,13 +1015,31 @@
    "label": "Specialised Testing Type",
    "mandatory_depends_on": "eval:doc.custom_intervention_type==\"Specialised Testing\"",
    "options": "Specialised Testing Type"
+  },
+  {
+   "fieldname": "custom_general_installation_type",
+   "fieldtype": "Link",
+   "label": "General Installation Type",
+   "options": "General Installation Type"
+  },
+  {
+   "fieldname": "custom_mi_purpose",
+   "fieldtype": "Select",
+   "label": "MI Purpose",
+   "options": "Initial\nFollow-up\nAdditional Equipment"
+  },
+  {
+   "fieldname": "custom_previous_intervention",
+   "fieldtype": "Link",
+   "label": "Previous Intervention",
+   "options": "Mission Intervention"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-26 05:34:48.870669",
+ "modified": "2026-08-28 06:47:25.191982",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

@@ -244,14 +244,26 @@ def replan_mission_from_planning(planning_name):
 
 
 def _validate_planning(planning):
+    customer_only_ticket_types = {
+        "Survey",
+        "Audit",
+        "Training",
+        "General Installation",
+        "Inspection",
+    }
+
     required = {
         "custom_service_ticket": "Service Ticket",
         "custom_parent_customer": "Customer",
-        "custom_branch": "Client Branch",
-        "custom_asset": "Target Equipment",
         "custom_planned_starttime": "Planned Start Time",
         "custom_planned_endtime": "Planned End Time",
     }
+
+    # Discovery / customer-level work may be planned before the exact
+    # branch/site or installed equipment is known.
+    if planning.get("custom_ticket_type") not in customer_only_ticket_types:
+        required["custom_branch"] = "Client Branch"
+        required["custom_asset"] = "Target Equipment"
 
     for fieldname, label in required.items():
         if not planning.get(fieldname):
@@ -949,7 +961,7 @@ def _get_mi_register_status(mi):
 
 def _get_mission_hold_reason_from_outcome(outcome):
     mapping = {
-        "Continue Work": "Follow-up Visit / Work to Continue",
+        "Continue Work": "Continue Work",
         "Waiting for Parts": "Waiting for Parts",
         "Waiting for Client": "Waiting for Client",
         "To Quote (Billable)": "To Quote",
@@ -1045,7 +1057,7 @@ def _sync_mi_row_to_mission(mission, mi):
     return target_row
 
 
-def _recalculate_mission_status_from_mis(mission):
+def _recalculate_mission_status_from_mis(mission, current_mi=None):
     """
     Aggregate TM/ST status from ALL Mission Interventions.
 
@@ -1085,6 +1097,39 @@ def _recalculate_mission_status_from_mis(mission):
         limit_page_length=1000
     )
 
+    # Use the MI currently being synchronised as the authoritative snapshot.
+    # This is important during submit/on_submit transactions where a fresh
+    # database query can still expose stale workflow values for that MI.
+    if current_mi and current_mi.get("name"):
+        current_values = {
+            "name": current_mi.name,
+            "docstatus": int(current_mi.docstatus or 0),
+            "custom_start_time": current_mi.get("custom_start_time"),
+            "custom_end_time": current_mi.get("custom_end_time"),
+            "custom_work_outcome": current_mi.get("custom_work_outcome"),
+            "creation": current_mi.get("creation"),
+            "modified": current_mi.get("modified"),
+        }
+
+        for optional_field in [
+            "custom_mi_purpose",
+            "custom_previous_intervention",
+            "custom_additional_mi",
+        ]:
+            if mi_meta.has_field(optional_field):
+                current_values[optional_field] = current_mi.get(optional_field)
+
+        current_found = False
+
+        for row in rows:
+            if row.get("name") == current_mi.name:
+                row.update(current_values)
+                current_found = True
+                break
+
+        if not current_found:
+            rows.append(current_values)
+
     if not rows:
         return {
             "mission_status": mission.get("custom_mission_status"),
@@ -1119,6 +1164,8 @@ def _recalculate_mission_status_from_mis(mission):
         mission.custom_mission_status = "Ongoing"
         if mission.meta.has_field("custom_hold_reason"):
             mission.custom_hold_reason = ""
+        if mission.meta.has_field("custom_open_work_remaining"):
+            mission.custom_open_work_remaining = 1
         _set_ticket_status_from_mission(mission, "In Progress", "")
         return {
             "mission_status": "Ongoing",
@@ -1156,6 +1203,8 @@ def _recalculate_mission_status_from_mis(mission):
 
         if mission.meta.has_field("custom_hold_reason"):
             mission.custom_hold_reason = hold_reason
+        if mission.meta.has_field("custom_open_work_remaining"):
+            mission.custom_open_work_remaining = 1
 
         _set_ticket_status_from_mission(
             mission,
@@ -1186,13 +1235,15 @@ def _recalculate_mission_status_from_mis(mission):
 
         hold_reason = (
             _get_mission_hold_reason_from_outcome(previous_outcome)
-            or "Follow-up Visit / Work to Continue"
+            or "Continue Work"
         )
 
         mission.custom_mission_status = "On Hold"
 
         if mission.meta.has_field("custom_hold_reason"):
             mission.custom_hold_reason = hold_reason
+        if mission.meta.has_field("custom_open_work_remaining"):
+            mission.custom_open_work_remaining = 1
 
         _set_ticket_status_from_mission(
             mission,
@@ -1211,6 +1262,8 @@ def _recalculate_mission_status_from_mis(mission):
 
     if mission.meta.has_field("custom_hold_reason"):
         mission.custom_hold_reason = ""
+    if mission.meta.has_field("custom_open_work_remaining"):
+        mission.custom_open_work_remaining = 0
 
     ticket_name = mission.get("custom_service_ticket")
     if ticket_name:
@@ -1240,7 +1293,7 @@ def _sync_mi_register_and_status(mi_name, save_mission=True):
     mission = frappe.get_doc("Tech Mission", mi.custom_parent_mission)
 
     _sync_mi_row_to_mission(mission, mi)
-    status_result = _recalculate_mission_status_from_mis(mission)
+    status_result = _recalculate_mission_status_from_mis(mission, current_mi=mi)
 
     if mission.meta.has_field("custom_total_actual_hours"):
         total_actual_hours = 0
@@ -1265,6 +1318,85 @@ def sync_mi_to_mission_register(mi_name):
     """Public Desk/PWA helper used after MI Check In / Check Out saves."""
     result = _sync_mi_register_and_status(mi_name, save_mission=True)
     frappe.db.commit()
+    return result
+
+
+@frappe.whitelist()
+def sync_submitted_mi_status(mi_name):
+    """
+    Final TM/ST status synchronisation called from the Mission Intervention
+    After Submit Server Script.
+
+    This deliberately does NOT commit. The surrounding submit transaction
+    remains responsible for commit/rollback.
+    """
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+
+    if int(mi.docstatus or 0) != 1:
+        frappe.throw("Mission Intervention must be submitted before final status sync.")
+
+    result = _sync_mi_register_and_status(
+        mi.name,
+        save_mission=True,
+    )
+
+    mission_name = mi.get("custom_parent_mission")
+
+    if mission_name and result.get("mission_status") in ["Completed", "Closed"]:
+        todos = frappe.get_all(
+            "ToDo",
+            filters={
+                "reference_type": "Tech Mission",
+                "reference_name": mission_name,
+                "status": ["!=", "Closed"],
+            },
+            fields=["name"],
+        )
+
+        for todo_row in todos:
+            frappe.db.set_value(
+                "ToDo",
+                todo_row.name,
+                "status",
+                "Closed",
+                update_modified=False,
+            )
+
+    # Keep the Service Ticket Tech Mission history row aligned with the
+    # aggregate mission status after the final submitted MI has been considered.
+    ticket_name = mi.get("custom_service_ticket")
+    if not ticket_name and mission_name:
+        ticket_name = frappe.db.get_value(
+            "Tech Mission",
+            mission_name,
+            "custom_service_ticket",
+        )
+
+    if ticket_name and mission_name:
+        ticket = frappe.get_doc("Service Ticket", ticket_name)
+
+        if ticket.meta.has_field("custom_tech_missions"):
+            row_changed = False
+
+            for mrow in ticket.get("custom_tech_missions") or []:
+                if mrow.get("custom_tech_mission") != mission_name:
+                    continue
+
+                if mrow.meta.has_field("custom_mission_status"):
+                    mrow.custom_mission_status = result.get("mission_status") or ""
+
+                if mrow.meta.has_field("custom_work_outcome"):
+                    mrow.custom_work_outcome = mi.get("custom_work_outcome") or ""
+
+                row_changed = True
+                break
+
+            if row_changed:
+                ticket.save(ignore_permissions=True)
+
     return result
 
 def _set_mission_and_ticket_in_progress(mission):
@@ -7192,6 +7324,7 @@ def create_ticket_from_installed_equipment(
         ],
         "General Request": [
             "Installation",
+            "General Installation",
             "Survey",
             "Training",
             "Audit",
