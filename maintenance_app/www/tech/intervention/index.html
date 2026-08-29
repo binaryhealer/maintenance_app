@@ -565,6 +565,128 @@
     font-weight: 800;
 }
 
+
+/* =========================
+   EMAIL RECIPIENT PICKER
+========================= */
+.recipient-picker {
+    position: relative;
+}
+
+.recipient-box {
+    min-height: 46px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 7px 9px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.recipient-box:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.10);
+}
+
+.recipient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    color: #1e40af;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.recipient-chip-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recipient-chip-remove {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    padding: 0;
+    line-height: 1;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.recipient-search {
+    flex: 1 1 150px;
+    min-width: 120px;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    padding: 5px 2px !important;
+    background: transparent !important;
+}
+
+.recipient-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 5px);
+    z-index: 10050;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    display: none;
+}
+
+.recipient-dropdown.show {
+    display: block;
+}
+
+.recipient-source-label {
+    padding: 7px 10px 4px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #f9fafb;
+}
+
+.recipient-option {
+    padding: 9px 10px;
+    cursor: pointer;
+    border-top: 1px solid #f3f4f6;
+}
+
+.recipient-option:hover {
+    background: #f8fafc;
+}
+
+.recipient-option-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #111827;
+}
+
+.recipient-option-email {
+    font-size: 11px;
+    color: #6b7280;
+    word-break: break-all;
+}
+
+.recipient-empty {
+    padding: 12px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
 </style>
 
 <div class="container mt-3">
@@ -697,6 +819,11 @@
                 </div>
 
                 <div class="summary-item">
+                    <div class="info-label">Actual Intervention Type</div>
+                    <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
                     <div class="info-label">Service Type</div>
                     <div class="info-value">{{ mi.custom_service_type or "-" }}</div>
                 </div>
@@ -752,6 +879,13 @@
             </summary>
 
             <div class="accordion-body action-list">
+                {% if mi.docstatus == 0 %}
+                <button class="btn btn-outline-primary action-btn"
+                        type="button"
+                        onclick="showChangeInterventionTypeDialog()">
+                    Change Intervention Type
+                </button>
+                {% endif %}
                <button class="btn btn-outline-primary action-btn" onclick="showChangeEquipmentDialog()">
                     Correct Target Equipment
                 </button>
@@ -1232,23 +1366,46 @@
                                 </div>
                             </div>
                             <label class="form-label mt-3"><b>To</b></label>
+                            <div class="recipient-picker"
+                                 data-target-input="report_email_to"
+                                 data-pair-group="pre-submit"
+                                 data-kind="to">
+                                <div class="recipient-box">
+                                    <div class="recipient-chips"></div>
+                                    <input class="recipient-search"
+                                           type="text"
+                                           autocomplete="off"
+                                           placeholder="Search applicant, branch/customer contact or system user">
+                                </div>
+                                <div class="recipient-dropdown"></div>
+                            </div>
                             <input id="report_email_to"
-                                   class="form-control"
-                                   type="text"
-                                   value="{{ report_email_to or '' }}"
-                                   placeholder="Applicant email">
+                                   type="hidden"
+                                   value="{{ report_email_to or '' }}">
 
                             <label class="form-label mt-3"><b>CC</b></label>
+                            <div class="recipient-picker"
+                                 data-target-input="report_email_cc"
+                                 data-pair-group="pre-submit"
+                                 data-kind="cc">
+                                <div class="recipient-box">
+                                    <div class="recipient-chips"></div>
+                                    <input class="recipient-search"
+                                           type="text"
+                                           autocomplete="off"
+                                           placeholder="Search branch/customer contact or system user">
+                                </div>
+                                <div class="recipient-dropdown"></div>
+                            </div>
                             <input id="report_email_cc"
-                                   class="form-control"
-                                   type="text"
-                                   value="{{ report_email_cc or '' }}"
-                                   placeholder="Other branch contacts">
+                                   type="hidden"
+                                   value="{{ report_email_cc or '' }}">
 
                             <div class="field-help">
-                                To is filled from the Service Ticket applicant.
-                                CC is filled from the other contacts in the branch contact list.
-                                You can review or edit the addresses before submission.
+                                To is filled automatically from the MI applicant.
+                                CC is filled automatically from live Client Branch contacts.
+                                Search the approved list to add customer contacts or enabled System Users.
+                                Arbitrary email addresses are not allowed.
                             </div>
                         </div>
                     </div>
@@ -1294,18 +1451,40 @@
                 <div class="section-title">Email Intervention Report</div>
 
                 <label class="form-label"><b>To</b></label>
-                <input id="submitted_report_email_to"
-                       class="form-control"
-                       type="text"
-                       value="{{ report_email_to or '' }}"
-                       placeholder="Applicant email">
+                <div class="recipient-picker"
+                                 data-target-input="submitted_report_email_to"
+                                 data-pair-group="submitted"
+                                 data-kind="to">
+                                <div class="recipient-box">
+                                    <div class="recipient-chips"></div>
+                                    <input class="recipient-search"
+                                           type="text"
+                                           autocomplete="off"
+                                           placeholder="Search applicant, branch/customer contact or system user">
+                                </div>
+                                <div class="recipient-dropdown"></div>
+                            </div>
+                            <input id="submitted_report_email_to"
+                                   type="hidden"
+                                   value="{{ report_email_to or '' }}">
 
                 <label class="form-label mt-3"><b>CC</b></label>
-                <input id="submitted_report_email_cc"
-                       class="form-control"
-                       type="text"
-                       value="{{ report_email_cc or '' }}"
-                       placeholder="Other branch contacts">
+                <div class="recipient-picker"
+                                 data-target-input="submitted_report_email_cc"
+                                 data-pair-group="submitted"
+                                 data-kind="cc">
+                                <div class="recipient-box">
+                                    <div class="recipient-chips"></div>
+                                    <input class="recipient-search"
+                                           type="text"
+                                           autocomplete="off"
+                                           placeholder="Search branch/customer contact or system user">
+                                </div>
+                                <div class="recipient-dropdown"></div>
+                            </div>
+                            <input id="submitted_report_email_cc"
+                                   type="hidden"
+                                   value="{{ report_email_cc or '' }}">
 
                 <div class="form-check mt-3">
                     <input id="submitted_send_photos"
@@ -1384,6 +1563,54 @@
         </div>
     </div>
 {% endif %}
+
+<div id="change-intervention-type-modal" class="custom-modal" style="display:none;">
+    <div class="custom-modal-box">
+        <h4>Change Intervention Type</h4>
+
+        <label class="form-label"><b>Intervention Type</b></label>
+        <select id="change-intervention-type-select"
+                class="form-control"
+                onchange="changeInterventionTypeSelectionChanged()">
+            <option value="">Loading intervention types...</option>
+        </select>
+
+        <div id="change-intervention-testing-wrap" style="display:none;">
+            <label class="form-label mt-3"><b>Specialised Testing Type</b></label>
+            <select id="change-intervention-testing-type" class="form-control">
+                <option value="">Select testing type</option>
+            </select>
+            <div class="field-help">Required for Specialised Testing.</div>
+        </div>
+
+        <div id="change-intervention-installation-wrap" style="display:none;">
+            <label class="form-label mt-3"><b>General Installation Type</b></label>
+            <select id="change-intervention-installation-type" class="form-control">
+                <option value="">Select installation type</option>
+            </select>
+            <div class="field-help">Required for General Installation.</div>
+        </div>
+
+        <div class="field-help mt-3">
+            This changes the actual intervention classification. The original
+            Service Ticket type remains unchanged; the final actual type is
+            written back through the existing submit logic.
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-primary action-btn"
+                    type="button"
+                    onclick="submitChangeInterventionType()">
+                Update Type
+            </button>
+            <button class="btn btn-outline-secondary action-btn"
+                    type="button"
+                    onclick="closeChangeInterventionTypeModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
 
 <div id="change-equipment-modal" class="custom-modal" style="display:none;">
     <div class="custom-modal-box">
@@ -3009,6 +3236,192 @@ function equipment_swap_placeholder() {
     frappe.msgprint("Equipment Swap / Loan / Relocation will be connected next.");
 }
 
+
+function showChangeInterventionTypeDialog() {
+    let modal = document.getElementById("change-intervention-type-modal");
+    let select = document.getElementById("change-intervention-type-select");
+
+    if (!modal || !select) {
+        return;
+    }
+
+    select.innerHTML = '<option value="">Loading intervention types...</option>';
+    document.getElementById("change-intervention-testing-wrap").style.display = "none";
+    document.getElementById("change-intervention-installation-wrap").style.display = "none";
+    modal.style.display = "flex";
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.get_additional_mi_intervention_types",
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select intervention type</option>';
+
+            rows.forEach(function(value) {
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+
+            select.value = {{ (mi.custom_intervention_type or "") | tojson }};
+            changeInterventionTypeSelectionChanged(true);
+        },
+        error: show_error
+    });
+}
+
+function closeChangeInterventionTypeModal() {
+    let modal = document.getElementById("change-intervention-type-modal");
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function changeInterventionTypeSelectionChanged(use_current_value) {
+    let typeSelect = document.getElementById("change-intervention-type-select");
+    let testingWrap = document.getElementById("change-intervention-testing-wrap");
+    let testingSelect = document.getElementById("change-intervention-testing-type");
+    let installationWrap = document.getElementById("change-intervention-installation-wrap");
+    let installationSelect = document.getElementById("change-intervention-installation-type");
+
+    if (!typeSelect) {
+        return;
+    }
+
+    let type = typeSelect.value || "";
+
+    testingWrap.style.display = type === "Specialised Testing" ? "block" : "none";
+    installationWrap.style.display = type === "General Installation" ? "block" : "none";
+
+    if (type === "Specialised Testing") {
+        loadChangeSpecialisedTestingTypes(
+            use_current_value
+                ? {{ (mi.custom_specialised_testing_type or "") | tojson }}
+                : ""
+        );
+    } else {
+        testingSelect.innerHTML = '<option value="">Select testing type</option>';
+    }
+
+    if (type === "General Installation") {
+        loadChangeGeneralInstallationTypes(
+            use_current_value
+                ? {{ (mi.custom_general_installation_type or "") | tojson }}
+                : ""
+        );
+    } else {
+        installationSelect.innerHTML = '<option value="">Select installation type</option>';
+    }
+}
+
+function loadChangeSpecialisedTestingTypes(selected_value) {
+    let select = document.getElementById("change-intervention-testing-type");
+    select.innerHTML = '<option value="">Loading testing types...</option>';
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.get_specialised_testing_types",
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select testing type</option>';
+
+            rows.forEach(function(row) {
+                let value = row.name || row;
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+
+            if (selected_value) {
+                select.value = selected_value;
+            }
+        },
+        error: show_error
+    });
+}
+
+function loadChangeGeneralInstallationTypes(selected_value) {
+    let select = document.getElementById("change-intervention-installation-type");
+    select.innerHTML = '<option value="">Loading installation types...</option>';
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.get_general_installation_types",
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select installation type</option>';
+
+            rows.forEach(function(row) {
+                let value = row.name || row;
+                let label = row.custom_installation_type || row.name || row;
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+
+            if (selected_value) {
+                select.value = selected_value;
+            }
+        },
+        error: show_error
+    });
+}
+
+function submitChangeInterventionType() {
+    let intervention_type =
+        document.getElementById("change-intervention-type-select").value || "";
+    let specialised_testing_type =
+        document.getElementById("change-intervention-testing-type").value || "";
+    let general_installation_type =
+        document.getElementById("change-intervention-installation-type").value || "";
+
+    if (!intervention_type) {
+        frappe.msgprint("Please select Intervention Type.");
+        return;
+    }
+
+    if (
+        intervention_type === "Specialised Testing"
+        && !specialised_testing_type
+    ) {
+        frappe.msgprint("Please select Specialised Testing Type.");
+        return;
+    }
+
+    if (
+        intervention_type === "General Installation"
+        && !general_installation_type
+    ) {
+        frappe.msgprint("Please select General Installation Type.");
+        return;
+    }
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.change_intervention_type_from_pwa",
+        args: {
+            mi_name: {{ mi.name | tojson }},
+            intervention_type: intervention_type,
+            specialised_testing_type: specialised_testing_type,
+            general_installation_type: general_installation_type
+        },
+        freeze: true,
+        freeze_message: "Updating intervention type...",
+        callback: function(r) {
+            closeChangeInterventionTypeModal();
+
+            frappe.show_alert({
+                message: "Intervention type updated",
+                indicator: "green"
+            });
+
+            setTimeout(function() {
+                window.location.reload();
+            }, 450);
+        },
+        error: show_error
+    });
+}
+
 function showAdditionalMIDialog() {
     frappe.call({
         method: "frappe.client.get_list",
@@ -3289,14 +3702,406 @@ function submitAdditionalMI() {
 }
 
 
+
+const APPROVED_EMAIL_RECIPIENTS = {{ report_email_options_json | safe }};
+const recipientPickerState = {};
+
+function normaliseEmail(value) {
+    return (value || "").trim().toLowerCase();
+}
+
+function getApprovedRecipient(email) {
+    let key = normaliseEmail(email);
+    return APPROVED_EMAIL_RECIPIENTS.find(function(row) {
+        return normaliseEmail(row.email) === key;
+    }) || null;
+}
+
 function splitEmailList(value) {
     return (value || "")
-        .split(/[;,]/)
+        .split(/[;,\n\r\t ]+/)
         .map(function(email) {
             return email.trim();
         })
         .filter(Boolean);
 }
+
+function recipientDisplayLabel(email) {
+    let row = getApprovedRecipient(email);
+    if (!row) {
+        return email;
+    }
+
+    if (row.label && normaliseEmail(row.label) !== normaliseEmail(row.email)) {
+        return row.label + " <" + row.email + ">";
+    }
+
+    return row.email;
+}
+
+function syncRecipientHiddenInput(target_id) {
+    let state = recipientPickerState[target_id];
+    let hidden = document.getElementById(target_id);
+
+    if (!state || !hidden) {
+        return;
+    }
+
+    // Always keep a clean comma-separated value for the existing send logic.
+    hidden.value = state.selected.join(", ");
+}
+
+function findPairTarget(state, kind) {
+    let picker = document.querySelector(
+        '.recipient-picker[data-pair-group="' +
+        state.pair_group +
+        '"][data-kind="' +
+        kind +
+        '"]'
+    );
+
+    return picker ? picker.dataset.targetInput : null;
+}
+
+function removeRecipientFromPicker(target_id, email) {
+    let state = recipientPickerState[target_id];
+    if (!state) {
+        return;
+    }
+
+    let key = normaliseEmail(email);
+    state.selected = state.selected.filter(function(value) {
+        return normaliseEmail(value) !== key;
+    });
+
+    syncRecipientHiddenInput(target_id);
+    renderRecipientPicker(target_id);
+}
+
+function addRecipientToPicker(target_id, email, silent) {
+    let state = recipientPickerState[target_id];
+    let approved = getApprovedRecipient(email);
+
+    if (!state || !approved) {
+        if (!silent) {
+            frappe.msgprint(
+                "Please select a recipient from the approved applicant, customer/branch contact, or System User list."
+            );
+        }
+        return false;
+    }
+
+    let key = normaliseEmail(approved.email);
+
+    if (state.selected.some(function(value) {
+        return normaliseEmail(value) === key;
+    })) {
+        return true;
+    }
+
+    if (state.kind === "cc") {
+        let to_target = findPairTarget(state, "to");
+        let to_state = to_target ? recipientPickerState[to_target] : null;
+
+        if (
+            to_state &&
+            to_state.selected.some(function(value) {
+                return normaliseEmail(value) === key;
+            })
+        ) {
+            if (!silent) {
+                frappe.show_alert({
+                    message: "Recipient is already in To.",
+                    indicator: "orange"
+                });
+            }
+            return false;
+        }
+    }
+
+    if (state.kind === "to") {
+        let cc_target = findPairTarget(state, "cc");
+        if (cc_target) {
+            removeRecipientFromPicker(cc_target, approved.email);
+        }
+    }
+
+    state.selected.push(approved.email);
+    syncRecipientHiddenInput(target_id);
+    renderRecipientPicker(target_id);
+    return true;
+}
+
+function renderRecipientPicker(target_id) {
+    let state = recipientPickerState[target_id];
+    if (!state) {
+        return;
+    }
+
+    state.chips.innerHTML = "";
+
+    state.selected.forEach(function(email) {
+        let chip = document.createElement("span");
+        chip.className = "recipient-chip";
+
+        let text = document.createElement("span");
+        text.className = "recipient-chip-text";
+        text.textContent = recipientDisplayLabel(email);
+
+        let remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "recipient-chip-remove";
+        remove.setAttribute("aria-label", "Remove recipient");
+        remove.textContent = "×";
+        remove.onclick = function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            removeRecipientFromPicker(target_id, email);
+        };
+
+        chip.appendChild(text);
+        chip.appendChild(remove);
+        state.chips.appendChild(chip);
+    });
+
+    syncRecipientHiddenInput(target_id);
+}
+
+function renderRecipientDropdown(target_id) {
+    let state = recipientPickerState[target_id];
+    if (!state) {
+        return;
+    }
+
+    let query = (state.search.value || "").trim().toLowerCase();
+    let selected_keys = new Set(
+        state.selected.map(function(email) {
+            return normaliseEmail(email);
+        })
+    );
+
+    let rows = APPROVED_EMAIL_RECIPIENTS.filter(function(row) {
+        if (selected_keys.has(normaliseEmail(row.email))) {
+            return false;
+        }
+
+        if (!query) {
+            return true;
+        }
+
+        return (
+            (row.label || "").toLowerCase().includes(query) ||
+            (row.email || "").toLowerCase().includes(query) ||
+            (row.source || "").toLowerCase().includes(query)
+        );
+    });
+
+    if (state.kind === "cc") {
+        let to_target = findPairTarget(state, "to");
+        let to_state = to_target ? recipientPickerState[to_target] : null;
+        let to_keys = new Set(
+            (to_state ? to_state.selected : []).map(function(email) {
+                return normaliseEmail(email);
+            })
+        );
+
+        rows = rows.filter(function(row) {
+            return !to_keys.has(normaliseEmail(row.email));
+        });
+    }
+
+    state.dropdown.innerHTML = "";
+
+    if (!rows.length) {
+        let empty = document.createElement("div");
+        empty.className = "recipient-empty";
+        empty.textContent = "No approved recipients found.";
+        state.dropdown.appendChild(empty);
+        state.dropdown.classList.add("show");
+        return;
+    }
+
+    let current_source = null;
+
+    rows.forEach(function(row) {
+        if (row.source !== current_source) {
+            current_source = row.source;
+
+            let heading = document.createElement("div");
+            heading.className = "recipient-source-label";
+            heading.textContent = current_source || "Contact";
+            state.dropdown.appendChild(heading);
+        }
+
+        let option = document.createElement("div");
+        option.className = "recipient-option";
+
+        let name = document.createElement("div");
+        name.className = "recipient-option-name";
+        name.textContent = row.label || row.email;
+
+        let email = document.createElement("div");
+        email.className = "recipient-option-email";
+        email.textContent = row.email;
+
+        option.appendChild(name);
+        option.appendChild(email);
+
+        option.onclick = function() {
+            if (addRecipientToPicker(target_id, row.email, false)) {
+                state.search.value = "";
+                renderRecipientDropdown(target_id);
+                state.search.focus();
+            }
+        };
+
+        state.dropdown.appendChild(option);
+    });
+
+    state.dropdown.classList.add("show");
+}
+
+function commitTypedRecipients(target_id) {
+    let state = recipientPickerState[target_id];
+    if (!state) {
+        return false;
+    }
+
+    let raw = state.search.value || "";
+    let parts = splitEmailList(raw);
+
+    if (!parts.length) {
+        return false;
+    }
+
+    let all_added = true;
+
+    parts.forEach(function(part) {
+        let query = part.trim().toLowerCase();
+
+        let exact = APPROVED_EMAIL_RECIPIENTS.find(function(row) {
+            return (
+                normaliseEmail(row.email) === query ||
+                (row.label || "").trim().toLowerCase() === query
+            );
+        });
+
+        if (!exact || !addRecipientToPicker(target_id, exact.email, true)) {
+            all_added = false;
+        }
+    });
+
+    if (all_added) {
+        state.search.value = "";
+        state.dropdown.classList.remove("show");
+        return true;
+    }
+
+    frappe.msgprint(
+        "One or more entries are not approved recipients. Please select from the dropdown."
+    );
+    renderRecipientDropdown(target_id);
+    return false;
+}
+
+function initialiseRecipientPicker(picker) {
+    let target_id = picker.dataset.targetInput;
+    let hidden = document.getElementById(target_id);
+    let chips = picker.querySelector(".recipient-chips");
+    let search = picker.querySelector(".recipient-search");
+    let dropdown = picker.querySelector(".recipient-dropdown");
+
+    if (!target_id || !hidden || !chips || !search || !dropdown) {
+        return;
+    }
+
+    let selected = [];
+    splitEmailList(hidden.value).forEach(function(email) {
+        let approved = getApprovedRecipient(email);
+        if (
+            approved &&
+            !selected.some(function(value) {
+                return normaliseEmail(value) === normaliseEmail(approved.email);
+            })
+        ) {
+            selected.push(approved.email);
+        }
+    });
+
+    recipientPickerState[target_id] = {
+        target_id: target_id,
+        pair_group: picker.dataset.pairGroup,
+        kind: picker.dataset.kind,
+        picker: picker,
+        chips: chips,
+        search: search,
+        dropdown: dropdown,
+        selected: selected
+    };
+
+    renderRecipientPicker(target_id);
+
+    search.addEventListener("focus", function() {
+        renderRecipientDropdown(target_id);
+    });
+
+    search.addEventListener("input", function() {
+        // Comma/semicolon immediately commits an exact approved address.
+        if (/[;,]$/.test(search.value)) {
+            commitTypedRecipients(target_id);
+            return;
+        }
+
+        renderRecipientDropdown(target_id);
+    });
+
+    search.addEventListener("keydown", function(event) {
+        if (
+            event.key === "Enter" ||
+            event.key === "Tab" ||
+            event.key === "," ||
+            event.key === ";"
+        ) {
+            if (search.value.trim()) {
+                event.preventDefault();
+                commitTypedRecipients(target_id);
+            }
+        }
+
+        if (
+            event.key === "Backspace" &&
+            !search.value &&
+            recipientPickerState[target_id].selected.length
+        ) {
+            let last =
+                recipientPickerState[target_id].selected[
+                    recipientPickerState[target_id].selected.length - 1
+                ];
+            removeRecipientFromPicker(target_id, last);
+        }
+    });
+}
+
+function initialiseAllRecipientPickers() {
+    document.querySelectorAll(".recipient-picker").forEach(function(picker) {
+        initialiseRecipientPicker(picker);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    initialiseAllRecipientPickers();
+
+    document.addEventListener("click", function(event) {
+        document.querySelectorAll(".recipient-picker").forEach(function(picker) {
+            if (!picker.contains(event.target)) {
+                let dropdown = picker.querySelector(".recipient-dropdown");
+                if (dropdown) {
+                    dropdown.classList.remove("show");
+                }
+            }
+        });
+    });
+});
 
 
 function toggleEmailFields() {

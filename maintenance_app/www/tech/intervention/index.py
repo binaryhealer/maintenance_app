@@ -1,4 +1,5 @@
 import json
+import re
 
 import frappe
 from frappe.utils import add_days, flt, get_datetime, now_datetime, today
@@ -225,81 +226,425 @@ def _html_text(value):
     return frappe.utils.escape_html(value or "").replace("\n", "<br>")
 
 
-def _get_report_email_defaults(service_ticket_name):
+def _get_contact_primary_email(contact_name):
+    if not contact_name:
+        return ""
+
+    email = frappe.db.get_value(
+        "Contact Email",
+        {
+            "parent": contact_name,
+            "is_primary": 1,
+        },
+        "email_id",
+    )
+
+    if not email:
+        email = frappe.db.get_value(
+            "Contact Email",
+            {
+                "parent": contact_name,
+            },
+            "email_id",
+            order_by="idx asc",
+        )
+
+    return (email or "").strip()
+
+
+def _append_recipient_option(options, seen, email, label=None, source=None):
+    email = (email or "").strip()
+    if not email:
+        return
+
+    key = _normalise_email(email)
+    if not key or key in seen:
+        return
+
+    seen.add(key)
+    options.append({
+        "email": email,
+        "label": (label or email).strip(),
+        "source": (source or "Contact").strip(),
+    })
+
+
+def _contact_label(contact_name):
+    if not contact_name:
+        return ""
+
+    values = frappe.db.get_value(
+        "Contact",
+        contact_name,
+        ["first_name", "middle_name", "last_name", "full_name"],
+        as_dict=True,
+    ) or {}
+
+    return (
+        (values.get("full_name") or "").strip()
+        or " ".join(
+            value.strip()
+            for value in [
+                values.get("first_name") or "",
+                values.get("middle_name") or "",
+                values.get("last_name") or "",
+            ]
+            if value and value.strip()
+        )
+        or contact_name
+    )
+
+
+def _append_contact_rows(options, seen, rows, source):
+    for row in rows or []:
+        contact_name = (
+            row.get("custom_contact")
+            or row.get("contact")
+            or row.get("name")
+            or ""
+        )
+        email = (
+            row.get("custom_email")
+            or row.get("email")
+            or row.get("email_id")
+            or ""
+        ).strip()
+
+        if not email and contact_name:
+            email = _get_contact_primary_email(contact_name)
+
+        label = (
+            row.get("custom_contact_name")
+            or row.get("contact_name")
+            or _contact_label(contact_name)
+            or email
+        )
+
+        _append_recipient_option(
+            options,
+            seen,
+            email,
+            label=label,
+            source=source,
+        )
+
+
+def _get_customer_linked_contacts(customer):
+    """Return live Contact records linked to the Customer through Dynamic Link."""
+    if not customer:
+        return []
+
+    contacts = frappe.db.sql(
+        """
+        SELECT DISTINCT c.name
+        FROM `tabContact` c
+        INNER JOIN `tabDynamic Link` dl
+            ON dl.parent = c.name
+           AND dl.parenttype = 'Contact'
+        WHERE dl.link_doctype = 'Customer'
+          AND dl.link_name = %(customer)s
+        ORDER BY c.first_name, c.last_name, c.name
+        """,
+        {"customer": customer},
+        as_dict=True,
+    )
+
+    result = []
+    for row in contacts:
+        contact_name = row.get("name")
+        email = _get_contact_primary_email(contact_name)
+        if email:
+            result.append({
+                "custom_contact": contact_name,
+                "custom_contact_name": _contact_label(contact_name),
+                "custom_email": email,
+            })
+
+    return result
+
+
+def _get_system_user_recipient_rows():
+    """All enabled System Users are valid internal recipients across companies."""
+    rows = frappe.get_all(
+        "User",
+        filters={
+            "enabled": 1,
+            "user_type": "System User",
+        },
+        fields=["name", "email", "full_name"],
+        order_by="full_name asc, name asc",
+        limit_page_length=1000,
+    )
+
+    result = []
+    for row in rows:
+        email = (row.get("email") or row.get("name") or "").strip()
+        if not email or "@" not in email:
+            continue
+        if row.get("name") in ("Guest", "Administrator"):
+            continue
+
+        result.append({
+            "email": email,
+            "label": (row.get("full_name") or row.get("name") or email).strip(),
+            "source": "System User",
+        })
+
+    return result
+
+
+def _get_mi_email_recipients_data(mi):
     """
-    Email destination rule:
-      To  = Service Ticket applicant email
-      CC  = all other emails in Service Ticket branch contacts
+    Build the approved recipient list and the automatic defaults.
 
-    Applicant email is removed from CC to prevent duplication.
+    Defaults:
+      TO = current MI applicant, falling back to Service Ticket applicant
+      CC = live Client Branch contacts, excluding the TO applicant
+
+    Allowed picker sources:
+      Applicant + live Client Branch contacts + Customer/head-office contacts
+      + all enabled System Users.
     """
-    result = {
-        "to": [],
-        "cc": [],
-    }
+    options = []
+    seen = set()
 
-    if not service_ticket_name:
-        return result
+    ticket = None
+    if mi.get("custom_service_ticket"):
+        ticket = frappe.get_doc(
+            "Service Ticket",
+            mi.get("custom_service_ticket"),
+        )
 
-    ticket = frappe.get_doc(
-        "Service Ticket",
-        service_ticket_name,
+    # Prefer the applicant stored on this MI. This matters for Additional MIs,
+    # where the selected applicant can differ from the original ticket applicant.
+    applicant_contact = (
+        mi.get("custom_applicant")
+        or (ticket.get("custom_applicant") if ticket else None)
+        or ""
     )
 
     applicant_email = (
-        ticket.get("custom_applicant_email") or ""
-    ).strip()
+        (mi.get("custom_applicant_email") or "").strip()
+        or (
+            (ticket.get("custom_applicant_email") or "").strip()
+            if ticket else ""
+        )
+        or _get_contact_primary_email(applicant_contact)
+    )
 
-    # Fallback to the linked Contact when the snapshot email is empty.
-    if (
-        not applicant_email
-        and ticket.get("custom_applicant")
-    ):
-        contact_email = frappe.db.get_value(
-            "Contact Email",
-            {
-                "parent": ticket.custom_applicant,
-                "is_primary": 1,
-            },
-            "email_id",
+    applicant_label = (
+        _contact_label(applicant_contact)
+        or applicant_email
+        or "Applicant"
+    )
+
+    _append_recipient_option(
+        options,
+        seen,
+        applicant_email,
+        label=applicant_label,
+        source="Applicant",
+    )
+
+    branch_name = (
+        mi.get("custom_branch")
+        or (ticket.get("custom_client_branch") if ticket else None)
+        or ""
+    )
+
+    branch_rows = []
+    live_head_office_rows = []
+
+    # Live Client Branch is the source of truth for branch contacts.
+    if branch_name and frappe.db.exists("Client Branch", branch_name):
+        branch = frappe.get_doc("Client Branch", branch_name)
+
+        for fieldname in (
+            "custom_branch_contacts",
+            "branch_contacts",
+            "contacts",
+        ):
+            if branch.meta.has_field(fieldname):
+                branch_rows = branch.get(fieldname) or []
+                if branch_rows:
+                    break
+
+        for fieldname in (
+            "custom_head_office_contacts",
+            "head_office_contacts",
+        ):
+            if branch.meta.has_field(fieldname):
+                live_head_office_rows = branch.get(fieldname) or []
+                if live_head_office_rows:
+                    break
+
+    # Backward-compatible fallback for older records/sites.
+    if not branch_rows:
+        branch_rows = (
+            mi.get("custom_branch_contacts")
+            or (
+                ticket.get("custom_branch_contacts")
+                if ticket else []
+            )
+            or []
         )
 
-        if not contact_email:
-            contact_email = frappe.db.get_value(
-                "Contact Email",
-                {
-                    "parent": ticket.custom_applicant,
-                },
-                "email_id",
-                order_by="idx asc",
-            )
-
-        applicant_email = (
-            contact_email or ""
+    branch_emails = []
+    for row in branch_rows:
+        email = (
+            row.get("custom_email")
+            or row.get("email")
+            or row.get("email_id")
+            or ""
         ).strip()
 
-    if applicant_email:
-        result["to"] = [applicant_email]
+        contact_name = (
+            row.get("custom_contact")
+            or row.get("contact")
+            or ""
+        )
 
-    branch_emails = []
-
-    for row in (
-        ticket.get("custom_branch_contacts") or []
-    ):
-        email = (row.get("custom_email") or "").strip()
+        if not email and contact_name:
+            email = _get_contact_primary_email(contact_name)
 
         if email:
             branch_emails.append(email)
 
+    _append_contact_rows(
+        options,
+        seen,
+        branch_rows,
+        "Client Branch",
+    )
+
+    # Head-office/customer snapshot contacts carried by the MI/Ticket.
+    head_office_rows = (
+        live_head_office_rows
+        or mi.get("custom_head_office_contacts")
+        or (
+            ticket.get("custom_head_office_contacts")
+            if ticket else []
+        )
+        or []
+    )
+
+    _append_contact_rows(
+        options,
+        seen,
+        head_office_rows,
+        "Customer / Head Office",
+    )
+
+    customer = (
+        mi.get("custom_parent_customer")
+        or (ticket.get("custom_customer") if ticket else None)
+        or ""
+    )
+
+    # Also add current Contacts linked directly to the Customer so the picker
+    # does not depend only on snapshots copied when the ticket was created.
+    _append_contact_rows(
+        options,
+        seen,
+        _get_customer_linked_contacts(customer),
+        "Customer / Head Office",
+    )
+
+    for user_row in _get_system_user_recipient_rows():
+        _append_recipient_option(
+            options,
+            seen,
+            user_row.get("email"),
+            label=user_row.get("label"),
+            source=user_row.get("source"),
+        )
+
     applicant_key = _normalise_email(applicant_email)
 
-    result["cc"] = [
+    default_to = [applicant_email] if applicant_email else []
+    default_cc = [
         email
         for email in _unique_emails(branch_emails)
         if _normalise_email(email) != applicant_key
     ]
 
-    return result
+    return {
+        "to": default_to,
+        "cc": default_cc,
+        "options": options,
+    }
+
+
+def _get_report_email_defaults(mi):
+    data = _get_mi_email_recipients_data(mi)
+    return {
+        "to": data.get("to") or [],
+        "cc": data.get("cc") or [],
+    }
+
+
+def _parse_email_values(value):
+    """Accept JSON arrays and common pasted separators, then normalise."""
+    if not value:
+        return []
+
+    parsed = frappe.parse_json(value)
+
+    if isinstance(parsed, str):
+        parsed = [parsed]
+
+    result = []
+    for item in parsed or []:
+        if not item:
+            continue
+
+        for email in re.split(r"[,;\n\r\t ]+", str(item)):
+            email = email.strip()
+            if email:
+                result.append(email)
+
+    return _unique_emails(result)
+
+
+def _validate_mi_email_recipients(mi, to_list, cc_list):
+    allowed_data = _get_mi_email_recipients_data(mi)
+    allowed = {
+        _normalise_email(row.get("email"))
+        for row in allowed_data.get("options") or []
+        if row.get("email")
+    }
+
+    invalid = [
+        email
+        for email in _unique_emails((to_list or []) + (cc_list or []))
+        if _normalise_email(email) not in allowed
+    ]
+
+    if invalid:
+        frappe.throw(
+            "These email addresses are not in the approved recipient list: "
+            + ", ".join(invalid)
+        )
+
+    to_keys = {_normalise_email(email) for email in to_list or []}
+    clean_cc = [
+        email
+        for email in cc_list or []
+        if _normalise_email(email) not in to_keys
+    ]
+
+    return _unique_emails(to_list), _unique_emails(clean_cc)
+
+
+@frappe.whitelist()
+def get_mi_email_recipients(mi_name):
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+    mi.check_permission("read")
+
+    return _get_mi_email_recipients_data(mi)
 
 
 def _equipment_display(equipment_name):
@@ -416,15 +761,16 @@ def get_context(context):
             limit_page_length=500,
         )
 
-    report_email_defaults = _get_report_email_defaults(
-        mi.get("custom_service_ticket")
-    )
+    report_email_data = _get_mi_email_recipients_data(mi)
 
     context.report_email_to = ", ".join(
-        report_email_defaults.get("to") or []
+        report_email_data.get("to") or []
     )
     context.report_email_cc = ", ".join(
-        report_email_defaults.get("cc") or []
+        report_email_data.get("cc") or []
+    )
+    context.report_email_options_json = json.dumps(
+        report_email_data.get("options") or []
     )
 
 
@@ -756,6 +1102,136 @@ def get_specialised_testing_types():
         order_by="name asc",
         limit_page_length=500,
     )
+
+
+@frappe.whitelist()
+def get_general_installation_types():
+    """Return live General Installation Type master records for the PWA."""
+    meta = frappe.get_meta("General Installation Type")
+    fields = ["name"]
+
+    if meta.has_field("custom_installation_type"):
+        fields.append("custom_installation_type")
+
+    return frappe.get_all(
+        "General Installation Type",
+        fields=fields,
+        order_by=(
+            "custom_installation_type asc"
+            if meta.has_field("custom_installation_type")
+            else "name asc"
+        ),
+        limit_page_length=500,
+    )
+
+
+@frappe.whitelist()
+def change_intervention_type_from_pwa(
+    mi_name,
+    intervention_type,
+    specialised_testing_type=None,
+    general_installation_type=None,
+):
+    """
+    Change the actual intervention type while the MI is still Draft.
+
+    The normal MI/Service Ticket submit logic remains responsible for writing
+    the final type back to Service Ticket.custom_actual_ticket_type.
+    """
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+    mi.check_permission("write")
+
+    if mi.docstatus != 0:
+        frappe.throw("Intervention Type can only be changed on a draft intervention.")
+
+    field = frappe.get_meta("Mission Intervention").get_field(
+        "custom_intervention_type"
+    )
+    if not field:
+        frappe.throw(
+            "Mission Intervention field custom_intervention_type is missing."
+        )
+
+    allowed_types = [
+        value.strip()
+        for value in (field.options or "").split("\n")
+        if value.strip()
+    ]
+
+    intervention_type = (intervention_type or "").strip()
+    if not intervention_type or intervention_type not in allowed_types:
+        frappe.throw("Please select a valid Intervention Type.")
+
+    specialised_testing_type = (specialised_testing_type or "").strip()
+    general_installation_type = (general_installation_type or "").strip()
+
+    if intervention_type == "Specialised Testing":
+        if not specialised_testing_type:
+            frappe.throw("Specialised Testing Type is required.")
+
+        if not frappe.db.exists(
+            "Specialised Testing Type",
+            specialised_testing_type,
+        ):
+            frappe.throw("Invalid Specialised Testing Type.")
+
+        testing_meta = frappe.get_meta("Specialised Testing Type")
+        if testing_meta.has_field("custom_active"):
+            is_active = frappe.db.get_value(
+                "Specialised Testing Type",
+                specialised_testing_type,
+                "custom_active",
+            )
+            if not is_active:
+                frappe.throw("Selected Specialised Testing Type is inactive.")
+
+        _set_if_field(
+            mi,
+            "custom_specialised_testing_type",
+            specialised_testing_type,
+        )
+        _set_if_field(mi, "custom_general_installation_type", "")
+
+    elif intervention_type == "General Installation":
+        if not general_installation_type:
+            frappe.throw("General Installation Type is required.")
+
+        if not frappe.db.exists(
+            "General Installation Type",
+            general_installation_type,
+        ):
+            frappe.throw("Invalid General Installation Type.")
+
+        _set_if_field(
+            mi,
+            "custom_general_installation_type",
+            general_installation_type,
+        )
+        _set_if_field(mi, "custom_specialised_testing_type", "")
+
+    else:
+        # Clear subtype values that belong to a previous classification.
+        _set_if_field(mi, "custom_specialised_testing_type", "")
+        _set_if_field(mi, "custom_general_installation_type", "")
+
+    mi.set("custom_intervention_type", intervention_type)
+    mi.save()
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "intervention": mi.name,
+        "intervention_type": intervention_type,
+        "specialised_testing_type": (
+            mi.get("custom_specialised_testing_type") or ""
+        ),
+        "general_installation_type": (
+            mi.get("custom_general_installation_type") or ""
+        ),
+    }
 
 
 @frappe.whitelist()
@@ -1196,28 +1672,19 @@ def send_mi_report(
             "Submit the intervention before emailing the report."
         )
 
-    to_list = frappe.parse_json(recipients) if recipients else []
-    cc_list = frappe.parse_json(cc) if cc else []
-
-    if isinstance(to_list, str):
-        to_list = [to_list]
-
-    if isinstance(cc_list, str):
-        cc_list = [cc_list]
-
-    to_list = [
-        email.strip()
-        for email in to_list
-        if email and email.strip()
-    ]
-    cc_list = [
-        email.strip()
-        for email in cc_list
-        if email and email.strip()
-    ]
+    to_list = _parse_email_values(recipients)
+    cc_list = _parse_email_values(cc)
 
     if not to_list:
         frappe.throw("At least one email recipient is required.")
+
+    # The technician may only send to the MI applicant, customer/branch contacts,
+    # or enabled System Users. Enforce this on the server as well as in the UI.
+    to_list, cc_list = _validate_mi_email_recipients(
+        mi,
+        to_list,
+        cc_list,
+    )
 
     # Store only the TO-recipient names in custom_customer_remarks.
     # Example:
