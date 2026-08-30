@@ -1346,7 +1346,7 @@
                             <input id="send_report_after_submit"
                                    class="form-check-input"
                                    type="checkbox"
-                                   onchange="toggleEmailFields()">
+                                   onchange="toggleEmailFields(); saveEmailDraftState();">
                             <label class="form-check-label" for="send_report_after_submit">
                                 <b>Email report after submission</b>
                             </label>
@@ -1357,6 +1357,7 @@
                                 <input id="send_photos_after_submit"
                                        class="form-check-input"
                                        type="checkbox"
+                                       onchange="saveEmailDraftState()"
                                        {% if mi.get("custom_send_photos") %}checked{% endif %}>
                                 <label class="form-check-label" for="send_photos_after_submit">
                                     <b>Send Photos / Attachments</b>
@@ -2003,6 +2004,10 @@ function save_work_outcome(mi_name) {
 }
 
 function final_check_out(mi_name) {
+    // Checkout reloads this page. Preserve the technician's pending email
+    // choices in this browser tab so they survive that reload.
+    saveEmailDraftState();
+
     get_current_gps().then(function(gps) {
         frappe.call({
             method: "maintenance_app.www.tech.intervention.index.pwa_check_out",
@@ -2132,6 +2137,7 @@ function submit_mi(mi_name) {
                                         return;
                                     }
 
+                                    clearEmailDraftState();
                                     reload_page();
                                 },
                                 error: show_error
@@ -3749,6 +3755,11 @@ function syncRecipientHiddenInput(target_id) {
 
     // Always keep a clean comma-separated value for the existing send logic.
     hidden.value = state.selected.join(", ");
+
+    // Keep the pending pre-submit email choices across Checkout -> page reload.
+    if (target_id === "report_email_to" || target_id === "report_email_cc") {
+        saveEmailDraftState();
+    }
 }
 
 function findPairTarget(state, kind) {
@@ -4088,8 +4099,110 @@ function initialiseAllRecipientPickers() {
     });
 }
 
+const EMAIL_DRAFT_STORAGE_KEY = "mi-email-draft:{{ mi.name }}";
+let emailDraftAutosaveSuspended = false;
+
+function saveEmailDraftState() {
+    if (emailDraftAutosaveSuspended) {
+        return;
+    }
+    let send_report = document.getElementById("send_report_after_submit");
+    let send_photos = document.getElementById("send_photos_after_submit");
+    let to_input = document.getElementById("report_email_to");
+    let cc_input = document.getElementById("report_email_cc");
+
+    // The pre-submit controls do not exist after the MI is submitted.
+    if (!send_report || !to_input || !cc_input) {
+        return;
+    }
+
+    let state = {
+        send_report: !!send_report.checked,
+        send_photos: !!(send_photos && send_photos.checked),
+        to: splitEmailList(to_input.value || ""),
+        cc: splitEmailList(cc_input.value || "")
+    };
+
+    try {
+        sessionStorage.setItem(EMAIL_DRAFT_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.warn("Could not preserve MI email choices", e);
+    }
+}
+
+function restoreEmailDraftState() {
+    let raw = null;
+    try {
+        raw = sessionStorage.getItem(EMAIL_DRAFT_STORAGE_KEY);
+    } catch (e) {
+        return;
+    }
+
+    if (!raw) {
+        return;
+    }
+
+    let saved = null;
+    try {
+        saved = JSON.parse(raw);
+    } catch (e) {
+        return;
+    }
+
+    let send_report = document.getElementById("send_report_after_submit");
+    let send_photos = document.getElementById("send_photos_after_submit");
+
+    if (send_report) {
+        send_report.checked = !!saved.send_report;
+    }
+    if (send_photos) {
+        send_photos.checked = !!saved.send_photos;
+    }
+
+    [
+        ["report_email_to", saved.to || []],
+        ["report_email_cc", saved.cc || []]
+    ].forEach(function(entry) {
+        let target_id = entry[0];
+        let values = entry[1];
+        let picker_state = recipientPickerState[target_id];
+        let hidden = document.getElementById(target_id);
+
+        if (picker_state) {
+            picker_state.selected = [];
+            values.forEach(function(email) {
+                let approved = getApprovedRecipient(email);
+                if (approved && !picker_state.selected.some(function(value) {
+                    return normaliseEmail(value) === normaliseEmail(approved.email);
+                })) {
+                    picker_state.selected.push(approved.email);
+                }
+            });
+            renderRecipientPicker(target_id);
+        } else if (hidden) {
+            hidden.value = values.join(", ");
+        }
+    });
+
+    toggleEmailFields();
+}
+
+function clearEmailDraftState() {
+    try {
+        sessionStorage.removeItem(EMAIL_DRAFT_STORAGE_KEY);
+    } catch (e) {
+        // Nothing else to do. Email sending itself must not depend on storage cleanup.
+    }
+}
+
+
 document.addEventListener("DOMContentLoaded", function() {
+    // Initial picker rendering syncs its hidden inputs. Suppress autosave until
+    // we have had a chance to restore any pre-checkout selections.
+    emailDraftAutosaveSuspended = true;
     initialiseAllRecipientPickers();
+    emailDraftAutosaveSuspended = false;
+    restoreEmailDraftState();
 
     document.addEventListener("click", function(event) {
         document.querySelectorAll(".recipient-picker").forEach(function(picker) {
@@ -4156,6 +4269,7 @@ function sendMIReport(
             });
 
             if (reload_after) {
+                clearEmailDraftState();
                 setTimeout(reload_page, 600);
             }
         },
