@@ -763,54 +763,7 @@ def open_or_create_mi(mission_name):
     return {"intervention": result.get("intervention")}
 
 
-'''def _populate_mi_from_mission(mi, mission, asset_name):
-    mi.custom_parent_mission = mission.name
-    mi.custom_service_ticket = mission.get("custom_service_ticket")
-    if mi.meta.has_field("custom_company"):
-        mi.custom_company = mission.get("custom_company") or None
-    mi.custom_planning_ref = mission.get("custom_tech_planning")
-    mi.custom_parent_customer = mission.get("custom_parent_customer")
-    mi.custom_branch = mission.get("custom_branch")
-    mi.custom_asset = asset_name
-    mi.custom_component_group = mission.get("custom_component_group")
-    mi.custom_component_item = mission.get("custom_component_item")
-    mi.custom_component_row_id = mission.get("custom_component_row_id")
-    mi.custom_component_serial = mission.get("custom_component_serial")
-    mi.custom_component_brand = mission.get("custom_component_brand")
-    mi.custom_component_model = mission.get("custom_component_model")
-    mi.custom_target_component_name = mission.get("custom_target_component_name")
-    mi.custom_parent_equipment = mission.get("custom_parent_equipment")
-    mi.custom_service_type = mission.get("custom_service_type")
-    mi.custom_planned_starttime = mission.get("custom_planned_starttime")
-    mi.custom_planned_endtime = mission.get("custom_planned_endtime")
-    mi.custom_vehicle = mission.get("custom_vehicle")
-    mi.custom_intervention_type = mission.get("custom_ticket_type") or "Service"
-    mi.custom_work_outcome = ""
 
-    mi.custom_subject = mission.get("custom_subject")
-    mi.custom_applicant = mission.get("custom_applicant")
-    mi.custom_applicant_role = mission.get("custom_applicant_role")
-    mi.custom_applicant_email = mission.get("custom_applicant_email")
-    mi.custom_applicant_phone = mission.get("custom_applicant_phone")
-
-    for row in mission.get("custom_branch_contacts") or []:
-        mi.append("custom_branch_contacts", {
-            "custom_contact": row.get("custom_contact"),
-            "custom_contact_role": row.get("custom_contact_role"),
-            "custom_phone": row.get("custom_phone"),
-            "custom_email": row.get("custom_email")
-        })
-
-    for row in mission.get("custom_head_office_contacts") or []:
-        mi.append("custom_head_office_contacts", {
-            "custom_contact": row.get("custom_contact"),
-            "custom_contact_role": row.get("custom_contact_role"),
-            "custom_phone": row.get("custom_phone"),
-            "custom_email": row.get("custom_email")
-        })
-
-    _fill_equipment_snapshot(mi)
-    _copy_team_to_intervention(mission, mi)'''
 
 ###############################################################################
 # fucnction populates the fields in mi when created from tech mission         #
@@ -826,6 +779,10 @@ def _populate_mi_from_mission(
     ):
     mi.custom_parent_mission = mission.name
     mi.custom_service_ticket = mission.get("custom_service_ticket")
+    # Company must follow the Tech Mission into the Mission Intervention.
+    if mi.meta.has_field("custom_company"):
+        mi.custom_company = mission.get("custom_company") or None
+
     mi.custom_planning_ref = mission.get("custom_tech_planning")
     mi.custom_parent_customer = mission.get("custom_parent_customer")
     mi.custom_branch = mission.get("custom_branch")
