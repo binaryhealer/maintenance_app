@@ -1696,7 +1696,7 @@ def send_mi_report(
     recipient_names = []
     seen_names = set()
 
-    for email in to_list:
+    for email in (to_list + cc_list):
         local_part = email.split("@", 1)[0].strip()
 
         if not local_part:
