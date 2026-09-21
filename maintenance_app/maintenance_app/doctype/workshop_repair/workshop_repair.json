@@ -13,11 +13,31 @@
   "custom_service_ticket",
   "custom_source_intervention",
   "custom_customer",
+  "custom_followup_intervention",
   "column_break_itzd",
+  "custom_work_state",
+  "custom_next_action",
   "cuatom_original_branch",
   "custom_company_workshop",
   "custom_installed_equipment",
   "custom_equipment_component",
+  "section_break_bbgy",
+  "custom_followup_required",
+  "column_break_vzgw",
+  "custom_ready_for_dispatch",
+  "collection_tab",
+  "custom_intake_method",
+  "custom_intake_status",
+  "custom_received_on",
+  "custom_condition_on_receipt",
+  "custom_accessories_received",
+  "section_break_xukg",
+  "custom_received_by",
+  "custom_receive_signature",
+  "column_break_cwra",
+  "custom_received_from",
+  "custom_intake_signature",
+  "custom_intake_signatory",
   "custom_repair_details_tab",
   "custom_subject",
   "custom_repair_status",
@@ -48,7 +68,14 @@
   "custom_asset_service_log",
   "custom_timesheet_posted",
   "section_break_wnca",
-  "custom_notes"
+  "custom_notes",
+  "post_repair_actions_tab",
+  "custom_ready_for_release",
+  "custom_post_repair_action",
+  "custom_destination_warehouse",
+  "custom_return_branch",
+  "custom_released_on",
+  "custom_released_by"
  ],
  "fields": [
   {
@@ -285,13 +312,157 @@
    "fieldname": "custom_notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "custom_work_state",
+   "fieldtype": "Select",
+   "label": "Work State",
+   "options": "Not Started\nActive\nPaused\nCompleted"
+  },
+  {
+   "fieldname": "custom_next_action",
+   "fieldtype": "Select",
+   "label": "Next Action",
+   "options": "Not Started\nActive\nPaused\nCompleted"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_followup_required",
+   "fieldtype": "Check",
+   "label": "Follow-up Required"
+  },
+  {
+   "fieldname": "custom_followup_intervention",
+   "fieldtype": "Link",
+   "label": "Follow-up Intervention",
+   "options": "Mission Intervention"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_ready_for_dispatch",
+   "fieldtype": "Check",
+   "label": "Ready for Dispatch"
+  },
+  {
+   "fieldname": "section_break_bbgy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_vzgw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_intake_method",
+   "fieldtype": "Select",
+   "label": "Intake Method",
+   "options": "Client Drop-Off\nCollected from Client Site\nCourier / Transport\nTransferred from Another Workshop\nReturned from Supplier\nOther"
+  },
+  {
+   "fieldname": "custom_received_by",
+   "fieldtype": "Link",
+   "label": "Received By",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_received_on",
+   "fieldtype": "Datetime",
+   "label": "Received On"
+  },
+  {
+   "fieldname": "custom_condition_on_receipt",
+   "fieldtype": "Small Text",
+   "label": "Condition on Receipt"
+  },
+  {
+   "fieldname": "custom_intake_signature",
+   "fieldtype": "Signature",
+   "label": "Client Signature"
+  },
+  {
+   "fieldname": "custom_received_from",
+   "fieldtype": "Data",
+   "label": "Received From"
+  },
+  {
+   "fieldname": "custom_intake_signatory",
+   "fieldtype": "Data",
+   "label": "Client Signatory"
+  },
+  {
+   "fieldname": "custom_intake_status",
+   "fieldtype": "Select",
+   "label": "Intake Status",
+   "options": "Expected\nIn Transit\nReceived\nReturned\nCancelled"
+  },
+  {
+   "fieldname": "custom_accessories_received",
+   "fieldtype": "Small Text",
+   "label": "Accessories Received"
+  },
+  {
+   "fieldname": "collection_tab",
+   "fieldtype": "Tab Break",
+   "label": "Collection"
+  },
+  {
+   "fieldname": "section_break_xukg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_cwra",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "post_repair_actions_tab",
+   "fieldtype": "Tab Break",
+   "label": "Post Repair Actions"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_ready_for_release",
+   "fieldtype": "Check",
+   "label": "Ready for Release"
+  },
+  {
+   "fieldname": "custom_post_repair_action",
+   "fieldtype": "Select",
+   "label": "Post Repair Action",
+   "options": "Open\nPlanned\nIn Progress\nOn Hold\nReady for Collection\nReady for Dispatch\nCompleted\nClosed\nCancelled"
+  },
+  {
+   "fieldname": "custom_destination_warehouse",
+   "fieldtype": "Link",
+   "label": "Destination Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "custom_return_branch",
+   "fieldtype": "Link",
+   "label": "Return Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_released_on",
+   "fieldtype": "Datetime",
+   "label": "Released On"
+  },
+  {
+   "fieldname": "custom_released_by",
+   "fieldtype": "Link",
+   "label": "Released By",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_receive_signature",
+   "fieldtype": "Signature",
+   "label": "Recieve by Signature"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-29 05:37:12.920142",
+ "modified": "2026-09-09 13:01:28.088158",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Workshop Repair",

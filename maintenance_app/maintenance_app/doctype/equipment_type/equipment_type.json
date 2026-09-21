@@ -2,7 +2,7 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "field:custom_component_type_name",
+ "autoname": "format:{custom_component_group}-{custom_component_type_name}",
  "creation": "2026-06-18 22:35:31.959686",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -10,15 +10,15 @@
   "custom_component_type_name",
   "custom_component_group",
   "custom_description",
-  "custom_active"
+  "custom_active",
+  "custom_requires_calibration"
  ],
  "fields": [
   {
    "fieldname": "custom_component_type_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Component Type Name",
-   "unique": 1
+   "label": "Component Type Name"
   },
   {
    "fieldname": "custom_component_group",
@@ -38,16 +38,22 @@
    "fieldname": "custom_active",
    "fieldtype": "Check",
    "label": "Active"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_calibration",
+   "fieldtype": "Check",
+   "label": "Reuquires Calibration"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-06 06:37:25.372658",
+ "modified": "2026-09-03 16:52:28.123113",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Type",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {

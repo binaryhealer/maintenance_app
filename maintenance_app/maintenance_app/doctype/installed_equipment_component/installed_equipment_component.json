@@ -16,7 +16,8 @@
   "custom_item_name",
   "custom_next_calibration_date",
   "custom_notes",
-  "custom_equipment_component"
+  "custom_equipment_component",
+  "custom_requires_calibration"
  ],
  "fields": [
   {
@@ -91,13 +92,19 @@
    "in_list_view": 1,
    "label": "Next Calibration Date",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_calibration",
+   "fieldtype": "Check",
+   "label": "Requires Calibration"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-30 08:48:08.690388",
+ "modified": "2026-09-03 09:22:29.201558",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment Component",

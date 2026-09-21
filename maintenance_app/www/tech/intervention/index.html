@@ -1060,6 +1060,8 @@
         </div>
         {% endif %}
 
+     
+
         {% if mi.custom_intervention_type == "General Installation" %}
         <div class="mi-card">
             <div class="section-title">General Installation</div>
@@ -1095,6 +1097,44 @@
         {% endif %}
 
 
+        {% if mi.custom_intervention_type == "General Works" %}
+        <div class="mi-card">
+            <div class="section-title">General Works</div>
+
+            {% if mi.docstatus == 0 and not mi.custom_start_time %}
+                <div class="mb-2">
+                    <label class="form-label" for="general_work_type">
+                        <b>General Work Type</b>
+                    </label>
+
+                    <select id="general_work_type" class="form-control">
+                        <option value="">Select work type</option>
+
+                        {% for work_type in general_work_types %}
+                            <option
+                                value="{{ work_type.name }}"
+                                {% if mi.custom_general_work_type == work_type.name %}selected{% endif %}>
+                                {{ work_type.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <div class="field-help">
+                        Required before Check In for General Works.
+                    </div>
+                </div>
+            {% else %}
+                <div class="summary-item">
+                    <div class="info-label">General Work Type</div>
+                    <div class="info-value">
+                        {{ mi.custom_general_work_type or "-" }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+
         <details class="mi-card accordion-card" {% if mi.custom_start_time and not mi.custom_work_outcome and mi.docstatus == 0 %}open{% endif %}>
             <summary>
                 <div class="d-flex justify-content-between align-items-center">
@@ -1113,7 +1153,7 @@
 
                     <div class="mb-3">
                         <label class="form-label"><b>Final Outcome</b></label>
-                        <select id="checkout_outcome" class="form-control">
+                        <select id="checkout_outcome" class="form-control" onchange="toggleAdditionalPlanningSection()">
                             <option value="">Select outcome</option>
                             <option value="Work Completed">Work Completed</option>
                             <option value="Continue Work">Continue Work</option>
@@ -1143,6 +1183,51 @@
                                   placeholder="Write work done, issue found, pending items...">{{ mi.custom_work_progress or "" }}</textarea>
                         <div class="field-help">
                             Save work outcome before client confirmation. Check Out is done after the client signs.
+                        </div>
+                    </div>
+
+                    <div id="additional-planning-section"
+                         class="mb-3"
+                         style="display:none;">
+
+                        <div class="p-3 rounded"
+                             style="background:#fff7ed;border:1px solid #fed7aa;">
+
+                            <div class="form-check">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="additional_planning_required"
+                                    onchange="togglePlanningRequestNote()">
+
+                                <label
+                                    class="form-check-label"
+                                    for="additional_planning_required">
+                                    <b>RM / Additional Planning Required</b>
+                                </label>
+                            </div>
+
+                            <div class="field-help">
+                                Tick this if the next visit needs RM / dispatcher action,
+                                for example rescheduling, another technician, specialist,
+                                vehicle change, parts coordination or another planning decision.
+                            </div>
+
+                            <div id="planning-request-note-row"
+                                 class="mt-3"
+                                 style="display:none;">
+
+                                <label class="form-label">
+                                    <b>Planning Request / Instructions</b>
+                                </label>
+
+                                <textarea
+                                    id="planning_request_note"
+                                    class="form-control"
+                                    rows="3"
+                                    placeholder="Explain what RM needs to arrange..."></textarea>
+                            </div>
+
                         </div>
                     </div>
 
@@ -1435,17 +1520,46 @@
                 "Could Not Complete",
                 "To Quote (Billable)"
             ] %}
-                <div class="mi-card">
-                    <div class="section-title">Ongoing Work</div>
-                    <div class="field-help mb-3">
-                        Create the next work session for the same equipment/component.
+
+                {% if mi.custom_additional_planning_required %}
+
+                    <div class="mi-card">
+                        <div class="section-title">Planning Requested</div>
+
+                        <div class="alert alert-warning mb-2">
+                            RM / dispatcher action is required before
+                            the next work session is planned.
+                        </div>
+
+                        {% if mi.custom_planning_request_note %}
+                            <div class="summary-item">
+                                <div class="info-label">Planning Request</div>
+                                <div class="info-value">
+                                    {{ mi.custom_planning_request_note }}
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
-                    <button class="btn btn-warning action-btn"
-                            type="button"
-                            onclick="showFollowUpModal()">
-                        Continue Job / Create Follow-up MI
-                    </button>
-                </div>
+
+                {% else %}
+
+                    <div class="mi-card">
+                        <div class="section-title">Ongoing Work</div>
+
+                        <div class="field-help mb-3">
+                            No additional RM planning was requested.
+                            You can create the next work session.
+                        </div>
+
+                        <button class="btn btn-warning action-btn"
+                                type="button"
+                                onclick="showFollowUpModal()">
+                            Continue Job / Create Follow-up MI
+                        </button>
+                    </div>
+
+                {% endif %}
+
             {% endif %}
 
             <div class="mi-card">
@@ -1516,7 +1630,12 @@
         <div class="sticky-inner">
 
             
-            {% if not mi.custom_start_time %}
+            {% if (mi.get("custom_checkout_status") or "") == "Cancelled" %}
+                <button class="btn btn-secondary action-btn" type="button" disabled>
+                    Intervention Cancelled
+                </button>
+
+            {% elif not mi.custom_start_time %}
                 <button class="btn btn-success action-btn" onclick="check_in('{{ mi.name }}')">
                     Check In
                 </button>
@@ -1590,6 +1709,14 @@
                 <option value="">Select installation type</option>
             </select>
             <div class="field-help">Required for General Installation.</div>
+        </div>
+
+        <div id="change-intervention-general-work-wrap" style="display:none;">
+            <label class="form-label mt-3"><b>General Work Type</b></label>
+            <select id="change-intervention-general-work-type" class="form-control">
+                <option value="">Select work type</option>
+            </select>
+            <div class="field-help">Required for General Works.</div>
         </div>
 
         <div class="field-help mt-3">
@@ -1672,6 +1799,14 @@
                 <div class="field-help">Required for Specialised Testing.</div>
             </div>
 
+            <div id="additional-mi-general-work-type-wrap" style="display:none;">
+                <label class="form-label mt-3"><b>General Work Type</b></label>
+                <select id="additional-mi-general-work-type" class="form-control">
+                    <option value="">Select work type</option>
+                </select>
+                <div class="field-help">Required for General Works.</div>
+            </div>
+
             <label class="form-label mt-3"><b>Applicant</b></label>
             <select id="additional-mi-applicant" class="form-control">
                 <option value="">Loading contacts...</option>
@@ -1727,16 +1862,25 @@
     <div class="custom-modal-box">
         <h4>Continue Job</h4>
 
-        <label class="form-label"><b>Next Work Date</b></label>
-        <input id="follow-up-date"
+        <label class="form-label"><b>Planned Start</b></label>
+        <input id="follow-up-start"
                class="form-control"
-               type="date">
+               type="datetime-local">
+
+        <label class="form-label mt-3"><b>Planned End</b></label>
+        <input id="follow-up-end"
+               class="form-control"
+               type="datetime-local">
 
         <label class="form-label mt-3"><b>Continuation Reason / Plan</b></label>
         <textarea id="follow-up-reason"
                   class="form-control"
                   rows="4"
                   placeholder="What remains to be done?"></textarea>
+
+        <div class="field-help mt-2">
+            The Tech Mission will remain On Hold until the technician checks in.
+        </div>
 
         <div class="mt-3 d-flex gap-2">
             <button class="btn btn-warning action-btn"
@@ -1798,6 +1942,7 @@
 
 <script>
 const MI_IS_SUBMITTED = {{ 1 if mi.docstatus == 1 else 0 }};
+const MI_IS_CANCELLED = {{ 1 if (mi.get("custom_checkout_status") or "") == "Cancelled" else 0 }};
 
 function reload_page() {
     window.location.reload();
@@ -1868,9 +2013,17 @@ function get_current_gps() {
 }
 
 function check_in(mi_name) {
+    if (MI_IS_CANCELLED) {
+        frappe.msgprint(
+            __("This Mission Intervention has been cancelled and cannot be checked in.")
+        );
+        return;
+    }
+
     let intervention_type = "{{ mi.custom_intervention_type or '' }}";
     let specialised_testing_type = "";
     let general_installation_type = "";
+    let general_work_type = "";
 
     if (intervention_type === "Specialised Testing") {
         let testing_type_el = document.getElementById(
@@ -1906,6 +2059,23 @@ function check_in(mi_name) {
         }
     }
 
+    if (intervention_type === "General Works") {
+        let general_work_type_el = document.getElementById(
+            "general_work_type"
+        );
+
+        general_work_type = general_work_type_el
+            ? general_work_type_el.value
+            : "{{ mi.custom_general_work_type or '' }}";
+
+        if (!general_work_type) {
+            frappe.msgprint(
+                __("Please select General Work Type before Check In.")
+            );
+            return;
+        }
+    }
+
     get_current_gps().then(function(gps) {
         frappe.call({
             method: "maintenance_app.www.tech.intervention.index.pwa_check_in",
@@ -1915,7 +2085,8 @@ function check_in(mi_name) {
                 longitude: gps ? gps.longitude : null,
                 accuracy: gps ? gps.accuracy : null,
                 specialised_testing_type: specialised_testing_type || null,
-                general_installation_type: general_installation_type || null
+                general_installation_type: general_installation_type || null,
+                general_work_type: general_work_type || null
             },
             freeze: true,
             freeze_message: __("Checking in..."),
@@ -1936,14 +2107,91 @@ function check_in(mi_name) {
     });
 }
 
+function toggleAdditionalPlanningSection() {
+    let outcome =
+        document.getElementById("checkout_outcome")?.value || "";
+
+    let section =
+        document.getElementById("additional-planning-section");
+
+    let planningCheckbox =
+        document.getElementById("additional_planning_required");
+
+    let planningNote =
+        document.getElementById("planning_request_note");
+
+    if (!section) {
+        return;
+    }
+
+    let planningOutcomes = [
+        "Continue Work",
+        "Waiting for Parts",
+        "Waiting for Client",
+        "To Quote (Billable)",
+        "Could Not Complete"
+    ];
+
+    if (planningOutcomes.includes(outcome)) {
+        section.style.display = "block";
+    } else {
+        section.style.display = "none";
+
+        if (planningCheckbox) {
+            planningCheckbox.checked = false;
+        }
+
+        if (planningNote) {
+            planningNote.value = "";
+        }
+
+        togglePlanningRequestNote();
+    }
+}
+
+
+function togglePlanningRequestNote() {
+    let checkbox =
+        document.getElementById(
+            "additional_planning_required"
+        );
+
+    let noteRow =
+        document.getElementById(
+            "planning-request-note-row"
+        );
+
+    if (!noteRow) {
+        return;
+    }
+
+    noteRow.style.display =
+        checkbox && checkbox.checked
+            ? "block"
+            : "none";
+}
+
+
 function save_work_outcome(mi_name) {
     let outcome_el = document.getElementById("checkout_outcome");
     let notes_el = document.getElementById("checkout_notes");
     let fault_el = document.getElementById("fault_type");
+    let planning_required_el =
+        document.getElementById("additional_planning_required");
+    let planning_note_el =
+        document.getElementById("planning_request_note");
 
     let outcome = outcome_el ? outcome_el.value : "";
     let notes = notes_el ? notes_el.value : "";
     let fault_type = fault_el ? fault_el.value : "";
+    let planning_required =
+        planning_required_el && planning_required_el.checked
+            ? 1
+            : 0;
+    let planning_note =
+        planning_note_el
+            ? planning_note_el.value.trim()
+            : "";
     let intervention_type = "{{ mi.custom_intervention_type or '' }}";
 
     if (!outcome) {
@@ -1964,6 +2212,13 @@ function save_work_outcome(mi_name) {
         return;
     }
 
+    if (planning_required && !planning_note) {
+        frappe.msgprint(
+            "Please explain what additional planning is required."
+        );
+        return;
+    }
+
     frappe.call({
         method: "frappe.client.get",
         args: {
@@ -1979,6 +2234,28 @@ function save_work_outcome(mi_name) {
             doc.custom_work_outcome = outcome;
             doc.custom_work_progress = notes;
             doc.custom_fault_type = fault_type || "";
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    doc,
+                    "custom_additional_planning_required"
+                )
+            ) {
+                doc.custom_additional_planning_required =
+                    planning_required;
+            }
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    doc,
+                    "custom_planning_request_note"
+                )
+            ) {
+                doc.custom_planning_request_note =
+                    planning_required
+                        ? planning_note
+                        : "";
+            }
 
             if (!doc.custom_completed_time) {
                 doc.custom_completed_time = frappe.datetime.now_datetime();
@@ -2165,6 +2442,10 @@ let signature_touched = {
     client: false,
     tech: false
 };
+let signature_has_stroke = {
+    client: false,
+    tech: false
+};
 let signature_confirmed = {
     client: !!EXISTING_CLIENT_SIGNATURE,
     tech: !!EXISTING_TECH_SIGNATURE
@@ -2182,12 +2463,13 @@ function setup_signature_pad(canvas_id, type, existing_data) {
 
     let ctx = canvas.getContext("2d");
     let drawing = false;
+    let last_point = null;
 
     function resize_canvas() {
-    let rect = canvas.getBoundingClientRect();
-    let ratio = Math.max(window.devicePixelRatio || 1, 1);
+        let rect = canvas.getBoundingClientRect();
+        let ratio = Math.max(window.devicePixelRatio || 1, 1);
 
-    let saved_signature = null;
+        let saved_signature = null;
 
         if (signature_touched[type]) {
             saved_signature = canvas.toDataURL("image/png");
@@ -2220,27 +2502,51 @@ function setup_signature_pad(canvas_id, type, existing_data) {
 
     function start(event) {
         if (PWA_MI_DOCSTATUS === 1) return;
+
         event.preventDefault();
         drawing = true;
-        signature_touched[type] = true;
-        signature_confirmed[type] = false;
-        let p = point(event);
+        last_point = point(event);
+
         ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
+        ctx.moveTo(last_point.x, last_point.y);
+
+        // Touching the pad alone is not a signature.
+        signature_confirmed[type] = false;
     }
 
     function move(event) {
         if (!drawing || PWA_MI_DOCSTATUS === 1) return;
+
         event.preventDefault();
+
         let p = point(event);
+        if (!last_point) {
+            last_point = p;
+            return;
+        }
+
+        let dx = p.x - last_point.x;
+        let dy = p.y - last_point.y;
+        let distance = Math.sqrt((dx * dx) + (dy * dy));
+
+        // Ignore tiny accidental movement, but accept a normal short signature stroke.
+        if (distance < 2) return;
+
         ctx.lineTo(p.x, p.y);
         ctx.stroke();
+
+        signature_touched[type] = true;
+        signature_has_stroke[type] = true;
+        signature_confirmed[type] = false;
+        last_point = p;
     }
 
     function stop(event) {
         if (!drawing) return;
-        event.preventDefault();
+
+        if (event) event.preventDefault();
         drawing = false;
+        last_point = null;
     }
 
     resize_canvas();
@@ -2285,11 +2591,14 @@ function clear_signature(type) {
 
     let rect = pad.canvas.getBoundingClientRect();
     pad.ctx.clearRect(0, 0, rect.width, rect.height);
+
+    // Clearing explicitly invalidates any existing/saved signature for this edit.
     signature_touched[type] = true;
+    signature_has_stroke[type] = false;
     signature_confirmed[type] = false;
 }
 
-function mark_signature_saved(type) {
+/*function mark_signature_saved(type) {
     if (PWA_MI_DOCSTATUS === 1) return;
     signature_confirmed[type] = true;
 
@@ -2309,6 +2618,123 @@ function get_signature_data(type) {
     let canvas_id = type === "client" ? "client_signature_pad" : "tech_signature_pad";
     let pad = signature_pads[canvas_id];
     if (!pad) return "";
+
+    return pad.canvas.toDataURL("image/png");
+}*/
+
+/*function mark_signature_saved(type) {
+    if (PWA_MI_DOCSTATUS === 1) return;
+
+    let existing =
+        type === "client"
+            ? EXISTING_CLIENT_SIGNATURE
+            : EXISTING_TECH_SIGNATURE;
+
+    let canvas_id =
+        type === "client"
+            ? "client_signature_pad"
+            : "tech_signature_pad";
+
+    let pad = signature_pads[canvas_id];
+
+    // Existing saved signature is valid unless user cleared/replaced it.
+    if (!signature_touched[type] && existing) {
+        signature_confirmed[type] = true;
+
+        frappe.show_alert({
+            message:
+                type === "client"
+                    ? "Client signature confirmed"
+                    : "Technician signature confirmed",
+            indicator: "green"
+        });
+
+        return;
+    }
+
+    if (!pad) {
+        frappe.msgprint("Signature pad is not available.");
+        return;
+    }
+
+    // No drawing has been made on the pad.
+    if (!signature_touched[type]) {
+        frappe.msgprint(
+            type === "client"
+                ? "Please capture the client signature before confirming."
+                : "Please capture the technician signature before confirming."
+        );
+        return;
+    }
+
+    signature_confirmed[type] = true;
+
+    frappe.show_alert({
+        message:
+            type === "client"
+                ? "Client signature confirmed"
+                : "Technician signature confirmed",
+        indicator: "green"
+    });
+}
+*/
+function mark_signature_saved(type) {
+    if (PWA_MI_DOCSTATUS === 1) return;
+
+    let existing =
+        type === "client"
+            ? EXISTING_CLIENT_SIGNATURE
+            : EXISTING_TECH_SIGNATURE;
+
+    // If an existing saved signature is displayed and the user has not edited/cleared it,
+    // it remains valid and can be confirmed again.
+    if (existing && !signature_touched[type]) {
+        signature_confirmed[type] = true;
+
+        frappe.show_alert({
+            message:
+                type === "client"
+                    ? "Client signature confirmed"
+                    : "Technician signature confirmed",
+            indicator: "green"
+        });
+        return;
+    }
+
+    // New signatures require at least one real drawing stroke. A tap alone is rejected.
+    if (!signature_has_stroke[type]) {
+        signature_confirmed[type] = false;
+
+        frappe.msgprint(
+            type === "client"
+                ? "Please sign before confirming the client signature."
+                : "Please sign before confirming the technician signature."
+        );
+        return;
+    }
+
+    signature_confirmed[type] = true;
+
+    frappe.show_alert({
+        message:
+            type === "client"
+                ? "Client signature confirmed"
+                : "Technician signature confirmed",
+        indicator: "green"
+    });
+}
+
+function get_signature_data(type) {
+    let existing = type === "client" ? EXISTING_CLIENT_SIGNATURE : EXISTING_TECH_SIGNATURE;
+
+    // Keep the previously saved signature if the user has not edited it.
+    if (!signature_touched[type] && existing) {
+        return existing;
+    }
+
+    let canvas_id = type === "client" ? "client_signature_pad" : "tech_signature_pad";
+    let pad = signature_pads[canvas_id];
+    if (!pad || !signature_confirmed[type]) return "";
 
     return pad.canvas.toDataURL("image/png");
 }
@@ -3254,6 +3680,7 @@ function showChangeInterventionTypeDialog() {
     select.innerHTML = '<option value="">Loading intervention types...</option>';
     document.getElementById("change-intervention-testing-wrap").style.display = "none";
     document.getElementById("change-intervention-installation-wrap").style.display = "none";
+    document.getElementById("change-intervention-general-work-wrap").style.display = "none";
     modal.style.display = "flex";
 
     frappe.call({
@@ -3289,6 +3716,8 @@ function changeInterventionTypeSelectionChanged(use_current_value) {
     let testingSelect = document.getElementById("change-intervention-testing-type");
     let installationWrap = document.getElementById("change-intervention-installation-wrap");
     let installationSelect = document.getElementById("change-intervention-installation-type");
+    let generalWorkWrap = document.getElementById("change-intervention-general-work-wrap");
+    let generalWorkSelect = document.getElementById("change-intervention-general-work-type");
 
     if (!typeSelect) {
         return;
@@ -3298,6 +3727,7 @@ function changeInterventionTypeSelectionChanged(use_current_value) {
 
     testingWrap.style.display = type === "Specialised Testing" ? "block" : "none";
     installationWrap.style.display = type === "General Installation" ? "block" : "none";
+    generalWorkWrap.style.display = type === "General Works" ? "block" : "none";
 
     if (type === "Specialised Testing") {
         loadChangeSpecialisedTestingTypes(
@@ -3317,6 +3747,16 @@ function changeInterventionTypeSelectionChanged(use_current_value) {
         );
     } else {
         installationSelect.innerHTML = '<option value="">Select installation type</option>';
+    }
+
+    if (type === "General Works") {
+        loadChangeGeneralWorksTypes(
+            use_current_value
+                ? {{ (mi.custom_general_work_type or "") | tojson }}
+                : ""
+        );
+    } else {
+        generalWorkSelect.innerHTML = '<option value="">Select work type</option>';
     }
 }
 
@@ -3373,6 +3813,32 @@ function loadChangeGeneralInstallationTypes(selected_value) {
     });
 }
 
+function loadChangeGeneralWorksTypes(selected_value) {
+    let select = document.getElementById("change-intervention-general-work-type");
+    select.innerHTML = '<option value="">Loading work types...</option>';
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.get_general_works_types",
+        callback: function(r) {
+            let rows = r.message || [];
+            select.innerHTML = '<option value="">Select work type</option>';
+
+            rows.forEach(function(row) {
+                let value = row.name || row;
+                let option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+
+            if (selected_value) {
+                select.value = selected_value;
+            }
+        },
+        error: show_error
+    });
+}
+
 function submitChangeInterventionType() {
     let intervention_type =
         document.getElementById("change-intervention-type-select").value || "";
@@ -3380,6 +3846,8 @@ function submitChangeInterventionType() {
         document.getElementById("change-intervention-testing-type").value || "";
     let general_installation_type =
         document.getElementById("change-intervention-installation-type").value || "";
+    let general_work_type =
+        document.getElementById("change-intervention-general-work-type").value || "";
 
     if (!intervention_type) {
         frappe.msgprint("Please select Intervention Type.");
@@ -3402,13 +3870,22 @@ function submitChangeInterventionType() {
         return;
     }
 
+    if (
+        intervention_type === "General Works"
+        && !general_work_type
+    ) {
+        frappe.msgprint("Please select General Work Type.");
+        return;
+    }
+
     frappe.call({
         method: "maintenance_app.www.tech.intervention.index.change_intervention_type_from_pwa",
         args: {
             mi_name: {{ mi.name | tojson }},
             intervention_type: intervention_type,
             specialised_testing_type: specialised_testing_type,
-            general_installation_type: general_installation_type
+            general_installation_type: general_installation_type,
+            general_work_type: general_work_type
         },
         freeze: true,
         freeze_message: "Updating intervention type...",
@@ -3566,31 +4043,53 @@ function additionalMITypeChanged() {
     let type = document.getElementById("additional-mi-type").value || "";
     let wrap = document.getElementById("additional-mi-testing-type-wrap");
     let select = document.getElementById("additional-mi-testing-type");
+    let generalWorkWrap = document.getElementById("additional-mi-general-work-type-wrap");
+    let generalWorkSelect = document.getElementById("additional-mi-general-work-type");
 
-    if (type !== "Specialised Testing") {
-        wrap.style.display = "none";
+    wrap.style.display = type === "Specialised Testing" ? "block" : "none";
+    generalWorkWrap.style.display = type === "General Works" ? "block" : "none";
+
+    if (type === "Specialised Testing") {
+        select.innerHTML = '<option value="">Loading testing types...</option>';
+        frappe.call({
+            method: "maintenance_app.www.tech.intervention.index.get_specialised_testing_types",
+            callback: function(r) {
+                let rows = r.message || [];
+                select.innerHTML = '<option value="">Select testing type</option>';
+                rows.forEach(function(row) {
+                    let value = row.name || row;
+                    let option = document.createElement("option");
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+            },
+            error: show_error
+        });
+    } else {
         select.innerHTML = '<option value="">Select testing type</option>';
-        return;
     }
 
-    wrap.style.display = "block";
-    select.innerHTML = '<option value="">Loading testing types...</option>';
-
-    frappe.call({
-        method: "maintenance_app.www.tech.intervention.index.get_specialised_testing_types",
-        callback: function(r) {
-            let rows = r.message || [];
-            select.innerHTML = '<option value="">Select testing type</option>';
-            rows.forEach(function(row) {
-                let value = row.name || row;
-                let option = document.createElement("option");
-                option.value = value;
-                option.textContent = value;
-                select.appendChild(option);
-            });
-        },
-        error: show_error
-    });
+    if (type === "General Works") {
+        generalWorkSelect.innerHTML = '<option value="">Loading work types...</option>';
+        frappe.call({
+            method: "maintenance_app.www.tech.intervention.index.get_general_works_types",
+            callback: function(r) {
+                let rows = r.message || [];
+                generalWorkSelect.innerHTML = '<option value="">Select work type</option>';
+                rows.forEach(function(row) {
+                    let value = row.name || row;
+                    let option = document.createElement("option");
+                    option.value = value;
+                    option.textContent = value;
+                    generalWorkSelect.appendChild(option);
+                });
+            },
+            error: show_error
+        });
+    } else {
+        generalWorkSelect.innerHTML = '<option value="">Select work type</option>';
+    }
 }
 
 function loadAdditionalMIApplicants(asset_name) {
@@ -3639,6 +4138,7 @@ function submitAdditionalMI() {
     let subject = document.getElementById("additional-mi-subject").value;
     let intervention_type = document.getElementById("additional-mi-type").value;
     let specialised_testing_type = document.getElementById("additional-mi-testing-type").value || "";
+    let general_work_type = document.getElementById("additional-mi-general-work-type").value || "";
     let applicant = document.getElementById("additional-mi-applicant").value || "";
     let reason = document.getElementById("additional-mi-reason").value;
 
@@ -3667,6 +4167,11 @@ function submitAdditionalMI() {
         return;
     }
 
+    if (intervention_type === "General Works" && !general_work_type) {
+        frappe.msgprint("Please select General Work Type.");
+        return;
+    }
+
     if (!applicant) {
         frappe.msgprint("Please select Applicant.");
         return;
@@ -3686,6 +4191,7 @@ function submitAdditionalMI() {
             subject: subject,
             intervention_type: intervention_type,
             specialised_testing_type: specialised_testing_type,
+            general_work_type: general_work_type,
             applicant: applicant,
             target_scope: target_scope,
             component_row_id: target_scope === "Component" ? component_row_id : null
@@ -4310,17 +4816,52 @@ function sendSubmittedReport(mi_name) {
 function showFollowUpModal() {
     let modal =
         document.getElementById("follow-up-mi-modal");
-    let date_input =
-        document.getElementById("follow-up-date");
+
+    let start_input =
+        document.getElementById("follow-up-start");
+
+    let end_input =
+        document.getElementById("follow-up-end");
+
     let reason_input =
         document.getElementById("follow-up-reason");
 
     let tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    date_input.value =
-        tomorrow.toISOString().slice(0, 10);
-    reason_input.value = "";
+    let start = new Date(tomorrow);
+    start.setHours(8, 0, 0, 0);
+
+    let end = new Date(tomorrow);
+    end.setHours(17, 0, 0, 0);
+
+    function toLocalDatetimeValue(date) {
+        let pad = function(value) {
+            return String(value).padStart(2, "0");
+        };
+
+        return (
+            date.getFullYear() + "-" +
+            pad(date.getMonth() + 1) + "-" +
+            pad(date.getDate()) + "T" +
+            pad(date.getHours()) + ":" +
+            pad(date.getMinutes())
+        );
+    }
+
+    if (start_input) {
+        start_input.value =
+            toLocalDatetimeValue(start);
+    }
+
+    if (end_input) {
+        end_input.value =
+            toLocalDatetimeValue(end);
+    }
+
+    if (reason_input) {
+        reason_input.value = "";
+    }
 
     modal.style.display = "flex";
 }
@@ -4334,18 +4875,51 @@ function closeFollowUpModal() {
 
 
 function submitFollowUpMI() {
-    let follow_up_date =
+    let planned_start =
         document.getElementById(
-            "follow-up-date"
+            "follow-up-start"
         ).value;
+
+    let planned_end =
+        document.getElementById(
+            "follow-up-end"
+        ).value;
+
     let reason =
         document.getElementById(
             "follow-up-reason"
         ).value || "";
 
-    if (!follow_up_date) {
+    if (!planned_start) {
         frappe.msgprint(
-            "Please select the next work date."
+            "Please select the planned start."
+        );
+        return;
+    }
+
+    if (!planned_end) {
+        frappe.msgprint(
+            "Please select the planned end."
+        );
+        return;
+    }
+
+    let start = new Date(planned_start);
+    let end = new Date(planned_end);
+
+    if (
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime())
+    ) {
+        frappe.msgprint(
+            "Please enter a valid planned start and end."
+        );
+        return;
+    }
+
+    if (end <= start) {
+        frappe.msgprint(
+            "Planned End must be after Planned Start."
         );
         return;
     }
@@ -4362,11 +4936,13 @@ function submitFollowUpMI() {
             "maintenance_app.www.tech.intervention.index.create_follow_up_mi",
         args: {
             source_mi_name: "{{ mi.name }}",
-            follow_up_date: follow_up_date,
+            planned_start: planned_start,
+            planned_end: planned_end,
             reason: reason
         },
         freeze: true,
-        freeze_message: "Creating follow-up MI...",
+        freeze_message:
+            "Creating follow-up MI...",
         callback: function(r) {
             let result = r.message || {};
 
@@ -4388,7 +4964,6 @@ function submitFollowUpMI() {
         error: show_error
     });
 }
-
 
 function showChangeComponentDialog() {
     frappe.call({

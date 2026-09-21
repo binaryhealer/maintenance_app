@@ -484,18 +484,170 @@ function go_to_intervention(intervention_name) {
         encodeURIComponent(intervention_name);
 }
 
-function open_or_create_mi(mission_name) {
+function open_or_create_mi(mission_name, equipment_name) {
     frappe.call({
         method: "maintenance_app.api.open_or_create_mi",
         args: {
-            mission_name: mission_name
+            mission_name: mission_name,
+            equipment_name: equipment_name || null
         },
+        freeze: true,
+        freeze_message: equipment_name
+            ? "Opening equipment intervention..."
+            : "Opening mission...",
         callback: function(r) {
-            if (r.message && r.message.intervention) {
-                go_to_intervention(r.message.intervention);
+            let result = r.message || {};
+
+            if (result.intervention) {
+                go_to_intervention(result.intervention);
+                return;
             }
+
+            if (
+                result.requires_equipment_selection &&
+                result.equipments &&
+                result.equipments.length
+            ) {
+                show_mission_equipment_selector(
+                    mission_name,
+                    result.equipments
+                );
+                return;
+            }
+
+            frappe.msgprint(
+                "No intervention or target equipment was returned for this mission."
+            );
         }
     });
+}
+
+
+function show_mission_equipment_selector(mission_name, equipments) {
+    // /tech is a website route, not Desk. frappe.ui.Dialog can exist here
+    // without the full Desk form-control bundle, which causes
+    // "frappe.ui.form.make_control is not a function".
+    // Use a plain Bootstrap/DOM modal instead.
+
+    $("#mission-equipment-picker-modal").remove();
+
+    let modal = $(`
+        <div class="modal fade"
+             id="mission-equipment-picker-modal"
+             tabindex="-1"
+             role="dialog"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable"
+                 role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Select Equipment</h5>
+                        <button type="button"
+                                class="close"
+                                data-dismiss="modal"
+                                aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="text-muted mb-3">
+                            Select the equipment you are going to work on.
+                            Each planned equipment has its own Mission Intervention.
+                        </div>
+
+                        <div class="mission-equipment-picker-list"></div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button"
+                                class="btn btn-secondary"
+                                data-dismiss="modal">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+
+    $("body").append(modal);
+
+    let container = modal.find(".mission-equipment-picker-list");
+
+    equipments.forEach(function(row) {
+        let card = $("<button>", {
+            type: "button"
+        })
+            .addClass("btn btn-light border w-100 text-left mb-2 p-3")
+            .css({
+                "border-radius": "12px",
+                "white-space": "normal"
+            });
+
+        $("<div>")
+            .addClass("font-weight-bold")
+            .text(row.display || row.equipment || "Equipment")
+            .appendTo(card);
+
+        let details = [];
+
+        if (row.make || row.model) {
+            details.push(
+                [row.make, row.model]
+                    .filter(Boolean)
+                    .join(" ")
+            );
+        }
+
+        if (row.serial_number) {
+            details.push("Serial: " + row.serial_number);
+        }
+
+        if (row.client_asset_code) {
+            details.push("Client Asset: " + row.client_asset_code);
+        }
+
+        if (row.site_id) {
+            details.push("Site ID: " + row.site_id);
+        }
+
+        if (details.length) {
+            $("<div>")
+                .addClass("small text-muted mt-1")
+                .text(details.join(" · "))
+                .appendTo(card);
+        }
+
+        $("<div>")
+            .addClass("small mt-2")
+            .append(
+                $("<span>")
+                    .addClass("badge badge-secondary")
+                    .text(row.status || "Pending")
+            )
+            .appendTo(card);
+
+        card.on("click", function() {
+            modal.modal("hide");
+
+            // Wait for Bootstrap to release the modal before redirecting/opening.
+            setTimeout(function() {
+                open_or_create_mi(
+                    mission_name,
+                    row.equipment
+                );
+            }, 150);
+        });
+
+        container.append(card);
+    });
+
+    modal.on("hidden.bs.modal", function() {
+        modal.remove();
+    });
+
+    modal.modal("show");
 }
 
 function open_existing_mi(mission_name) {

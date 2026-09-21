@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-09-02 14:50:29.661995",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_equipment",
+  "custom_asset_name",
+  "custom_make",
+  "custom_model",
+  "custom_asset_category",
+  "custom_site_id",
+  "custom_asset_id",
+  "custom_client_asset_code",
+  "custom_status",
+  "custom_mission_intervention"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_equipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_asset_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Equipment Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_make",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Make",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_model",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Model",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_asset_category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_site_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Site Position / ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_asset_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Serial Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_client_asset_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Client Asset Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nMI Created\nCompleted\nNot Attended",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_mission_intervention",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mission Intervention",
+   "options": "Mission Intervention",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-02 14:57:20.425872",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Tech Mission Equipment",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

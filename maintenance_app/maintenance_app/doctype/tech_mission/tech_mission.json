@@ -23,10 +23,20 @@
   "custom_priority",
   "custom_response_due",
   "custom_resolution_due",
-  "custom_count_each_technician",
   "custom_hold_reason",
+  "custom_handling_mode",
+  "section_break_qygo",
+  "custom_count_each_technician",
+  "column_break_ahcp",
+  "custom_planning_required",
+  "column_break_xgrs",
+  "custom_rm_attention_required",
+  "section_break_dsxj",
+  "custom_rm_attention_reason",
   "custom_tech_details",
   "custom_planned_team",
+  "section_break_tnpz",
+  "custom_target_equipments",
   "section_break_lkej",
   "custom_intervention_table",
   "section_break_fhuw",
@@ -47,6 +57,7 @@
   "custom_component_brand",
   "custom_component_model",
   "custom_component_item",
+  "custom_site_id",
   "column_break_wpxe",
   "custom_total_hours",
   "custom_total_actual_hours",
@@ -56,6 +67,11 @@
   "custom_company",
   "section_break_fyvt",
   "custom_request_description",
+  "custom_previous_team_summar",
+  "section_break_rpss",
+  "custom_assigned_technicians",
+  "custom_assigned_vehicles",
+  "custom_calendar_display",
   "custom_contact_communication",
   "custom_applicant",
   "custom_applicant_role",
@@ -65,7 +81,9 @@
   "custom_ho_contacts",
   "custom_head_office_contacts",
   "custom_branch_operational_contacts",
-  "custom_branch_contacts"
+  "custom_branch_contacts",
+  "section_break_donz",
+  "custom_notification_emails"
  ],
  "fields": [
   {
@@ -253,7 +271,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation",
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation\nGeneral Works\nOther",
    "read_only": 1
   },
   {
@@ -399,7 +417,7 @@
    "fieldname": "custom_change_history",
    "fieldtype": "Table",
    "label": "Mission Change History",
-   "options": "Tech Mission Schedule Histor"
+   "options": "Tech Mission Schedule History"
   },
   {
    "fieldname": "custom_external_vehicle",
@@ -428,12 +446,104 @@
    "fieldtype": "Table",
    "label": "Site Visit Log",
    "options": "TM Site Visit Log"
+  },
+  {
+   "fieldname": "section_break_donz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_notification_emails",
+   "fieldtype": "Small Text",
+   "label": "Notification Emails",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_site_id",
+   "fieldtype": "Data",
+   "label": "Site Position / Slot ID"
+  },
+  {
+   "fieldname": "section_break_tnpz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_target_equipments",
+   "fieldtype": "Table",
+   "label": "Target Equipments",
+   "options": "Tech Mission Equipment"
+  },
+  {
+   "fieldname": "custom_handling_mode",
+   "fieldtype": "Select",
+   "label": "Handling Mode",
+   "options": "Onsite\nRemote\nWorkshop Drop-Off",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_qygo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_ahcp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_planning_required",
+   "fieldtype": "Check",
+   "label": "Additional Planning Required"
+  },
+  {
+   "fieldname": "column_break_xgrs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_rm_attention_required",
+   "fieldtype": "Check",
+   "label": "RM Attention Required"
+  },
+  {
+   "fieldname": "section_break_dsxj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_rm_attention_reason",
+   "fieldtype": "Small Text",
+   "label": "RM Attention Reason"
+  },
+  {
+   "fieldname": "custom_previous_team_summar",
+   "fieldtype": "Small Text",
+   "label": "Previous Team Details"
+  },
+  {
+   "fieldname": "section_break_rpss",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_assigned_technicians",
+   "fieldtype": "Data",
+   "in_filter": 1,
+   "label": "Assigned Technicians"
+  },
+  {
+   "fieldname": "custom_assigned_vehicles",
+   "fieldtype": "Data",
+   "in_filter": 1,
+   "label": "Assigned Vehicles"
+  },
+  {
+   "fieldname": "custom_calendar_display",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Calendar Display"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-27 23:31:02.707895",
+ "modified": "2026-09-11 16:21:48.840875",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

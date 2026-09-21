@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class TechMissionScheduleHistor(Document):
+class GeneralWorksType(Document):
 	pass

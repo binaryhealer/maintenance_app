@@ -147,7 +147,11 @@ def _attach_interventions_to_missions(missions):
         "creation",
     ]
 
-    for optional_field in ["custom_mi_purpose", "custom_additional_mi"]:
+    for optional_field in [
+        "custom_mi_purpose",
+        "custom_additional_mi",
+        "custom_checkout_status",
+    ]:
         if mi_meta.has_field(optional_field):
             fields.append(optional_field)
 
@@ -166,7 +170,10 @@ def _attach_interventions_to_missions(missions):
         if not purpose:
             purpose = "Additional" if row.get("custom_additional_mi") else "Initial"
 
-        if int(row.get("docstatus") or 0) == 2:
+        if (
+            (row.get("custom_checkout_status") or "").strip() == "Cancelled"
+            or int(row.get("docstatus") or 0) == 2
+        ):
             live_status = "Cancelled"
         elif int(row.get("docstatus") or 0) == 1:
             live_status = "Submitted"

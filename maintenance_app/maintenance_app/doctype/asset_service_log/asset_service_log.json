@@ -30,6 +30,7 @@
   "custom_start_time",
   "custom_end_time",
   "custom_duration",
+  "custom_general_work_type",
   "custom_component_history",
   "custom_component_group",
   "custom_component_item",
@@ -143,7 +144,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation\nGeneral Works\nOther"
   },
   {
    "fieldname": "custom_work_outcome",
@@ -243,13 +244,18 @@
    "fieldtype": "Link",
    "label": "Commissioning Record",
    "options": "Commissioning Record"
+  },
+  {
+   "fieldname": "custom_general_work_type",
+   "fieldtype": "Data",
+   "label": "General Works Type"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-27 23:02:36.104305",
+ "modified": "2026-09-08 09:08:02.544361",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Service Log",

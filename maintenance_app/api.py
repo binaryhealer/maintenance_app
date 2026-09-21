@@ -87,6 +87,31 @@ def create_mission_from_planning(planning_name):
     mission.custom_service_ticket = planning.get("custom_service_ticket")
     if mission.meta.has_field("custom_company"):
         mission.custom_company = planning.get("custom_company") or None
+
+    # Site ID follows the Service Ticket into Tech Mission.
+    # Fallbacks keep older/planning-created records safe during staged rollout.
+    if mission.meta.has_field("custom_site_id"):
+        site_id = None
+
+        if planning.get("custom_service_ticket"):
+            site_id = frappe.db.get_value(
+                "Service Ticket",
+                planning.get("custom_service_ticket"),
+                "custom_site_id"
+            )
+
+        if not site_id:
+            site_id = planning.get("custom_site_id")
+
+        if not site_id and planning.get("custom_asset"):
+            site_id = frappe.db.get_value(
+                "Installed Equipment",
+                planning.get("custom_asset"),
+                "custom_site_id"
+            )
+
+        mission.custom_site_id = site_id or None
+
     mission.custom_tech_planning = planning.name
     mission.custom_parent_customer = planning.get("custom_parent_customer")
     mission.custom_branch = planning.get("custom_branch")
@@ -250,6 +275,9 @@ def _validate_planning(planning):
         "Training",
         "General Installation",
         "Inspection",
+        "Service",
+        "Other",
+        "General Works",
     }
 
     required = {
@@ -382,19 +410,30 @@ def _build_todo_description(mission, planning):
 
 @frappe.whitelist()
 def get_open_intervention_for_mission(mission_name):
-    intervention = frappe.db.get_value(
+    rows = frappe.get_all(
         "Mission Intervention",
-        {
+        filters={
             "custom_parent_mission": mission_name,
-            "docstatus": 0
+            "docstatus": 0,
         },
-        "name"
+        fields=["name", "custom_checkout_status", "creation"],
+        order_by="creation desc",
+        limit_page_length=100,
+    )
+
+    intervention = next(
+        (
+            row.name
+            for row in rows
+            if (row.get("custom_checkout_status") or "").strip() != "Cancelled"
+        ),
+        None,
     )
 
     return {"open_intervention": intervention}
 
 
-@frappe.whitelist()
+'''@frappe.whitelist()
 def create_intervention_from_mission(mission_name):
     mission = frappe.get_doc("Tech Mission", mission_name)
 
@@ -424,8 +463,186 @@ def create_intervention_from_mission(mission_name):
     _sync_mi_register_and_status(mi.name, save_mission=True)
     frappe.db.commit()
 
-    return {"intervention": mi.name}
+    return {"intervention": mi.name}'''
+@frappe.whitelist()
+def create_intervention_from_mission(
+    mission_name,
+    previous_intervention=None
+):
+    mission = frappe.get_doc("Tech Mission", mission_name)
 
+    # --------------------------------------------------------
+    # Never create a second draft MI
+    # --------------------------------------------------------
+    open_rows = frappe.get_all(
+        "Mission Intervention",
+        filters={
+            "custom_parent_mission": mission.name,
+            "docstatus": 0,
+        },
+        fields=["name", "custom_checkout_status", "creation"],
+        order_by="creation desc",
+        limit_page_length=100,
+    )
+
+    open_intervention = next(
+        (
+            row.name
+            for row in open_rows
+            if (row.get("custom_checkout_status") or "").strip() != "Cancelled"
+        ),
+        None,
+    )
+
+    if open_intervention:
+        return {
+            "intervention": open_intervention
+        }
+
+    if mission.get("custom_mission_status") in [
+        "Completed",
+        "Closed"
+    ]:
+        frappe.throw(
+            "This mission is completed. Cannot create a new intervention."
+        )
+
+    # --------------------------------------------------------
+    # Determine automatically whether this is Initial/Follow-up
+    # --------------------------------------------------------
+    if not previous_intervention:
+        previous_intervention = frappe.db.get_value(
+            "Mission Intervention",
+            {
+                "custom_parent_mission": mission.name,
+                "docstatus": 1
+            },
+            "name",
+            order_by="creation desc"
+        )
+
+    previous_mi = None
+
+    if previous_intervention:
+        previous_mi = frappe.get_doc(
+            "Mission Intervention",
+            previous_intervention
+        )
+
+        if (
+            previous_mi.get("custom_parent_mission")
+            != mission.name
+        ):
+            frappe.throw(
+                "Previous Intervention does not belong to this Tech Mission."
+            )
+
+        if int(previous_mi.docstatus or 0) != 1:
+            frappe.throw(
+                "Previous Intervention must be submitted before creating a follow-up."
+            )
+
+    # --------------------------------------------------------
+    # Create MI from TM
+    # --------------------------------------------------------
+    mi = frappe.new_doc("Mission Intervention")
+
+    _populate_mi_from_mission(
+        mi,
+        mission,
+        mission.get("custom_asset")
+    )
+
+    # --------------------------------------------------------
+    # Initial / Follow-up classification
+    # --------------------------------------------------------
+    if previous_mi:
+
+        if mi.meta.has_field("custom_mi_purpose"):
+            mi.custom_mi_purpose = "Follow-up"
+
+        if mi.meta.has_field(
+            "custom_previous_intervention"
+        ):
+            mi.custom_previous_intervention = (
+                previous_mi.name
+            )
+
+        if mi.meta.has_field(
+            "custom_follow_up_sequence"
+        ):
+            previous_sequence = (
+                previous_mi.get(
+                    "custom_follow_up_sequence"
+                )
+                or 0
+            )
+
+            mi.custom_follow_up_sequence = (
+                int(previous_sequence) + 1
+            )
+
+        if mi.meta.has_field(
+            "custom_continuation_reason"
+        ):
+            mi.custom_continuation_reason = (
+                previous_mi.get(
+                    "custom_planning_request_note"
+                )
+                or previous_mi.get(
+                    "custom_work_progress"
+                )
+                or ""
+            )
+
+    else:
+
+        if mi.meta.has_field("custom_mi_purpose"):
+            mi.custom_mi_purpose = "Initial"
+
+        if mi.meta.has_field(
+            "custom_follow_up_sequence"
+        ):
+            mi.custom_follow_up_sequence = 0
+
+    # --------------------------------------------------------
+    # New MI = fresh work session
+    # --------------------------------------------------------
+    if mi.meta.has_field(
+        "custom_additional_planning_required"
+    ):
+        mi.custom_additional_planning_required = 0
+
+    if mi.meta.has_field(
+        "custom_planning_request_note"
+    ):
+        mi.custom_planning_request_note = ""
+
+    if mi.meta.has_field(
+        "custom_could_not_complete_reason"
+    ):
+        mi.custom_could_not_complete_reason = ""
+
+    mi.insert(ignore_permissions=True)
+
+    _sync_mi_register_and_status(
+        mi.name,
+        save_mission=True
+    )
+
+    frappe.db.commit()
+
+    return {
+        "intervention": mi.name,
+        "mi_purpose": (
+            mi.get("custom_mi_purpose")
+            or ""
+        ),
+        "previous_intervention": (
+            mi.get("custom_previous_intervention")
+            or ""
+        )
+    }
 
 @frappe.whitelist()
 def get_additional_mi_components(equipment_name):
@@ -754,13 +971,245 @@ def change_mi_equipment(mi_name, actual_equipment, reason):
         "actual_equipment": actual_equipment
     }
 
+def _get_mission_target_equipment_rows(mission):
+    """Return valid planned whole-equipment rows from Tech Mission."""
+    if not mission.meta.has_field("custom_target_equipments"):
+        return []
+
+    return [
+        row
+        for row in (mission.get("custom_target_equipments") or [])
+        if row.get("custom_equipment")
+    ]
+
+
+def _planned_equipment_display(row):
+    """
+    Rebuild the same readable Installed Equipment display used on Desk:
+    Asset Name - Client Asset Code - Serial Number.
+    """
+    display_parts = [
+        row.get("custom_asset_name"),
+        row.get("custom_client_asset_code"),
+        row.get("custom_asset_id"),
+    ]
+
+    display_name = " - ".join(
+        str(value).strip()
+        for value in display_parts
+        if value
+    )
+
+    if display_name:
+        return display_name
+
+    make_model = " - ".join(
+        str(value).strip()
+        for value in [
+            row.get("custom_make"),
+            row.get("custom_model"),
+        ]
+        if value
+    )
+
+    return (
+        make_model
+        or row.get("custom_equipment")
+        or ""
+    )
+
+
+def _find_planned_equipment_row(mission, equipment_name):
+    for row in _get_mission_target_equipment_rows(mission):
+        if row.get("custom_equipment") == equipment_name:
+            return row
+    return None
+
+
+def _planned_equipment_picker_payload(mission):
+    result = []
+
+    for row in _get_mission_target_equipment_rows(mission):
+        result.append({
+            "equipment": row.get("custom_equipment"),
+            "asset_name": row.get("custom_asset_name") or "",
+            "make": row.get("custom_make") or "",
+            "model": row.get("custom_model") or "",
+            "asset_category": row.get("custom_asset_category") or "",
+            "site_id": row.get("custom_site_id") or "",
+            "serial_number": row.get("custom_asset_id") or "",
+            "client_asset_code": row.get("custom_client_asset_code") or "",
+            "status": row.get("custom_status") or "Pending",
+            "intervention": row.get("custom_mission_intervention") or "",
+            "display": _planned_equipment_display(row),
+        })
+
+    return result
+
+
+def _create_or_open_planned_equipment_mi(mission, equipment_row):
+    equipment_name = equipment_row.get("custom_equipment")
+
+    if not equipment_name:
+        frappe.throw("Target Equipment is required.")
+
+    linked_mi = equipment_row.get("custom_mission_intervention")
+
+    if linked_mi and frappe.db.exists("Mission Intervention", linked_mi):
+        linked_state = frappe.db.get_value(
+            "Mission Intervention",
+            linked_mi,
+            ["docstatus", "custom_checkout_status"],
+            as_dict=True,
+        ) or {}
+
+        linked_is_cancelled = (
+            int(linked_state.get("docstatus") or 0) == 2
+            or (linked_state.get("custom_checkout_status") or "").strip() == "Cancelled"
+        )
+
+        if not linked_is_cancelled:
+            return linked_mi
+
+        # A cancelled MI must not permanently block this planned equipment.
+        equipment_row.custom_mission_intervention = None
+        equipment_row.custom_status = "Pending"
+
+    # Recover an existing non-cancelled Initial MI for the same mission/equipment
+    # if the child-table link is missing (useful during staged rollout).
+    existing_rows = frappe.get_all(
+        "Mission Intervention",
+        filters={
+            "custom_parent_mission": mission.name,
+            "custom_asset": equipment_name,
+            "docstatus": ["!=", 2],
+        },
+        fields=[
+            "name",
+            "docstatus",
+            "creation",
+            "custom_mi_purpose",
+            "custom_checkout_status",
+        ],
+        order_by="creation asc",
+        limit_page_length=100,
+    )
+
+    for existing in existing_rows:
+        if (existing.get("custom_checkout_status") or "").strip() == "Cancelled":
+            continue
+
+        purpose = (existing.get("custom_mi_purpose") or "").strip()
+        if purpose in ["Additional Equipment", "Additional"]:
+            continue
+
+        equipment_row.custom_mission_intervention = existing.name
+        equipment_row.custom_status = (
+            "Completed"
+            if int(existing.get("docstatus") or 0) == 1
+            and frappe.db.get_value(
+                "Mission Intervention",
+                existing.name,
+                "custom_work_outcome",
+            ) == "Work Completed"
+            else "MI Created"
+        )
+        mission.save(ignore_permissions=True)
+        return existing.name
+
+    if mission.get("custom_mission_status") in ["Completed", "Closed", "Cancelled"]:
+        frappe.throw(
+            "This mission is completed/cancelled. "
+            "Cannot create a new intervention."
+        )
+
+    mi = frappe.new_doc("Mission Intervention")
+
+    is_primary_equipment = (
+        bool(mission.get("custom_asset"))
+        and equipment_name == mission.get("custom_asset")
+    )
+
+    _populate_mi_from_mission(
+        mi,
+        mission,
+        equipment_name,
+        copy_original_component=is_primary_equipment,
+    )
+
+    # Secondary rows in a multi-equipment mission are whole-equipment targets.
+    if not is_primary_equipment:
+        if mi.meta.has_field("custom_target_component_name"):
+            mi.custom_target_component_name = (
+                _planned_equipment_display(equipment_row)
+                or equipment_name
+            )
+
+        if mi.meta.has_field("custom_parent_equipment"):
+            mi.custom_parent_equipment = None
+
+        if mi.meta.has_field("custom_equipment_component"):
+            mi.custom_equipment_component = None
+
+    if mi.meta.has_field("custom_mi_purpose"):
+        mi.custom_mi_purpose = "Initial"
+
+    mi.insert(ignore_permissions=True)
+
+    # Central sync writes both the normal MI register and Target Equipments row.
+    _sync_mi_register_and_status(mi.name, save_mission=True)
+
+    frappe.db.commit()
+    return mi.name
+
+
 @frappe.whitelist()
-def open_or_create_mi(mission_name):
+def open_or_create_mi(mission_name, equipment_name=None):
     if not mission_name:
         frappe.throw("Tech Mission is required.")
 
-    result = create_intervention_from_mission(mission_name)
-    return {"intervention": result.get("intervention")}
+    mission = frappe.get_doc("Tech Mission", mission_name)
+    target_rows = _get_mission_target_equipment_rows(mission)
+
+    # Component tickets, legacy missions and customer-only work without a
+    # planned equipment table retain the exact original behaviour.
+    if not target_rows:
+        result = create_intervention_from_mission(mission_name)
+        return {
+            "intervention": result.get("intervention"),
+            "legacy": True,
+        }
+
+    if len(target_rows) == 1 and not equipment_name:
+        equipment_name = target_rows[0].get("custom_equipment")
+
+    if len(target_rows) > 1 and not equipment_name:
+        return {
+            "requires_equipment_selection": True,
+            "mission": mission.name,
+            "equipments": _planned_equipment_picker_payload(mission),
+        }
+
+    equipment_row = _find_planned_equipment_row(
+        mission,
+        equipment_name,
+    )
+
+    if not equipment_row:
+        frappe.throw(
+            "The selected equipment is not part of this Tech Mission."
+        )
+
+    intervention = _create_or_open_planned_equipment_mi(
+        mission,
+        equipment_row,
+    )
+
+    return {
+        "intervention": intervention,
+        "equipment": equipment_name,
+        "requires_equipment_selection": False,
+    }
 
 
 
@@ -782,6 +1231,12 @@ def _populate_mi_from_mission(
     # Company must follow the Tech Mission into the Mission Intervention.
     if mi.meta.has_field("custom_company"):
         mi.custom_company = mission.get("custom_company") or None
+
+    # Start with the Tech Mission Site ID. _fill_equipment_snapshot() below
+    # refreshes it from the actual MI equipment, which is important for
+    # Additional MI and wrong-equipment corrections.
+    if mi.meta.has_field("custom_site_id"):
+        mi.custom_site_id = mission.get("custom_site_id") or None
 
     mi.custom_planning_ref = mission.get("custom_tech_planning")
     mi.custom_parent_customer = mission.get("custom_parent_customer")
@@ -901,6 +1356,14 @@ def _populate_mi_from_mission(
 
 def _get_mi_register_status(mi):
     """Return the live workflow status shown in Tech Mission intervention table."""
+    # RM cancellation is retained as a Draft document for audit/history.
+    # Treat the workflow field as authoritative before docstatus.
+    if (
+        mi.meta.has_field("custom_checkout_status")
+        and (mi.get("custom_checkout_status") or "").strip() == "Cancelled"
+    ):
+        return "Cancelled"
+
     if int(mi.docstatus or 0) == 2:
         return "Cancelled"
 
@@ -914,7 +1377,6 @@ def _get_mi_register_status(mi):
         return "Checked In"
 
     return "Draft"
-
 
 def _get_mission_hold_reason_from_outcome(outcome):
     mapping = {
@@ -1014,23 +1476,112 @@ def _sync_mi_row_to_mission(mission, mi):
     return target_row
 
 
+def _sync_mi_to_target_equipment_row(mission, mi):
+    """
+    Keep Tech Mission.custom_target_equipments aligned with its planned MI.
+
+    The child-table Select currently uses:
+      Pending / MI Created / Completed / Not Attended
+
+    Detailed live workflow remains on the MI itself and in
+    custom_intervention_table; the planned equipment row deliberately stays
+    coarse-grained.
+    """
+    if not mission.meta.has_field("custom_target_equipments"):
+        return None
+
+    equipment_name = mi.get("custom_asset")
+    if not equipment_name:
+        return None
+
+    target_row = _find_planned_equipment_row(
+        mission,
+        equipment_name,
+    )
+
+    # Additional/discovered equipment is not part of the planned list.
+    if not target_row:
+        return None
+
+    purpose = (mi.get("custom_mi_purpose") or "").strip()
+    if purpose in ["Additional Equipment", "Additional", "Additional MI"]:
+        return None
+
+    is_retained_cancelled = (
+        mi.meta.has_field("custom_checkout_status")
+        and (mi.get("custom_checkout_status") or "").strip() == "Cancelled"
+    )
+
+    if int(mi.docstatus or 0) == 2 or is_retained_cancelled:
+        # Cancelled planned MI re-opens the equipment for a replacement MI.
+        if target_row.get("custom_mission_intervention") == mi.name:
+            target_row.custom_mission_intervention = None
+            target_row.custom_status = "Pending"
+        return target_row
+
+    target_row.custom_mission_intervention = mi.name
+
+    if (
+        int(mi.docstatus or 0) == 1
+        and mi.get("custom_work_outcome") == "Work Completed"
+    ):
+        target_row.custom_status = "Completed"
+    else:
+        target_row.custom_status = "MI Created"
+
+    return target_row
+
+
+def _planned_equipment_completion_state(mission):
+    """
+    Return planned-equipment completion information.
+
+    Not Attended is treated as a terminal planned-equipment decision so a
+    deliberately skipped unit does not prevent mission closure forever.
+    """
+    rows = _get_mission_target_equipment_rows(mission)
+
+    if not rows:
+        return {
+            "has_planned_rows": False,
+            "all_terminal": False,
+            "outstanding": 0,
+        }
+
+    terminal_statuses = {"Completed", "Not Attended"}
+
+    outstanding = [
+        row
+        for row in rows
+        if (row.get("custom_status") or "Pending") not in terminal_statuses
+    ]
+
+    return {
+        "has_planned_rows": True,
+        "all_terminal": len(outstanding) == 0,
+        "outstanding": len(outstanding),
+    }
+
+
 def _recalculate_mission_status_from_mis(mission, current_mi=None):
     """
-    Aggregate TM/ST status from ALL Mission Interventions.
+    Aggregate TM/ST status from all MIs.
 
     Rules:
-      * Checked-in work -> TM Ongoing / ST In Progress.
-      * Normal draft Initial/Additional work -> Ongoing / In Progress.
-      * A future untouched Follow-up draft does not restart SLA by itself.
-      * If no active work exists and a submitted MI is waiting -> On Hold.
-      * Only when no open/draft MI and no unresolved waiting MI remains
-        can the mission complete.
+      1. Retained RM-cancelled Draft MIs do not count as open work.
+      2. Any actively Checked-In Draft MI -> Ongoing / In Progress.
+      3. Unresolved submitted hold outcomes -> On Hold.
+      4. Untouched Follow-up -> On Hold until Check In.
+      5. Any non-cancelled Draft Additional MI -> On Hold.
+      6. Planned-equipment completion remains authoritative for planned work.
+      7. TM completes only when no active/hold/additional/planned work remains.
     """
     mi_meta = frappe.get_meta("Mission Intervention")
 
     query_fields = [
         "name",
         "docstatus",
+        "custom_asset",
         "custom_start_time",
         "custom_end_time",
         "custom_work_outcome",
@@ -1042,6 +1593,10 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
         "custom_mi_purpose",
         "custom_previous_intervention",
         "custom_additional_mi",
+        "custom_additional_planning_required",
+        "custom_planning_request_note",
+        "custom_could_not_complete_reason",
+        "custom_checkout_status",
     ]:
         if mi_meta.has_field(optional_field):
             query_fields.append(optional_field)
@@ -1051,16 +1606,15 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
         filters={"custom_parent_mission": mission.name},
         fields=query_fields,
         order_by="creation asc",
-        limit_page_length=1000
+        limit_page_length=1000,
     )
 
-    # Use the MI currently being synchronised as the authoritative snapshot.
-    # This is important during submit/on_submit transactions where a fresh
-    # database query can still expose stale workflow values for that MI.
+    # During submit/on_submit use the in-memory MI as authoritative.
     if current_mi and current_mi.get("name"):
         current_values = {
             "name": current_mi.name,
             "docstatus": int(current_mi.docstatus or 0),
+            "custom_asset": current_mi.get("custom_asset"),
             "custom_start_time": current_mi.get("custom_start_time"),
             "custom_end_time": current_mi.get("custom_end_time"),
             "custom_work_outcome": current_mi.get("custom_work_outcome"),
@@ -1072,112 +1626,167 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
             "custom_mi_purpose",
             "custom_previous_intervention",
             "custom_additional_mi",
+            "custom_additional_planning_required",
+            "custom_planning_request_note",
+            "custom_could_not_complete_reason",
+            "custom_checkout_status",
         ]:
             if mi_meta.has_field(optional_field):
                 current_values[optional_field] = current_mi.get(optional_field)
 
-        current_found = False
-
+        found = False
         for row in rows:
             if row.get("name") == current_mi.name:
                 row.update(current_values)
-                current_found = True
+                found = True
                 break
 
-        if not current_found:
+        if not found:
             rows.append(current_values)
 
-    if not rows:
-        return {
-            "mission_status": mission.get("custom_mission_status"),
-            "ticket_status": None,
-            "hold_reason": None,
-        }
-
-    active_drafts = []
-    untouched_followups = []
-
-    for row in rows:
-        if int(row.get("docstatus") or 0) != 0:
-            continue
-
-        purpose = (row.get("custom_mi_purpose") or "").strip()
-
-        # Legacy/current sites may not yet have custom_mi_purpose.
-        # custom_previous_intervention is enough to identify a follow-up.
-        is_follow_up = (
-            purpose == "Follow-up"
-            or bool(row.get("custom_previous_intervention"))
+    def is_retained_cancelled(row):
+        return (
+            (row.get("custom_checkout_status") or "").strip()
+            == "Cancelled"
         )
 
-        if row.get("custom_start_time"):
-            active_drafts.append(row)
-        elif is_follow_up:
-            untouched_followups.append(row)
-        else:
-            active_drafts.append(row)
-
-    if active_drafts:
-        mission.custom_mission_status = "Ongoing"
-        if mission.meta.has_field("custom_hold_reason"):
-            mission.custom_hold_reason = ""
-        if mission.meta.has_field("custom_open_work_remaining"):
-            mission.custom_open_work_remaining = 1
-        _set_ticket_status_from_mission(mission, "In Progress", "")
-        return {
-            "mission_status": "Ongoing",
-            "ticket_status": "In Progress",
-            "hold_reason": "",
-        }
-
-    # A waiting submitted MI stops being a blocker once it has a newer
-    # follow-up MI linked to it.
+    # Keep follow-up lineage even for a retained cancelled follow-up.
+    # This prevents its source Continue Work MI from becoming blocking again
+    # after RM explicitly cancels the future continuation.
     followed_sources = {
         row.get("custom_previous_intervention")
         for row in rows
         if row.get("custom_previous_intervention")
     }
 
-    waiting_candidates = []
+    active_rows = [
+        row for row in rows
+        if not is_retained_cancelled(row)
+    ]
 
-    for row in rows:
-        if int(row.get("docstatus") or 0) != 1:
+    # ------------------------------------------------------------
+    # 1. ACTIVE CHECKED-IN WORK ALWAYS WINS
+    # ------------------------------------------------------------
+    active_checked_in = [
+        row
+        for row in active_rows
+        if int(row.get("docstatus") or 0) == 0
+        and row.get("custom_start_time")
+        and not row.get("custom_end_time")
+    ]
+
+    if active_checked_in:
+        mission.custom_mission_status = "Ongoing"
+
+        if mission.meta.has_field("custom_planning_required"):
+            mission.custom_planning_required = 0
+        if mission.meta.has_field("custom_rm_attention_required"):
+            mission.custom_rm_attention_required = 0
+        if mission.meta.has_field("custom_rm_attention_reason"):
+            mission.custom_rm_attention_reason = ""
+        if mission.meta.has_field("custom_hold_reason"):
+            mission.custom_hold_reason = ""
+        if mission.meta.has_field("custom_open_work_remaining"):
+            mission.custom_open_work_remaining = 1
+
+        _set_ticket_status_from_mission(mission, "In Progress", "")
+
+        return {
+            "mission_status": "Ongoing",
+            "ticket_status": "In Progress",
+            "hold_reason": "",
+        }
+
+    # ------------------------------------------------------------
+    # 2-5. SUBMITTED HOLD OUTCOMES
+    # ------------------------------------------------------------
+    unresolved_submitted = [
+        row
+        for row in active_rows
+        if int(row.get("docstatus") or 0) == 1
+        and row.get("name") not in followed_sources
+    ]
+
+    hold_precedence = [
+        ("Continue Work", "Continue Work"),
+        ("Waiting for Parts", "Waiting for Parts"),
+        ("Waiting for Client", "Waiting for Client"),
+        ("To Quote (Billable)", "To Quote"),
+        ("Could Not Complete", "Could Not Complete"),
+    ]
+
+    for outcome, hold_reason in hold_precedence:
+        matching = [
+            row
+            for row in unresolved_submitted
+            if row.get("custom_work_outcome") == outcome
+        ]
+        if not matching:
             continue
 
-        if row.get("name") in followed_sources:
-            continue
-
-        hold_reason = _get_mission_hold_reason_from_outcome(
-            row.get("custom_work_outcome")
+        source_row = matching[-1]
+        additional_planning_required = int(
+            source_row.get("custom_additional_planning_required") or 0
         )
+        planning_note = (
+            source_row.get("custom_planning_request_note") or ""
+        ).strip()
+        could_not_complete_reason = (
+            source_row.get("custom_could_not_complete_reason") or ""
+        ).strip()
 
-        if hold_reason:
-            waiting_candidates.append((row, hold_reason))
+        if mission.meta.has_field("custom_planning_required"):
+            mission.custom_planning_required = additional_planning_required
+        if mission.meta.has_field("custom_rm_attention_required"):
+            mission.custom_rm_attention_required = (
+                1 if outcome == "Could Not Complete" else 0
+            )
+        if mission.meta.has_field("custom_rm_attention_reason"):
+            if outcome == "Could Not Complete":
+                mission.custom_rm_attention_reason = (
+                    could_not_complete_reason
+                    or planning_note
+                    or "Could Not Complete"
+                )
+            else:
+                mission.custom_rm_attention_reason = ""
 
-    if waiting_candidates:
-        waiting_row, hold_reason = waiting_candidates[-1]
         mission.custom_mission_status = "On Hold"
-
         if mission.meta.has_field("custom_hold_reason"):
             mission.custom_hold_reason = hold_reason
         if mission.meta.has_field("custom_open_work_remaining"):
             mission.custom_open_work_remaining = 1
 
-        _set_ticket_status_from_mission(
-            mission,
-            "On Hold",
-            hold_reason
-        )
+        _set_ticket_status_from_mission(mission, "On Hold", hold_reason)
 
         return {
             "mission_status": "On Hold",
             "ticket_status": "On Hold",
             "hold_reason": hold_reason,
-            "source_mi": waiting_row.get("name"),
+            "source_mi": source_row.get("name"),
         }
 
-    # An untouched future Follow-up keeps the mission on hold until work
-    # actually starts.  Normally its predecessor supplies the reason.
+    # ------------------------------------------------------------
+    # Untouched FOLLOW-UP keeps TM On Hold until Check In
+    # ------------------------------------------------------------
+    untouched_followups = []
+    for row in active_rows:
+        if int(row.get("docstatus") or 0) != 0:
+            continue
+
+        purpose = (row.get("custom_mi_purpose") or "").strip()
+        is_follow_up = (
+            purpose == "Follow-up"
+            or bool(row.get("custom_previous_intervention"))
+        )
+
+        if (
+            is_follow_up
+            and not row.get("custom_start_time")
+            and not row.get("custom_end_time")
+        ):
+            untouched_followups.append(row)
+
     if untouched_followups:
         latest_followup = untouched_followups[-1]
         previous_name = latest_followup.get("custom_previous_intervention")
@@ -1187,7 +1796,7 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
             previous_outcome = frappe.db.get_value(
                 "Mission Intervention",
                 previous_name,
-                "custom_work_outcome"
+                "custom_work_outcome",
             )
 
         hold_reason = (
@@ -1196,17 +1805,12 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
         )
 
         mission.custom_mission_status = "On Hold"
-
         if mission.meta.has_field("custom_hold_reason"):
             mission.custom_hold_reason = hold_reason
         if mission.meta.has_field("custom_open_work_remaining"):
             mission.custom_open_work_remaining = 1
 
-        _set_ticket_status_from_mission(
-            mission,
-            "On Hold",
-            hold_reason
-        )
+        _set_ticket_status_from_mission(mission, "On Hold", hold_reason)
 
         return {
             "mission_status": "On Hold",
@@ -1214,30 +1818,302 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
             "hold_reason": hold_reason,
         }
 
-    # No open work and no unresolved waiting outcome remains.
+    # ------------------------------------------------------------
+    # OPEN ADDITIONAL MI: SAME VISIT STILL HAS WORK REMAINING
+    # ------------------------------------------------------------
+    open_additional_mis = []
+    for row in active_rows:
+        if int(row.get("docstatus") or 0) != 0:
+            continue
+
+        purpose = (row.get("custom_mi_purpose") or "").strip()
+        is_additional = (
+            purpose in ["Additional Equipment", "Additional", "Additional MI"]
+            or int(row.get("custom_additional_mi") or 0) == 1
+        )
+
+        if is_additional:
+            open_additional_mis.append(row)
+
+    if open_additional_mis:
+        mission.custom_mission_status = "On Hold"
+
+        # Keep hold reason blank: this is open same-visit work, not a
+        # waiting/planning reason such as Waiting for Parts.
+        if mission.meta.has_field("custom_hold_reason"):
+            mission.custom_hold_reason = ""
+        if mission.meta.has_field("custom_open_work_remaining"):
+            mission.custom_open_work_remaining = 1
+
+        _set_ticket_status_from_mission(mission, "On Hold", "")
+
+        return {
+            "mission_status": "On Hold",
+            "ticket_status": "On Hold",
+            "hold_reason": "",
+            "open_additional_mis": [
+                row.get("name") for row in open_additional_mis
+            ],
+        }
+
+    # ------------------------------------------------------------
+    # REPAIR PLANNED EQUIPMENT STATE FROM ACTUAL COMPLETED MI EVIDENCE
+    # ------------------------------------------------------------
+    # The child-table row can be stale after older workflow changes.
+    # If a planned equipment has a non-cancelled submitted Initial/Planned MI
+    # with Work Completed, treat that planned row as Completed before deciding
+    # whether the Tech Mission is Scheduled or Completed.
+    if mission.meta.has_field("custom_target_equipments"):
+        for target_row in mission.get("custom_target_equipments") or []:
+            equipment_name = target_row.get("custom_equipment")
+            if not equipment_name:
+                continue
+
+            if (target_row.get("custom_status") or "") in [
+                "Completed",
+                "Not Attended",
+            ]:
+                continue
+
+            completed_planned_mis = []
+
+            for row in active_rows:
+                if int(row.get("docstatus") or 0) != 1:
+                    continue
+
+                if row.get("custom_asset") != equipment_name:
+                    continue
+
+                if row.get("custom_work_outcome") != "Work Completed":
+                    continue
+
+                purpose = (row.get("custom_mi_purpose") or "").strip()
+                is_additional = (
+                    purpose in [
+                        "Additional Equipment",
+                        "Additional",
+                        "Additional MI",
+                    ]
+                    or int(row.get("custom_additional_mi") or 0) == 1
+                )
+
+                if is_additional:
+                    continue
+
+                completed_planned_mis.append(row)
+
+            if completed_planned_mis:
+                completed_row = completed_planned_mis[-1]
+                target_row.custom_status = "Completed"
+
+                if target_row.meta.has_field("custom_mission_intervention"):
+                    target_row.custom_mission_intervention = completed_row.get("name")
+
+    # ------------------------------------------------------------
+    # PLANNED EQUIPMENT COMPLETION
+    # ------------------------------------------------------------
+    planned_state = _planned_equipment_completion_state(mission)
+
+    if planned_state.get("has_planned_rows"):
+        if not planned_state.get("all_terminal"):
+            mission.custom_mission_status = "Scheduled"
+
+            if mission.meta.has_field("custom_hold_reason"):
+                mission.custom_hold_reason = ""
+            if mission.meta.has_field("custom_open_work_remaining"):
+                mission.custom_open_work_remaining = 1
+
+            ticket_status = None
+            ticket_name = mission.get("custom_service_ticket")
+            if ticket_name:
+                current_ticket_status = frappe.db.get_value(
+                    "Service Ticket",
+                    ticket_name,
+                    "custom_ticket_status",
+                )
+
+                if current_ticket_status in [
+                    None,
+                    "",
+                    "Open",
+                    "Ready for Planning",
+                    "Planned",
+                ]:
+                    _set_ticket_status_from_mission(
+                        mission,
+                        "Planned",
+                        "",
+                    )
+                    ticket_status = "Planned"
+
+            return {
+                "mission_status": "Scheduled",
+                "ticket_status": ticket_status,
+                "hold_reason": "",
+                "planned_equipment_outstanding": planned_state.get("outstanding"),
+            }
+
+    # Legacy/single-equipment missions: any non-cancelled non-follow-up Draft
+    # blocks completion.
+    if not planned_state.get("has_planned_rows"):
+        blocking_drafts = [
+            row
+            for row in active_rows
+            if int(row.get("docstatus") or 0) == 0
+            and not (
+                (row.get("custom_mi_purpose") or "").strip() == "Follow-up"
+                or bool(row.get("custom_previous_intervention"))
+            )
+        ]
+
+        if blocking_drafts:
+            mission.custom_mission_status = "Scheduled"
+            if mission.meta.has_field("custom_hold_reason"):
+                mission.custom_hold_reason = ""
+            if mission.meta.has_field("custom_open_work_remaining"):
+                mission.custom_open_work_remaining = 1
+
+            return {
+                "mission_status": "Scheduled",
+                "ticket_status": None,
+                "hold_reason": "",
+            }
+
+    # ------------------------------------------------------------
+    # EVERYTHING REQUIRED IS FINISHED
+    # ------------------------------------------------------------
     mission.custom_mission_status = "Completed"
 
     if mission.meta.has_field("custom_hold_reason"):
         mission.custom_hold_reason = ""
     if mission.meta.has_field("custom_open_work_remaining"):
         mission.custom_open_work_remaining = 0
+    if mission.meta.has_field("custom_planning_required"):
+        mission.custom_planning_required = 0
+    if mission.meta.has_field("custom_rm_attention_required"):
+        mission.custom_rm_attention_required = 0
+    if mission.meta.has_field("custom_rm_attention_reason"):
+        mission.custom_rm_attention_reason = ""
 
     ticket_name = mission.get("custom_service_ticket")
     if ticket_name:
         ticket = frappe.get_doc("Service Ticket", ticket_name)
-
         if ticket.meta.has_field("custom_ticket_status"):
             ticket.custom_ticket_status = "Resolved"
-
         if ticket.meta.has_field("custom_hold_reason"):
             ticket.custom_hold_reason = ""
-
         ticket.save(ignore_permissions=True)
 
     return {
         "mission_status": "Completed",
         "ticket_status": "Resolved",
         "hold_reason": "",
+    }
+
+@frappe.whitelist()
+def cancel_unused_draft_mi(mission_name, mi_name, reason):
+    """Retain an unused Draft MI and mark it Cancelled for audit/history."""
+    if not mission_name:
+        frappe.throw("Tech Mission is required.")
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    reason = (reason or "").strip()
+    if not reason:
+        frappe.throw("Cancellation Reason is required.")
+
+    mission = frappe.get_doc("Tech Mission", mission_name)
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+
+    if mi.get("custom_parent_mission") != mission.name:
+        frappe.throw("This Mission Intervention does not belong to this Tech Mission.")
+    if int(mi.docstatus or 0) != 0:
+        frappe.throw("Only an unused Draft Mission Intervention can be cancelled.")
+    if mi.get("custom_start_time"):
+        frappe.throw(
+            "This Mission Intervention has already been checked in and cannot be cancelled with this action."
+        )
+
+    for fieldname in [
+        "custom_checkout_status",
+        "custom_cancel_reason",
+        "custom_cancelled_by",
+        "custom_cancelled_on",
+    ]:
+        if not mi.meta.has_field(fieldname):
+            frappe.throw(f"Mission Intervention field {fieldname} is missing.")
+
+    if (mi.get("custom_checkout_status") or "").strip() == "Cancelled":
+        frappe.throw("This Mission Intervention is already cancelled.")
+
+    mi.custom_checkout_status = "Cancelled"
+    mi.custom_cancel_reason = reason
+    mi.custom_cancelled_by = frappe.session.user
+    mi.custom_cancelled_on = frappe.utils.now_datetime()
+    mi.save(ignore_permissions=True)
+
+    # Preserve the MI in the mission work log/register and show it as Cancelled.
+    _sync_mi_row_to_mission(mission, mi)
+
+    # If this was a planned/initial MI, also release its planned-equipment row.
+    # Additional MI is deliberately ignored by this helper.
+    _sync_mi_to_target_equipment_row(mission, mi)
+
+    # Recalculate after cancellation. Retained cancelled MI is ignored as open work.
+    result = _recalculate_mission_status_from_mis(mission, current_mi=mi)
+    mission.save(ignore_permissions=True)
+
+    mission_status = mission.get("custom_mission_status") or ""
+
+    if mission_status in ["Completed", "Closed", "Cancelled"]:
+        todo_names = frappe.get_all(
+            "ToDo",
+            filters={
+                "reference_type": "Tech Mission",
+                "reference_name": mission.name,
+                "status": "Open",
+            },
+            pluck="name",
+        )
+
+        for todo_name in todo_names:
+            todo = frappe.get_doc("ToDo", todo_name)
+            todo.status = "Closed"
+            todo.description = (
+                (todo.description or "")
+                + "<br><br><b>MI Cancelled:</b> "
+                + frappe.utils.escape_html(mi.name)
+                + "<br><b>Reason:</b> "
+                + frappe.utils.escape_html(reason)
+            )
+            todo.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "cancelled_mi": mi.name,
+        "mission_status": mission_status,
+        "result": result,
+    }
+
+
+@frappe.whitelist()
+def recalculate_tech_mission_status(mission_name):
+    """Repair/recalculate an existing Tech Mission after workflow logic changes."""
+    if not mission_name:
+        frappe.throw("Tech Mission is required.")
+
+    mission = frappe.get_doc("Tech Mission", mission_name)
+    result = _recalculate_mission_status_from_mis(mission)
+    mission.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "mission": mission.name,
+        "mission_status": mission.get("custom_mission_status"),
+        "result": result,
     }
 
 
@@ -1250,6 +2126,7 @@ def _sync_mi_register_and_status(mi_name, save_mission=True):
     mission = frappe.get_doc("Tech Mission", mi.custom_parent_mission)
 
     _sync_mi_row_to_mission(mission, mi)
+    _sync_mi_to_target_equipment_row(mission, mi)
     status_result = _recalculate_mission_status_from_mis(mission, current_mi=mi)
 
     if mission.meta.has_field("custom_total_actual_hours"):
@@ -1389,6 +2266,7 @@ def _fill_equipment_snapshot(mi):
         "custom_asset_category": "custom_asset_category",
         "custom_client_asset_code": "custom_client_asset_code",
         "custom_asset_id": "custom_asset_id",
+        "custom_site_id": "custom_site_id",
         "custom_make": "custom_make",
         "custom_model": "custom_model",
     }
@@ -3666,25 +4544,213 @@ def client_portal_get_branches(customer=None):
 
 
 
+
+
+#################################################################################
+#this section section builds components from template to the Instaled equipment #
+#################################################################################
+
+# ============================================================
+# INSTALLED EQUIPMENT - BUILD / REBUILD EQUIPMENT COMPONENTS
+# Replace the existing build_components_for_equipment() function
+# with this block. Keep Equipment Component as source of truth.
+# ============================================================
+
+
+def _component_equipment_prefix(equipment):
+    return (
+        equipment.get("custom_display_name")
+        or equipment.get("custom_asset_name")
+        or equipment.name
+    )
+
+
+def _component_short_display_name(value, equipment_prefix, fallback=None):
+    value = (value or "").strip()
+    prefix = (equipment_prefix or "").strip()
+
+    if prefix and value.startswith(prefix + " - "):
+        value = value[len(prefix + " - "):].strip()
+
+    return value or (fallback or "").strip()
+
+
+def _component_has_identity(component):
+    identity_fields = [
+        "custom_serial_number",
+        "custom_serial",
+        "custom_item",
+        "custom_make",
+        "custom_model",
+        "custom_part_number",
+    ]
+
+    for fieldname in identity_fields:
+        if component.meta.has_field(fieldname) and component.get(fieldname):
+            return True
+
+    return False
+
+
+def _component_has_operational_reference(component_name):
+    checks = [
+        (
+            "Service Ticket",
+            ["custom_equipment_component", "custom_target_component"],
+        ),
+        (
+            "Mission Intervention",
+            [
+                "custom_equipment_component",
+                "custom_new_equipment_component",
+            ],
+        ),
+    ]
+
+    for doctype, fieldnames in checks:
+        meta = frappe.get_meta(doctype)
+
+        for fieldname in fieldnames:
+            if not meta.has_field(fieldname):
+                continue
+
+            if frappe.db.exists(doctype, {fieldname: component_name}):
+                return True
+
+    return False
+
+
+def _component_can_be_released_from_template(component):
+    # A template rebuild must never silently remove a real/used component.
+    # Only blank placeholder components created from the template are releasable.
+    if _component_has_identity(component):
+        return False
+
+    if _component_has_operational_reference(component.name):
+        return False
+
+    return True
+
+
+def _set_if_changed(doc, fieldname, value):
+    if not doc.meta.has_field(fieldname):
+        return False
+
+    current = doc.get(fieldname)
+
+    if (current or None) == (value or None):
+        return False
+
+    doc.set(fieldname, value)
+    return True
+
+
+def _update_ie_component_snapshot_row(
+    row,
+    component,
+    display_name,
+):
+    changed = False
+
+    values = {
+        "custom_equipment_component": component.name,
+        "custom_display_name": display_name,
+        "custom_component_group": component.get("custom_component_group"),
+        "custom_equipment_type": component.get("custom_equipment_type"),
+        "custom_brand": component.get("custom_make"),
+        "custom_model": component.get("custom_model"),
+        "custom_serial_number": (
+            component.get("custom_serial_number")
+            or component.get("custom_serial")
+        ),
+        "custom_status": (
+            "Installed"
+            if component.get("custom_status") in [None, "", "Active"]
+            else component.get("custom_status")
+        ),
+    }
+
+    for fieldname, value in values.items():
+        if not row.meta.has_field(fieldname):
+            continue
+
+        if (row.get(fieldname) or None) != (value or None):
+            row.set(fieldname, value)
+            changed = True
+
+    return changed
+
+
+def _sync_equipment_component_display_names(equipment):
+    equipment_prefix = _component_equipment_prefix(equipment)
+    updated = 0
+
+    for row in equipment.get("custom_installed_components") or []:
+        component_name = row.get("custom_equipment_component")
+
+        if not component_name:
+            continue
+
+        if not frappe.db.exists("Equipment Component", component_name):
+            continue
+
+        component = frappe.get_doc("Equipment Component", component_name)
+
+        short_name = _component_short_display_name(
+            row.get("custom_display_name"),
+            equipment_prefix,
+            component.get("custom_equipment_type")
+            or component.get("custom_component_group")
+            or component.name,
+        )
+
+        full_name = (
+            str(equipment_prefix).strip()
+            + " - "
+            + str(short_name).strip()
+        )
+
+        if (
+            component.meta.has_field("custom_display_name")
+            and component.get("custom_display_name") != full_name
+        ):
+            component.db_set(
+                "custom_display_name",
+                full_name,
+                update_modified=False,
+            )
+            updated += 1
+
+    return updated
+
+
+@frappe.whitelist()
+def sync_equipment_component_display_names(equipment_name):
+    if not equipment_name:
+        frappe.throw("Installed Equipment is required.")
+
+    equipment = frappe.get_doc("Installed Equipment", equipment_name)
+
+    updated = _sync_equipment_component_display_names(equipment)
+
+    return {
+        "updated": updated,
+    }
+
+
 @frappe.whitelist()
 def build_components_for_equipment(equipment_name):
+    if not equipment_name:
+        frappe.throw("Installed Equipment is required.")
+
     equipment = frappe.get_doc("Installed Equipment", equipment_name)
 
     if not equipment.get("custom_equipment_template"):
         frappe.throw("Please select Equipment Template first.")
 
-    # Prevent duplicate component creation.
-    existing_rows = equipment.get("custom_installed_components") or []
-
-    if existing_rows:
-        frappe.throw(
-            "Components have already been built for this equipment. "
-            "Remove or correct the existing components before building again."
-        )
-
     template = frappe.get_doc(
         "Equipment Template",
-        equipment.custom_equipment_template
+        equipment.custom_equipment_template,
     )
 
     template_rows = template.get("custom_components") or []
@@ -3692,10 +4758,73 @@ def build_components_for_equipment(equipment_name):
     if not template_rows:
         frappe.throw("The selected Equipment Template has no components.")
 
-    created = 0
-    created_components = []
+    equipment_prefix = _component_equipment_prefix(equipment)
+    component_meta = frappe.get_meta("Equipment Component")
 
-    for template_row in template_rows:
+    # --------------------------------------------------------
+    # Current permanent components linked to this equipment
+    # --------------------------------------------------------
+    component_fields = [
+        "name",
+        "custom_parent_equipment",
+        "custom_customer",
+        "custom_branch",
+        "custom_component_group",
+        "custom_equipment_type",
+        "custom_display_name",
+        "custom_status",
+    ]
+
+    for optional_field in [
+        "custom_sequence",
+        "custom_serial_number",
+        "custom_serial",
+        "custom_item",
+        "custom_make",
+        "custom_model",
+        "custom_part_number",
+    ]:
+        if component_meta.has_field(optional_field):
+            component_fields.append(optional_field)
+
+    current_rows = frappe.get_all(
+        "Equipment Component",
+        filters={"custom_parent_equipment": equipment.name},
+        fields=component_fields,
+        order_by="creation asc, name asc",
+        limit_page_length=0,
+    )
+
+    current_components = []
+
+    for values in current_rows:
+        current_components.append(
+            frappe.get_doc("Equipment Component", values.name)
+        )
+
+    # Existing IE snapshot rows, keyed by permanent component ID.
+    snapshot_by_component = {}
+
+    for row in equipment.get("custom_installed_components") or []:
+        component_name = row.get("custom_equipment_component")
+
+        if component_name:
+            snapshot_by_component[component_name] = row
+
+    # --------------------------------------------------------
+    # Build desired template quantity by Group + Equipment Type
+    # --------------------------------------------------------
+    desired_by_key = {}
+
+    ordered_template_rows = sorted(
+        template_rows,
+        key=lambda row: (
+            int(row.get("custom_sequence") or 0),
+            int(row.idx or 0),
+        ),
+    )
+
+    for template_row in ordered_template_rows:
         qty = int(template_row.get("custom_qty") or 1)
 
         if qty < 1:
@@ -3703,121 +4832,291 @@ def build_components_for_equipment(equipment_name):
 
         component_group = template_row.get("custom_component_group")
         component_type = template_row.get("custom_equipment_type")
-        type_name = component_type or "Component"
+        key = (component_group or "", component_type or "")
 
-        for index in range(qty):
-            # -----------------------------------------
-            # 1. Create the permanent component master
-            # -----------------------------------------
+        if key not in desired_by_key:
+            desired_by_key[key] = {
+                "qty": 0,
+                "rows": [],
+            }
+
+        desired_by_key[key]["qty"] += qty
+        desired_by_key[key]["rows"].append(template_row)
+
+    current_by_key = {}
+
+    for component in current_components:
+        key = (
+            component.get("custom_component_group") or "",
+            component.get("custom_equipment_type") or "",
+        )
+        current_by_key.setdefault(key, []).append(component)
+
+    # Prefer real/used components when quantity is reduced.
+    # Blank placeholders naturally fall to the end and can be released safely.
+    for key, components in current_by_key.items():
+        components.sort(
+            key=lambda component: (
+                0 if (
+                    _component_has_identity(component)
+                    or _component_has_operational_reference(component.name)
+                ) else 1,
+                component.name,
+            )
+        )
+
+    created = 0
+    updated = 0
+    released = 0
+    created_components = []
+    protected_excess = []
+    desired_component_names = set()
+
+    all_keys = set(desired_by_key.keys()) | set(current_by_key.keys())
+
+    for key in sorted(all_keys):
+        desired_info = desired_by_key.get(key) or {"qty": 0, "rows": []}
+        desired_qty = int(desired_info.get("qty") or 0)
+        existing_for_key = list(current_by_key.get(key) or [])
+
+        component_group, component_type = key
+        type_name = component_type or component_group or "Component"
+
+        # ----------------------------------------------------
+        # Keep existing components up to desired quantity
+        # ----------------------------------------------------
+        kept_components = existing_for_key[:desired_qty]
+
+        # ----------------------------------------------------
+        # Create missing components when template qty increased
+        # ----------------------------------------------------
+        while len(kept_components) < desired_qty:
             component = frappe.new_doc("Equipment Component")
 
-            component.custom_parent_equipment = equipment.name
-            component.custom_customer = equipment.get(
-                "custom_parent_customer"
-            )
-            component.custom_branch = equipment.get("custom_branch")
-            component.custom_component_group = component_group
-            component.custom_equipment_type = component_type
-            component.custom_status = "Installed"
+            if component.meta.has_field("custom_parent_equipment"):
+                component.custom_parent_equipment = equipment.name
 
-            # Insert first so the permanent COMP-xxxxx ID exists.
-            # The permanent component display name must not include the
-            # parent equipment because the component can move later.
+            if component.meta.has_field("custom_customer"):
+                component.custom_customer = equipment.get(
+                    "custom_parent_customer"
+                )
+
+            if component.meta.has_field("custom_branch"):
+                component.custom_branch = equipment.get("custom_branch")
+
+            if component.meta.has_field("custom_component_group"):
+                component.custom_component_group = component_group or None
+
+            if component.meta.has_field("custom_equipment_type"):
+                component.custom_equipment_type = component_type or None
+
+            if component.meta.has_field("custom_status"):
+                component.custom_status = "Installed"
+
+            if component.meta.has_field("custom_sequence"):
+                component.custom_sequence = len(kept_components) + 1
+
+            if component.meta.has_field("custom_display_name"):
+                component.custom_display_name = str(type_name)
+
             component.insert(ignore_permissions=True)
 
-            component_description = (
-                component.get("custom_equipment_type")
-                or component.get("custom_component_group")
-                or "Component"
-            )
-
-            component_serial = (
-                component.get("custom_serial_number")
-                or component.get("custom_serial")
-            )
-
-            display_name_parts = [
-                str(component_description),
-                str(component.name)
-            ]
-
-            if component_serial:
-                display_name_parts.append(str(component_serial))
-
-            display_name = " - ".join(display_name_parts)
-
-            component.db_set(
-                "custom_display_name",
-                display_name,
-                update_modified=False
-            )
-            component.custom_display_name = display_name
-
-            # -----------------------------------------
-            # 2. Create the current IE component row
-            # -----------------------------------------
-            equipment.append(
-                "custom_installed_components",
-                {
-                    # Permanent link to Equipment Component
-                    "custom_equipment_component": component.name,
-
-                    "custom_display_name": component.custom_display_name,
-                    "custom_component_group": component.custom_component_group,
-                    "custom_equipment_type": component.custom_equipment_type,
-                    "custom_brand": component.get("custom_make"),
-                    "custom_model": component.get("custom_model"),
-                    "custom_serial_number": (
-                        component.get("custom_serial_number")
-                        or component.get("custom_serial")
-                    ),
-                    "custom_status": "Installed"
-                }
-            )
-
+            kept_components.append(component)
             created_components.append(component.name)
             created += 1
 
+        # ----------------------------------------------------
+        # Update kept components + IE snapshot rows
+        # ----------------------------------------------------
+        for position, component in enumerate(kept_components, start=1):
+            desired_component_names.add(component.name)
+            component_changed = False
+
+            component_changed |= _set_if_changed(
+                component,
+                "custom_parent_equipment",
+                equipment.name,
+            )
+            component_changed |= _set_if_changed(
+                component,
+                "custom_customer",
+                equipment.get("custom_parent_customer"),
+            )
+            component_changed |= _set_if_changed(
+                component,
+                "custom_branch",
+                equipment.get("custom_branch"),
+            )
+            component_changed |= _set_if_changed(
+                component,
+                "custom_component_group",
+                component_group or None,
+            )
+            component_changed |= _set_if_changed(
+                component,
+                "custom_equipment_type",
+                component_type or None,
+            )
+            component_changed |= _set_if_changed(
+                component,
+                "custom_status",
+                "Installed",
+            )
+
+            if component.meta.has_field("custom_sequence"):
+                component_changed |= _set_if_changed(
+                    component,
+                    "custom_sequence",
+                    position,
+                )
+
+            snapshot_row = snapshot_by_component.get(component.name)
+
+            default_short_name = (
+                str(type_name) + "-" + str(position)
+                if desired_qty > 1
+                else str(type_name)
+            )
+
+            existing_short_name = ""
+
+            if snapshot_row:
+                existing_short_name = _component_short_display_name(
+                    snapshot_row.get("custom_display_name"),
+                    equipment_prefix,
+                )
+
+                # Convert the old auto-generated format such as
+                # "CPU - COMP-00001" to the new short format "CPU-1".
+                if component.name in existing_short_name:
+                    existing_short_name = ""
+
+            short_display_name = (
+                existing_short_name
+                or default_short_name
+            )
+
+            full_display_name = (
+                str(equipment_prefix).strip()
+                + " - "
+                + str(short_display_name).strip()
+            )
+
+            component_changed |= _set_if_changed(
+                component,
+                "custom_display_name",
+                full_display_name,
+            )
+
+            if component_changed:
+                component.save(ignore_permissions=True)
+                updated += 1
+
+            if not snapshot_row:
+                snapshot_row = equipment.append(
+                    "custom_installed_components",
+                    {}
+                )
+                snapshot_by_component[component.name] = snapshot_row
+
+            _update_ie_component_snapshot_row(
+                snapshot_row,
+                component,
+                full_display_name,
+            )
+
+        # ----------------------------------------------------
+        # Template quantity reduced / component removed from template
+        # ----------------------------------------------------
+        excess_components = existing_for_key[desired_qty:]
+
+        for component in excess_components:
+            if not _component_can_be_released_from_template(component):
+                protected_excess.append(
+                    component.get("custom_display_name")
+                    or component.name
+                )
+                desired_component_names.add(component.name)
+                continue
+
+            if component.meta.has_field("custom_status"):
+                component.custom_status = "Available"
+
+            if component.meta.has_field("custom_parent_equipment"):
+                component.custom_parent_equipment = None
+
+            component.save(ignore_permissions=True)
+            released += 1
+
+            snapshot_row = snapshot_by_component.get(component.name)
+
+            if snapshot_row:
+                equipment.remove(snapshot_row)
+                snapshot_by_component.pop(component.name, None)
+
+    # --------------------------------------------------------
+    # Keep protected real/used components visible in the IE table
+    # --------------------------------------------------------
+    for component in current_components:
+        if component.name not in desired_component_names:
+            continue
+
+        if component.name in snapshot_by_component:
+            continue
+
+        '''short_display_name = _component_short_display_name(
+            component.get("custom_display_name"),
+            equipment_prefix,
+            component.get("custom_equipment_type")
+            or component.get("custom_component_group")
+            or component.name,
+        )
+
+        row = equipment.append("custom_installed_components", {})
+        _update_ie_component_snapshot_row(
+            row,
+            component,
+            short_display_name,
+        )'''
+
+        short_display_name = _component_short_display_name(
+            component.get("custom_display_name"),
+            equipment_prefix,
+            component.get("custom_equipment_type")
+            or component.get("custom_component_group")
+            or component.name,
+        )
+
+        full_display_name = (
+            str(equipment_prefix).strip()
+            + " - "
+            + str(short_display_name).strip()
+        )
+
+        row = equipment.append("custom_installed_components", {})
+        _update_ie_component_snapshot_row(
+            row,
+            component,
+            full_display_name,
+        )
+
     equipment.save(ignore_permissions=True)
+
+    # Re-read after child-table save so edited short names are the authoritative
+    # names used to rebuild permanent prefixed display names.
+    equipment.reload()
+    display_names_updated = _sync_equipment_component_display_names(equipment)
 
     return {
         "created": created,
-        "components": created_components
+        "updated": updated,
+        "released": released,
+        "display_names_updated": display_names_updated,
+        "components": created_components,
+        "protected_excess": protected_excess,
     }
 
-'''@frappe.whitelist()
-def create_component_ticket(equipment_name, component_name, request_type, subject):
-    equipment = frappe.get_doc("Installed Equipment", equipment_name)
-    component = frappe.get_doc("Equipment Component", component_name)
 
-    ticket = frappe.new_doc("Service Ticket")
-
-    ticket.custom_customer = equipment.get("custom_parent_customer")
-    ticket.custom_client_branch = equipment.get("custom_branch")
-    ticket.custom_parent_equipment = equipment.name
-    ticket.custom_target_equipment = equipment.name
-    ticket.custom_target_component = component.name
-
-    if ticket.meta.has_field("custom_target_component_name"):
-        ticket.custom_target_component_name = component.get("custom_display_name") or component.name
-
-    ticket.custom_component_group = component.get("custom_component_group")
-    ticket.custom_component_brand = component.get("custom_make")
-    ticket.custom_component_model = component.get("custom_model")
-    ticket.custom_component_serial = component.get("custom_serial_number")
-
-    ticket.custom_request_type = request_type
-    ticket.custom_subject = subject
-    ticket.custom_ticket_status = "Open"
-    ticket.custom_commercial_status = "N/A"
-
-    if ticket.meta.has_field("custom_raised_by"):
-        ticket.custom_raised_by = _current_user_display_name()
-
-    ticket.insert(ignore_permissions=True)
-    frappe.db.commit()
-
-    return {"ticket": ticket.name}'''
 
 @frappe.whitelist()
 def create_component_ticket(equipment_name, component_name, request_type, subject):
@@ -3830,6 +5129,9 @@ def create_component_ticket(equipment_name, component_name, request_type, subjec
     ticket.custom_client_branch = equipment.get("custom_branch")
     ticket.custom_parent_equipment = equipment.name
     ticket.custom_target_equipment = equipment.name
+
+    if ticket.meta.has_field("custom_site_id"):
+        ticket.custom_site_id = equipment.get("custom_site_id") or None
 
     if ticket.meta.has_field("custom_company"):
         ticket.custom_company = equipment.get("custom_company") or None
@@ -4126,7 +5428,7 @@ def client_portal_get_ticket_detail(ticket_name):
         "custom_customer", "custom_subject", "custom_description",
         "custom_ticket_status", "custom_client_status", "custom_priority",
         "custom_request_type", "custom_ticket_type", "custom_service_type",
-        "custom_client_branch", "custom_region",
+        "custom_client_branch", "custom_region", "custom_site_id",
         "custom_target_equipment", "custom_parent_equipment",
         "custom_target_component_name", "custom_target_component",
         "custom_applicant", "custom_applicant_email", "custom_applicant_phone",
@@ -4304,7 +5606,7 @@ def client_portal_get_ticket_detail(ticket_name):
         "custom_customer", "custom_subject", "custom_description",
         "custom_ticket_status", "custom_client_status", "custom_priority",
         "custom_request_type", "custom_ticket_type", "custom_service_type",
-        "custom_client_branch", "custom_region",
+        "custom_client_branch", "custom_region", "custom_site_id",
         "custom_target_equipment", "custom_parent_equipment",
         "custom_target_component_name", "custom_target_component",
         "custom_applicant", "custom_applicant_email", "custom_applicant_phone",
@@ -4656,7 +5958,7 @@ def client_portal_get_intervention_detail(intervention_name):
     mi_fields = _cp_existing_fields("Mission Intervention", [
         "name", "creation", "modified", "custom_service_ticket",
         "custom_parent_mission", "custom_parent_customer", "custom_branch",
-        "custom_asset", "custom_target_component_name", "custom_component_item",
+        "custom_site_id", "custom_asset", "custom_target_component_name", "custom_component_item",
         "custom_component_group", "custom_component_serial",
         "custom_intervention_type", "custom_service_type", "custom_technician",
         "custom_start_time", "custom_end_time", "custom_hours_worked",
@@ -4686,7 +5988,7 @@ def client_portal_get_intervention_detail(intervention_name):
     ticket = {}
     if mi.get("custom_service_ticket") and frappe.db.exists("Service Ticket", mi.get("custom_service_ticket")):
         t_fields = _cp_existing_fields("Service Ticket", [
-            "name", "custom_customer", "custom_client_branch", "custom_subject",
+            "name", "custom_customer", "custom_client_branch", "custom_site_id", "custom_subject",
             "custom_request_type", "custom_ticket_type", "custom_service_type",
             "custom_applicant", "custom_applicant_email", "custom_applicant_phone"
         ])
@@ -4705,7 +6007,8 @@ def client_portal_get_intervention_detail(intervention_name):
             "name", "custom_parent_customer", "custom_branch", "custom_display_name",
             "custom_asset_name", "custom_asset_type", "custom_equipment_type",
             "custom_make", "custom_brand", "custom_model",
-            "custom_serial_no", "custom_serial_number", "custom_client_asset_code"
+            "custom_serial_no", "custom_serial_number", "custom_client_asset_code",
+            "custom_site_id"
         ])
         equipment = frappe.db.get_value(
             "Installed Equipment", mi.get("custom_asset"), e_fields, as_dict=True
@@ -5074,6 +6377,7 @@ def client_portal_get_planned_interventions(branch=None, mission_type=None, date
             "custom_planned_endtime",
             "custom_asset",
             "custom_branch",
+            "custom_site_id",
             "custom_service_type",
             "custom_ticket_type",
             "custom_mission_status",
@@ -6742,9 +8046,9 @@ def update_tech_mission_assignment_and_schedule(
             )
 
     # --------------------------------------------------------
-    # Audit/history row
+    # Audit/history row change schedule vehicle etc
     # --------------------------------------------------------
-    if mission.meta.has_field("custom_change_history"):
+    '''if mission.meta.has_field("custom_change_history"):
         mission.append(
             "custom_change_history",
             {
@@ -6759,7 +8063,47 @@ def update_tech_mission_assignment_and_schedule(
                 "custom_changed_on": frappe.utils.now_datetime(),
                 "custom_changed_by": frappe.session.user
             }
+        )'''
+
+    previous_team_summary = "\n".join(
+        [
+            (
+                f'{row["technician"]} - {row.get("vehicle")}'
+                if row.get("vehicle")
+                else str(row["technician"])
+            )
+            for row in previous_team
+        ]
+    )
+
+    if mission.meta.has_field("custom_change_history"):
+        history_values = {
+            "custom_change_type": _get_mission_change_type(action),
+            "custom_previous_start": previous_start,
+            "custom_previous_end": previous_end,
+            "custom_previous_vehicle": previous_vehicle,
+            "custom_previous_technicians": ", ".join(
+                previous_technicians
+            ),
+            "custom_change_reason": reason,
+            "custom_changed_on": frappe.utils.now_datetime(),
+            "custom_changed_by": frappe.session.user
+        }
+
+        if frappe.get_meta(
+            "Tech Mission Schedule History"
+        ).has_field("custom_previous_team_summary"):
+            history_values["custom_previous_team_summary"] = (
+                previous_team_summary
+            )
+
+        mission.append(
+            "custom_change_history",
+            history_values
         )
+
+
+
 
     # --------------------------------------------------------
     # Apply live values
@@ -6771,10 +8115,36 @@ def update_tech_mission_assignment_and_schedule(
         mission.custom_planned_starttime = new_start
         mission.custom_planned_endtime = new_end
 
-    if _mission_has_started_work(mission.name):
+    #if _mission_has_started_work(mission.name):
+    if _mission_has_active_work(mission.name):
         mission.custom_mission_status = "Ongoing"
     elif mission.get("custom_mission_status") not in ["Ongoing", "On Hold"]:
         mission.custom_mission_status = "Scheduled"
+
+    if schedule_action:
+        if mission.meta.has_field("custom_planning_required"):
+            mission.custom_planning_required = 0
+
+        # Planning request from previous MI has now been fulfilled.
+        planning_request_mis = frappe.get_all(
+            "Mission Intervention",
+            filters={
+                "custom_parent_mission": mission.name,
+                "custom_additional_planning_required": 1,
+            },
+            pluck="name",
+        )
+
+        for mi_name in planning_request_mis:
+            frappe.db.set_value(
+                "Mission Intervention",
+                mi_name,
+                {
+                    "custom_additional_planning_required": 0,
+                },
+                update_modified=False,
+            )
+
 
     mission.save(ignore_permissions=True)
 
@@ -6932,19 +8302,32 @@ def _get_mission_change_type(action):
         "Replace Technician": "Technician Reassigned",
         "Add Technician": "Technician Added",
         "Remove Technician": "Technician Removed",
-        "Change Vehicle": "Vehicle Assignment Changed",
+        "Change Vehicle": "Vehicle Changed",
         "Reschedule Mission": "Schedule Changed",
         "Reassign and Reschedule": "Schedule and Technician Changed"
     }
 
     return mapping.get(action, action)
 
-def _mission_has_started_work(mission_name):
+'''def _mission_has_started_work(mission_name):
     return bool(
         frappe.db.exists(
             "Mission Intervention",
             {
                 "custom_parent_mission": mission_name
+            }
+        )
+    )'''
+
+def _mission_has_active_work(mission_name):
+    return bool(
+        frappe.db.exists(
+            "Mission Intervention",
+            {
+                "custom_parent_mission": mission_name,
+                "docstatus": 0,
+                "custom_start_time": ["is", "set"],
+                "custom_end_time": ["is", "not set"],
             }
         )
     )
@@ -7244,7 +8627,8 @@ def create_ticket_from_installed_equipment(
     priority,
     technicians=None,
     work_type="Quick Intervention",
-    component_name=None
+    component_name=None,
+    additional_equipments=None
 ):
     """
     Create one Service Ticket from an Installed Equipment record.
@@ -7294,6 +8678,8 @@ def create_ticket_from_installed_equipment(
             "Decommissioning",
             "Inspection",
             "Specialised Testing",
+            "Other",
+            "General Works",
         ]
     }
 
@@ -7327,6 +8713,34 @@ def create_ticket_from_installed_equipment(
 
     _validate_maintenance_technicians(technician_list)
 
+    #This part gives the selection option for slecting types that can be used with multi-equipment ticket
+
+    multi_equipment_ticket_types = {
+        "Installation",
+        "General Installation",
+        "Survey",
+        "Service",
+        "Training",
+        "Audit",
+        "Inspection",
+        "Specialised Testing",
+        "Other",
+        "General Works",
+    }
+
+    additional_equipment_list = (
+        frappe.parse_json(additional_equipments)
+        if additional_equipments
+        else []
+    )
+
+    if not isinstance(additional_equipment_list, list):
+        additional_equipment_list = [additional_equipment_list]
+
+    additional_equipment_list = list(dict.fromkeys(
+        [name for name in additional_equipment_list if name]
+    ))
+
     equipment = frappe.get_doc("Installed Equipment", equipment_name)
     component = None
 
@@ -7338,11 +8752,58 @@ def create_ticket_from_installed_equipment(
                 "The selected component is not installed on this equipment."
             )
 
+        if additional_equipment_list:
+            frappe.throw(
+                "Multiple target equipments are not applicable to component tickets."
+            )
+
+    if additional_equipment_list and ticket_type not in multi_equipment_ticket_types:
+        frappe.throw(
+            "Multiple target equipments are not allowed for Ticket Type {0}.".format(
+                ticket_type
+            )
+        )
+
+    validated_additional_equipment = []
+
+    for additional_name in additional_equipment_list:
+        if additional_name == equipment.name:
+            continue
+
+        if not frappe.db.exists("Installed Equipment", additional_name):
+            frappe.throw(
+                "Installed Equipment not found: {0}".format(additional_name)
+            )
+
+        additional_doc = frappe.get_doc("Installed Equipment", additional_name)
+
+        if (
+            additional_doc.get("custom_parent_customer")
+            != equipment.get("custom_parent_customer")
+        ):
+            frappe.throw(
+                "Additional equipment {0} does not belong to the same customer.".format(
+                    additional_name
+                )
+            )
+
+        if additional_doc.get("custom_branch") != equipment.get("custom_branch"):
+            frappe.throw(
+                "Additional equipment {0} does not belong to the same branch.".format(
+                    additional_name
+                )
+            )
+
+        validated_additional_equipment.append(additional_doc)
+
     ticket = frappe.new_doc("Service Ticket")
 
     ticket.custom_customer = equipment.get("custom_parent_customer")
     ticket.custom_client_branch = equipment.get("custom_branch")
     ticket.custom_target_equipment = equipment.name
+
+    if ticket.meta.has_field("custom_site_id"):
+        ticket.custom_site_id = equipment.get("custom_site_id") or None
 
     if ticket.meta.has_field("custom_company"):
         ticket.custom_company = equipment.get("custom_company") or None
@@ -7383,6 +8844,8 @@ def create_ticket_from_installed_equipment(
                     ticket.custom_region = region_value
             else:
                 ticket.custom_region = None
+
+
 
 
     ticket.custom_request_type = request_type
@@ -7453,6 +8916,27 @@ def create_ticket_from_installed_equipment(
 
     if ticket.meta.has_field("custom_raised_by"):
         ticket.custom_raised_by = _current_user_display_name()
+
+    # Whole-equipment tickets keep a normalized target-equipment list.
+    # The originating Installed Equipment is always the first row.
+    # Component tickets deliberately do not use this table.
+    if not component and ticket.meta.has_field("custom_target_equipments"):
+        target_equipment_docs = [equipment] + validated_additional_equipment
+
+        for target_equipment in target_equipment_docs:
+            row_values = {
+                "custom_equipment": target_equipment.name,
+                "custom_asset_name": target_equipment.get("custom_asset_name"),
+                "custom_make": target_equipment.get("custom_make"),
+                "custom_model": target_equipment.get("custom_model"),
+                "custom_asset_category": target_equipment.get("custom_asset_category"),
+                "custom_site_id": target_equipment.get("custom_site_id"),
+                "custom_asset_id": target_equipment.get("custom_asset_id"),
+                "custom_client_asset_code": target_equipment.get("custom_client_asset_code"),
+                "custom_status": "Pending",
+            }
+
+            ticket.append("custom_target_equipments", row_values)
 
     if ticket.meta.has_field("custom_planned_team"):
         for technician in technician_list:
@@ -7558,6 +9042,10 @@ def create_installation_ticket_from_component(
     ticket.custom_customer = customer
     ticket.custom_client_branch = branch
     ticket.custom_target_equipment = equipment.name
+
+    if ticket.meta.has_field("custom_site_id"):
+        ticket.custom_site_id = equipment.get("custom_site_id") or None
+
 
     if ticket.meta.has_field("custom_company"):
         ticket.custom_company = equipment.get("custom_company") or None
@@ -7773,7 +9261,7 @@ def get_component_webview_data(component_name):
     c={f:component.get(f) for f in fields}
     parent=component.get("custom_parent_equipment"); eq=None
     if parent and frappe.db.exists("Installed Equipment",parent):
-        eq=frappe.db.get_value("Installed Equipment",parent,["name","custom_asset_name","custom_display_name","custom_asset_id","custom_client_asset_code","custom_parent_customer","custom_branch"],as_dict=True)
+        eq=frappe.db.get_value("Installed Equipment",parent,["name","custom_asset_name","custom_display_name","custom_asset_id","custom_client_asset_code","custom_site_id","custom_parent_customer","custom_branch"],as_dict=True)
     cust=component.get("custom_customer"); cust_display=(frappe.db.get_value("Customer",cust,"customer_name") if cust else None) or cust
     branch=component.get("custom_branch"); branch_display=branch; client_type=None; region=None; region_display=None
     if branch and frappe.db.exists("Client Branch",branch):
@@ -7992,3 +9480,885 @@ def client_portal_create_service_ticket(
         subject=str(subject).strip(),
         description=str(description).strip(),
     )
+
+# ============================================================
+# TECH WORK SESSION ENGINE
+# ============================================================
+
+def _get_active_tech_session(technician, is_presence=False):
+    if not technician:
+        return None
+
+    return frappe.db.get_value(
+        "Tech Work Session",
+        {
+            "custom_technician": technician,
+            "custom_status": "Active",
+            "custom_is_presence": 1 if is_presence else 0,
+        },
+        [
+         "name",
+         "custom_start_time",
+         "custom_location_context",
+         "custom_source_doctype",
+         "custom_source_document",
+         "custom_workshop",
+        ],
+        as_dict=True,
+    )
+
+
+def _calculate_session_hours(start_time, end_time):
+    if not start_time or not end_time:
+        return 0
+
+    start_dt = frappe.utils.get_datetime(start_time)
+    end_dt = frappe.utils.get_datetime(end_time)
+
+    seconds = (end_dt - start_dt).total_seconds()
+
+    if seconds < 0:
+        frappe.throw("Session End Time cannot be before Start Time.")
+
+    return round(seconds / 3600, 2)
+
+
+def _close_tech_session(session_name, status="Completed", end_reason=None):
+    session = frappe.get_doc("Tech Work Session", session_name)
+
+    if session.get("custom_status") not in ["Active", "Paused"]:
+        return session
+
+    end_time = frappe.utils.now_datetime()
+
+    session.custom_end_time = end_time
+    session.custom_duration_hours = _calculate_session_hours(
+        session.get("custom_start_time"),
+        end_time,
+    )
+    session.custom_status = status
+
+    if session.meta.has_field("custom_end_reason"):
+        session.custom_end_reason = end_reason or ""
+
+    session.save(ignore_permissions=True)
+
+    return session
+
+
+def _create_tech_session(
+    technician,
+    location_context,
+    source_doctype=None,
+    source_document=None,
+    is_presence=False,
+    previous_session=None,
+    workshop=None,
+    notes=None,
+    session_purpose=None,
+):
+    if not technician:
+        frappe.throw("Technician is required.")
+
+    existing = _get_active_tech_session(
+        technician,
+        is_presence=is_presence,
+    )
+
+    if existing:
+        session_label = (
+            "presence session"
+            if is_presence
+            else "work session"
+        )
+
+        frappe.throw(
+            f"Technician already has an active {session_label}: "
+            f"{existing.name}"
+        )
+
+    session = frappe.new_doc("Tech Work Session")
+
+    session.custom_technician = technician
+    session.custom_start_time = frappe.utils.now_datetime()
+    session.custom_status = "Active"
+    session.custom_location_context = location_context
+    session.custom_is_presence = 1 if is_presence else 0
+
+    if session.meta.has_field("custom_source_doctype"):
+        session.custom_source_doctype = source_doctype or None
+
+    if session.meta.has_field("custom_source_document"):
+        session.custom_source_document = source_document or None
+
+    if session.meta.has_field("custom_previous_session"):
+        session.custom_previous_session = previous_session or None
+
+    if session.meta.has_field("custom_workshop"):
+        session.custom_workshop = workshop or None
+
+    if session.meta.has_field("custom_notes"):
+        session.custom_notes = notes or ""
+
+    if session.meta.has_field("custom_session_purpose"):
+        session.custom_session_purpose = session_purpose or ""
+
+    session.insert(ignore_permissions=True)
+
+    return session
+
+@frappe.whitelist()
+def workshop_check_in(workshop):
+    technician = frappe.session.user
+
+    if technician in ["Guest"]:
+        frappe.throw("A technician user is required.")
+
+    _validate_maintenance_technicians([technician])
+
+    if not workshop:
+        frappe.throw("Workshop is required.")
+
+    if not frappe.db.exists("Company Workshop", workshop):
+        frappe.throw("Invalid Workshop.")
+
+    existing = _get_active_tech_session(
+        technician,
+        is_presence=True,
+    )
+
+    if existing:
+        frappe.throw(
+            f"You are already checked in: {existing.name}"
+        )
+
+    session = _create_tech_session(
+        technician=technician,
+        location_context="Workshop",
+        is_presence=True,
+        workshop=workshop,
+    )
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "session": session.name,
+        "technician": technician,
+        "workshop": workshop,
+        "check_in": session.custom_start_time,
+    }
+
+@frappe.whitelist()
+def workshop_check_out(
+    end_reason=None,
+    onsite_intervention=None
+):
+    technician = frappe.session.user
+
+    if technician in ["Guest"]:
+        frappe.throw("A technician user is required.")
+
+    _validate_maintenance_technicians([technician])
+
+    # --------------------------------------------------------
+    # Find active Workshop presence session
+    # --------------------------------------------------------
+    presence = _get_active_tech_session(
+        technician,
+        is_presence=True,
+    )
+
+    if not presence:
+        frappe.throw(
+            "You are not currently checked into a workshop."
+        )
+
+    presence_doc = frappe.get_doc(
+        "Tech Work Session",
+        presence.name
+    )
+
+    if presence_doc.get("custom_location_context") != "Workshop":
+        frappe.throw(
+            "Your active presence session is not a Workshop session."
+        )
+
+    # --------------------------------------------------------
+    # If productive work is currently active, pause it
+    # before physically leaving the workshop.
+    # --------------------------------------------------------
+    active_work = _get_active_tech_session(
+        technician,
+        is_presence=False,
+    )
+
+    paused_session = None
+
+    if active_work:
+        active_doc = frappe.get_doc(
+            "Tech Work Session",
+            active_work.name
+        )
+
+        paused_session = _close_tech_session(
+            active_doc.name,
+            status="Paused",
+            end_reason="Left Workshop",
+        )
+
+        # If current activity is a Workshop Repair,
+        # keep Workshop Repair state synchronized.
+        if (
+            active_doc.get("custom_source_doctype")
+            == "Workshop Repair"
+            and active_doc.get("custom_source_document")
+        ):
+            repair_name = active_doc.get(
+                "custom_source_document"
+            )
+
+            if frappe.db.exists(
+                "Workshop Repair",
+                repair_name
+            ):
+                repair = frappe.get_doc(
+                    "Workshop Repair",
+                    repair_name
+                )
+
+                if repair.meta.has_field(
+                    "custom_work_state"
+                ):
+                    repair.custom_work_state = "Paused"
+
+                if repair.meta.has_field(
+                    "custom_work_session_active"
+                ):
+                    repair.custom_work_session_active = 0
+
+                if repair.meta.has_field(
+                    "custom_last_work_end"
+                ):
+                    repair.custom_last_work_end = (
+                        paused_session.custom_end_time
+                    )
+
+                repair.save(ignore_permissions=True)
+
+    # --------------------------------------------------------
+    # Close Workshop presence
+    # --------------------------------------------------------
+    closed_presence = _close_tech_session(
+        presence_doc.name,
+        status="Completed",
+        end_reason=(
+            end_reason or "Workshop Check Out"
+        ),
+    )
+
+    travel_session = None
+
+    # --------------------------------------------------------
+    # Optional:
+    # leaving workshop specifically for an onsite MI
+    # --------------------------------------------------------
+    if onsite_intervention:
+
+        if not frappe.db.exists(
+            "Mission Intervention",
+            onsite_intervention
+        ):
+            frappe.throw(
+                "Invalid Mission Intervention."
+            )
+
+        mi = frappe.get_doc(
+            "Mission Intervention",
+            onsite_intervention
+        )
+
+        if int(mi.docstatus or 0) != 0:
+            frappe.throw(
+                "Travel can only start for an open "
+                "Mission Intervention."
+            )
+
+        travel_session = _create_tech_session(
+            technician=technician,
+            location_context="Travel",
+            source_doctype="Mission Intervention",
+            source_document=onsite_intervention,
+            is_presence=False,
+            previous_session=(
+                paused_session.name
+                if paused_session
+                else None
+            ),
+        )
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "workshop_session": closed_presence.name,
+        "check_out": closed_presence.custom_end_time,
+        "paused_work_session": (
+            paused_session.name
+            if paused_session
+            else None
+        ),
+        "travel_session": (
+            travel_session.name
+            if travel_session
+            else None
+        ),
+    }
+
+# ============================================================
+# WORKSHOP REPAIR WORK SESSION
+# ============================================================
+
+def _get_active_workshop_presence(technician):
+    """Return technician's active Workshop presence session."""
+    session = _get_active_tech_session(
+        technician,
+        is_presence=True,
+    )
+
+    if not session:
+        return None
+
+    if session.get("custom_location_context") != "Workshop":
+        return None
+
+    return session
+
+
+def _pause_active_productive_session(
+    technician,
+    end_reason=None
+):
+    """
+    Pause the technician's current productive session, if any.
+
+    Presence sessions are NOT affected.
+    """
+    active = _get_active_tech_session(
+        technician,
+        is_presence=False,
+    )
+
+    if not active:
+        return None
+
+    active_doc = frappe.get_doc(
+        "Tech Work Session",
+        active.name
+    )
+
+    paused = _close_tech_session(
+        active_doc.name,
+        status="Paused",
+        end_reason=end_reason or "Interrupted by another activity",
+    )
+
+    # Keep Workshop Repair header aligned if the interrupted
+    # activity is a Workshop Repair.
+    if (
+        active_doc.get("custom_source_doctype") == "Workshop Repair"
+        and active_doc.get("custom_source_document")
+    ):
+        repair_name = active_doc.custom_source_document
+
+        if frappe.db.exists("Workshop Repair", repair_name):
+            repair = frappe.get_doc(
+                "Workshop Repair",
+                repair_name
+            )
+
+            if repair.meta.has_field("custom_work_state"):
+                repair.custom_work_state = "Paused"
+
+            if repair.meta.has_field("custom_work_session_active"):
+                repair.custom_work_session_active = 0
+
+            if repair.meta.has_field("custom_last_work_end"):
+                repair.custom_last_work_end = paused.custom_end_time
+
+            repair.save(ignore_permissions=True)
+
+    return paused
+
+
+@frappe.whitelist()
+def start_workshop_repair(repair_name):
+    technician = frappe.session.user
+
+    if technician in ["Guest", "Administrator"]:
+        frappe.throw("A technician user is required.")
+
+    _validate_maintenance_technicians([technician])
+
+    if not repair_name:
+        frappe.throw("Workshop Repair is required.")
+
+    if not frappe.db.exists("Workshop Repair", repair_name):
+        frappe.throw("Invalid Workshop Repair.")
+
+    repair = frappe.get_doc(
+        "Workshop Repair",
+        repair_name
+    )
+
+    # --------------------------------------------------------
+    # Technician must physically be checked into Workshop
+    # --------------------------------------------------------
+    presence = _get_active_workshop_presence(
+        technician
+    )
+
+    if not presence:
+        frappe.throw(
+            "Please check into the workshop before starting a repair."
+        )
+
+    # --------------------------------------------------------
+    # Validate / assign technician
+    # --------------------------------------------------------
+    assigned_technician = repair.get(
+        "custom_technician"
+    )
+
+    if (
+        assigned_technician
+        and assigned_technician != technician
+    ):
+        frappe.throw(
+            f"This repair is assigned to {assigned_technician}."
+        )
+
+    # If repair is currently unassigned, technician claims it.
+    if not assigned_technician:
+        repair.custom_technician = technician
+
+    # --------------------------------------------------------
+    # Repair cannot be started when terminal
+    # --------------------------------------------------------
+    if repair.get("custom_repair_status") in [
+        "Completed",
+        "Closed",
+        "Cancelled",
+    ]:
+        frappe.throw(
+            "This Workshop Repair is already completed/closed."
+        )
+
+    # --------------------------------------------------------
+    # Prevent duplicate active session for same repair
+    # --------------------------------------------------------
+    existing = frappe.db.get_value(
+        "Tech Work Session",
+        {
+            "custom_technician": technician,
+            "custom_status": "Active",
+            "custom_is_presence": 0,
+            "custom_source_doctype": "Workshop Repair",
+            "custom_source_document": repair.name,
+        },
+        "name",
+    )
+
+    if existing:
+        return {
+            "ok": True,
+            "already_active": True,
+            "session": existing,
+            "repair": repair.name,
+        }
+
+    # --------------------------------------------------------
+    # Pause whatever productive task technician was doing
+    # --------------------------------------------------------
+    previous = _pause_active_productive_session(
+        technician,
+        end_reason=f"Started Workshop Repair {repair.name}",
+    )
+
+    # --------------------------------------------------------
+    # Create new repair work segment
+    # --------------------------------------------------------
+    session = _create_tech_session(
+        technician=technician,
+        location_context="Workshop",
+        source_doctype="Workshop Repair",
+        source_document=repair.name,
+        is_presence=False,
+        previous_session=(
+            previous.name if previous else None
+        ),
+        workshop=presence.get("custom_workshop"),
+    )
+
+    now = session.custom_start_time
+
+    if repair.meta.has_field("custom_work_state"):
+        repair.custom_work_state = "Active"
+
+    if repair.meta.has_field("custom_work_session_active"):
+        repair.custom_work_session_active = 1
+
+    if (
+        repair.meta.has_field("custom_started_on")
+        and not repair.get("custom_started_on")
+    ):
+        repair.custom_started_on = now
+
+    if repair.meta.has_field("custom_repair_status"):
+        if repair.custom_repair_status == "Open":
+            repair.custom_repair_status = "In Progress"
+
+    repair.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "repair": repair.name,
+        "session": session.name,
+        "started_on": now,
+        "previous_session": (
+            previous.name if previous else None
+        ),
+    }
+
+
+@frappe.whitelist()
+def pause_workshop_repair(repair_name):
+    technician = frappe.session.user
+
+    _validate_maintenance_technicians([technician])
+
+    session_name = frappe.db.get_value(
+        "Tech Work Session",
+        {
+            "custom_technician": technician,
+            "custom_status": "Active",
+            "custom_is_presence": 0,
+            "custom_source_doctype": "Workshop Repair",
+            "custom_source_document": repair_name,
+        },
+        "name",
+    )
+
+    if not session_name:
+        frappe.throw(
+            "This Workshop Repair is not currently active."
+        )
+
+    session = _close_tech_session(
+        session_name,
+        status="Paused",
+        end_reason="Repair Paused",
+    )
+
+    repair = frappe.get_doc(
+        "Workshop Repair",
+        repair_name
+    )
+
+    if repair.meta.has_field("custom_work_state"):
+        repair.custom_work_state = "Paused"
+
+    if repair.meta.has_field("custom_work_session_active"):
+        repair.custom_work_session_active = 0
+
+    if repair.meta.has_field("custom_last_work_end"):
+        repair.custom_last_work_end = session.custom_end_time
+
+    repair.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "repair": repair.name,
+        "session": session.name,
+        "paused_on": session.custom_end_time,
+    }
+
+
+@frappe.whitelist()
+def resume_workshop_repair(repair_name):
+    technician = frappe.session.user
+
+    _validate_maintenance_technicians([technician])
+
+    repair = frappe.get_doc(
+        "Workshop Repair",
+        repair_name
+    )
+
+    # Must still physically be in workshop
+    presence = _get_active_workshop_presence(
+        technician
+    )
+
+    if not presence:
+        frappe.throw(
+            "Please check into the workshop before resuming this repair."
+        )
+
+    if (
+        repair.get("custom_technician")
+        and repair.custom_technician != technician
+    ):
+        frappe.throw(
+            f"This repair is assigned to "
+            f"{repair.custom_technician}."
+        )
+
+    existing = frappe.db.get_value(
+        "Tech Work Session",
+        {
+            "custom_technician": technician,
+            "custom_status": "Active",
+            "custom_is_presence": 0,
+            "custom_source_doctype": "Workshop Repair",
+            "custom_source_document": repair.name,
+        },
+        "name",
+    )
+
+    if existing:
+        return {
+            "ok": True,
+            "already_active": True,
+            "session": existing,
+        }
+
+    # Find most recent segment for this repair
+    previous_repair_session = frappe.db.get_value(
+        "Tech Work Session",
+        {
+            "custom_technician": technician,
+            "custom_source_doctype": "Workshop Repair",
+            "custom_source_document": repair.name,
+        },
+        "name",
+        order_by="custom_start_time desc",
+    )
+
+    # Pause another productive activity if necessary
+    interrupted = _pause_active_productive_session(
+        technician,
+        end_reason=f"Resumed Workshop Repair {repair.name}",
+    )
+
+    previous_session = (
+        interrupted.name
+        if interrupted
+        else previous_repair_session
+    )
+
+    session = _create_tech_session(
+        technician=technician,
+        location_context="Workshop",
+        source_doctype="Workshop Repair",
+        source_document=repair.name,
+        is_presence=False,
+        previous_session=previous_session,
+        workshop=presence.get("custom_workshop"),
+    )
+
+    if repair.meta.has_field("custom_work_state"):
+        repair.custom_work_state = "Active"
+
+    if repair.meta.has_field("custom_work_session_active"):
+        repair.custom_work_session_active = 1
+
+    if repair.meta.has_field("custom_repair_status"):
+        if repair.custom_repair_status == "Open":
+            repair.custom_repair_status = "In Progress"
+
+    repair.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "repair": repair.name,
+        "session": session.name,
+        "resumed_on": session.custom_start_time,
+    }
+
+
+@frappe.whitelist()
+def stop_workshop_repair(
+    repair_name,
+    complete=0
+):
+    technician = frappe.session.user
+
+    _validate_maintenance_technicians([technician])
+
+    repair = frappe.get_doc(
+        "Workshop Repair",
+        repair_name
+    )
+
+    session_name = frappe.db.get_value(
+        "Tech Work Session",
+        {
+            "custom_technician": technician,
+            "custom_status": "Active",
+            "custom_is_presence": 0,
+            "custom_source_doctype": "Workshop Repair",
+            "custom_source_document": repair.name,
+        },
+        "name",
+    )
+
+    if not session_name:
+        frappe.throw(
+            "No active work session exists for this repair."
+        )
+
+    complete = frappe.utils.cint(complete)
+
+    session = _close_tech_session(
+        session_name,
+        status="Completed" if complete else "Paused",
+        end_reason=(
+            "Repair Completed"
+            if complete
+            else "Repair Stopped"
+        ),
+    )
+
+    if repair.meta.has_field("custom_work_session_active"):
+        repair.custom_work_session_active = 0
+
+    if repair.meta.has_field("custom_last_work_end"):
+        repair.custom_last_work_end = session.custom_end_time
+
+    if complete:
+        if repair.meta.has_field("custom_work_state"):
+            repair.custom_work_state = "Completed"
+
+        if repair.meta.has_field("custom_completed_on"):
+            repair.custom_completed_on = session.custom_end_time
+
+        if repair.meta.has_field("custom_repair_status"):
+            repair.custom_repair_status = "Completed"
+
+    else:
+        if repair.meta.has_field("custom_work_state"):
+            repair.custom_work_state = "Paused"
+
+    repair.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "repair": repair.name,
+        "session": session.name,
+        "completed": bool(complete),
+        "ended_on": session.custom_end_time,
+    }
+
+# ============================================================
+# WORKSHOP EQUIPMENT INTAKE
+# ============================================================
+
+@frappe.whitelist()
+def receive_workshop_equipment(repair_name):
+    if not repair_name:
+        frappe.throw("Workshop Repair is required.")
+
+    if not frappe.db.exists("Workshop Repair", repair_name):
+        frappe.throw("Invalid Workshop Repair.")
+
+    repair = frappe.get_doc("Workshop Repair", repair_name)
+
+    equipment_name = repair.get("custom_installed_equipment")
+    workshop = repair.get("custom_company_workshop")
+
+    if not equipment_name:
+        frappe.throw(
+            "Installed Equipment is required before receiving equipment."
+        )
+
+    if not workshop:
+        frappe.throw(
+            "Company Workshop is required before receiving equipment."
+        )
+
+    if repair.get("custom_intake_status") == "Received":
+        return {
+            "ok": True,
+            "already_received": True,
+            "repair": repair.name,
+            "equipment": equipment_name,
+        }
+
+    # --------------------------------------------------------
+    # Require intake details
+    # --------------------------------------------------------
+    if not repair.get("custom_intake_method"):
+        frappe.throw("Please select an Intake Method.")
+
+    if not repair.get("custom_received_from"):
+        frappe.throw("Please enter Received From.")
+
+    if not repair.get("custom_intake_signatory"):
+        frappe.throw("Client Signatory is required.")
+
+    if not repair.get("custom_intake_signature"):
+        frappe.throw("Client Signature is required.")
+
+    now = frappe.utils.now_datetime()
+    technician = frappe.session.user
+
+    # --------------------------------------------------------
+    # Update Workshop Repair intake
+    # --------------------------------------------------------
+    repair.custom_received_on = now
+    repair.custom_received_by = technician
+    repair.custom_intake_status = "Received"
+
+    repair.save(ignore_permissions=True)
+
+    # --------------------------------------------------------
+    # Update Installed Equipment physical/current state
+    # --------------------------------------------------------
+    equipment = frappe.get_doc(
+        "Installed Equipment",
+        equipment_name
+    )
+
+    if equipment.meta.has_field("custom_asset_status"):
+        equipment.custom_asset_status = "Active"
+
+    if equipment.meta.has_field("custom_operational_status"):
+        equipment.custom_operational_status = "Under Repair"
+
+    if equipment.meta.has_field("custom_location_status"):
+        equipment.custom_location_status = "At Workshop"
+
+    if equipment.meta.has_field("custom_company_workshop"):
+        equipment.custom_company_workshop = workshop
+
+    equipment.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "repair": repair.name,
+        "equipment": equipment.name,
+        "workshop": workshop,
+        "received_on": now,
+        "received_by": technician,
+    }

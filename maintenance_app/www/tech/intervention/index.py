@@ -761,6 +761,16 @@ def get_context(context):
             limit_page_length=500,
         )
 
+    # General Works Type choices used by the PWA before Check In.
+    context.general_work_types = []
+    if mi.get("custom_intervention_type") == "General Works":
+        context.general_work_types = frappe.get_all(
+            "General Works Type",
+            fields=["name"],
+            order_by="name asc",
+            limit_page_length=500,
+        )
+
     report_email_data = _get_mi_email_recipients_data(mi)
 
     context.report_email_to = ", ".join(
@@ -777,7 +787,8 @@ def get_context(context):
 @frappe.whitelist()
 def create_follow_up_mi(
     source_mi_name,
-    follow_up_date=None,
+    planned_start=None,
+    planned_end=None,
     reason=None,
 ):
     if not source_mi_name:
@@ -853,6 +864,7 @@ def create_follow_up_mi(
         "custom_intervention_type",
         "custom_specialised_testing_type",
         "custom_general_installation_type",
+        "custom_general_work_type",
         "custom_service_type",
         "custom_priority",
         "custom_response_due",
@@ -880,6 +892,18 @@ def create_follow_up_mi(
             follow_up,
             "custom_general_installation_type",
             source.get("custom_general_installation_type") or "",
+        )
+
+    if source.get("custom_intervention_type") == "General Works":
+        _set_if_field(
+            follow_up,
+            "custom_intervention_type",
+            "General Works",
+        )
+        _set_if_field(
+            follow_up,
+            "custom_general_work_type",
+            source.get("custom_general_work_type") or "",
         )
 
     _set_if_field(
@@ -920,26 +944,44 @@ def create_follow_up_mi(
             int(previous_sequence) + 1
         )
 
-    if reason and _has_field(follow_up, "custom_subject"):
+    '''if reason and _has_field(follow_up, "custom_subject"):
         base_subject = source.get("custom_subject") or source.name
         follow_up.custom_subject = (
             f"Follow-up: {base_subject}"
+        )'''
+
+    planned_start_dt = (
+        get_datetime(planned_start)
+        if planned_start
+        else None
+    )
+
+    planned_end_dt = (
+        get_datetime(planned_end)
+        if planned_end
+        else None
+    )
+
+    if bool(planned_start_dt) != bool(planned_end_dt):
+        frappe.throw(
+            "Both Planned Start and Planned End are required."
         )
 
-    if follow_up_date:
-        follow_up_datetime = get_datetime(
-            f"{follow_up_date} 08:00:00"
-        )
+    if planned_start_dt and planned_end_dt:
+        if planned_end_dt <= planned_start_dt:
+            frappe.throw(
+                "Planned End must be after Planned Start."
+            )
 
         _set_if_field(
             follow_up,
             "custom_planned_starttime",
-            follow_up_datetime,
+            planned_start_dt,
         )
         _set_if_field(
             follow_up,
             "custom_planned_endtime",
-            follow_up_datetime.replace(hour=17),
+            planned_end_dt,
         )
 
     follow_up.insert(ignore_permissions=True)
@@ -986,13 +1028,9 @@ def create_follow_up_mi(
         source.custom_parent_mission,
     )
 
-    if follow_up_date:
-        mission.custom_planned_starttime = get_datetime(
-            f"{follow_up_date} 08:00:00"
-        )
-        mission.custom_planned_endtime = get_datetime(
-            f"{follow_up_date} 17:00:00"
-        )
+    if planned_start_dt and planned_end_dt:
+        mission.custom_planned_starttime = planned_start_dt
+        mission.custom_planned_endtime = planned_end_dt
 
     if mission.meta.has_field("custom_latest_intervention"):
         mission.custom_latest_intervention = follow_up.name
@@ -1126,11 +1164,23 @@ def get_general_installation_types():
 
 
 @frappe.whitelist()
+def get_general_works_types():
+    """Return live General Works Type master records for the PWA."""
+    return frappe.get_all(
+        "General Works Type",
+        fields=["name"],
+        order_by="name asc",
+        limit_page_length=500,
+    )
+
+
+@frappe.whitelist()
 def change_intervention_type_from_pwa(
     mi_name,
     intervention_type,
     specialised_testing_type=None,
     general_installation_type=None,
+    general_work_type=None,
 ):
     """
     Change the actual intervention type while the MI is still Draft.
@@ -1167,6 +1217,7 @@ def change_intervention_type_from_pwa(
 
     specialised_testing_type = (specialised_testing_type or "").strip()
     general_installation_type = (general_installation_type or "").strip()
+    general_work_type = (general_work_type or "").strip()
 
     if intervention_type == "Specialised Testing":
         if not specialised_testing_type:
@@ -1194,6 +1245,7 @@ def change_intervention_type_from_pwa(
             specialised_testing_type,
         )
         _set_if_field(mi, "custom_general_installation_type", "")
+        _set_if_field(mi, "custom_general_work_type", "")
 
     elif intervention_type == "General Installation":
         if not general_installation_type:
@@ -1211,11 +1263,31 @@ def change_intervention_type_from_pwa(
             general_installation_type,
         )
         _set_if_field(mi, "custom_specialised_testing_type", "")
+        _set_if_field(mi, "custom_general_work_type", "")
+
+    elif intervention_type == "General Works":
+        if not general_work_type:
+            frappe.throw("General Work Type is required.")
+
+        if not frappe.db.exists(
+            "General Works Type",
+            general_work_type,
+        ):
+            frappe.throw("Invalid General Work Type.")
+
+        _set_if_field(
+            mi,
+            "custom_general_work_type",
+            general_work_type,
+        )
+        _set_if_field(mi, "custom_specialised_testing_type", "")
+        _set_if_field(mi, "custom_general_installation_type", "")
 
     else:
         # Clear subtype values that belong to a previous classification.
         _set_if_field(mi, "custom_specialised_testing_type", "")
         _set_if_field(mi, "custom_general_installation_type", "")
+        _set_if_field(mi, "custom_general_work_type", "")
 
     mi.set("custom_intervention_type", intervention_type)
     mi.save()
@@ -1231,6 +1303,9 @@ def change_intervention_type_from_pwa(
         "general_installation_type": (
             mi.get("custom_general_installation_type") or ""
         ),
+        "general_work_type": (
+            mi.get("custom_general_work_type") or ""
+        ),
     }
 
 
@@ -1244,6 +1319,7 @@ def create_additional_mi_from_pwa(
     target_scope="Equipment",
     component_row_id=None,
     specialised_testing_type=None,
+    general_work_type=None,
     applicant=None,
 ):
     """Create an Additional MI through the existing API, then apply PWA-only fields safely."""
@@ -1291,6 +1367,15 @@ def create_additional_mi_from_pwa(
     else:
         specialised_testing_type = ""
 
+    if intervention_type == "General Works":
+        general_work_type = (general_work_type or "").strip()
+        if not general_work_type:
+            frappe.throw("General Work Type is required.")
+        if not frappe.db.exists("General Works Type", general_work_type):
+            frappe.throw("Invalid General Work Type.")
+    else:
+        general_work_type = ""
+
     create_method = frappe.get_attr(
         "maintenance_app.api.create_additional_intervention_from_mission"
     )
@@ -1334,6 +1419,13 @@ def create_additional_mi_from_pwa(
             specialised_testing_type,
         )
 
+    if intervention_type == "General Works":
+        _set_if_field(
+            new_mi,
+            "custom_general_work_type",
+            general_work_type,
+        )
+
     new_mi.save(ignore_permissions=True)
     frappe.db.commit()
 
@@ -1358,6 +1450,16 @@ def _get_pwa_mi_for_update(mi_name):
 
     if mi.docstatus != 0:
         frappe.throw("Only a draft intervention can be checked in or checked out.")
+
+    # A retained RM-cancelled MI remains docstatus=0 for audit/history,
+    # but it is no longer executable work.
+    if (
+        mi.meta.has_field("custom_checkout_status")
+        and (mi.get("custom_checkout_status") or "").strip() == "Cancelled"
+    ):
+        frappe.throw(
+            "This Mission Intervention has been cancelled and cannot be checked in or updated."
+        )
 
     return mi
 
@@ -1387,6 +1489,7 @@ def pwa_check_in(
     accuracy=None,
     specialised_testing_type=None,
     general_installation_type=None,
+    general_work_type=None,
 ):
     """Check into an MI from the technician PWA using server time."""
     mi = _get_pwa_mi_for_update(mi_name)
@@ -1440,6 +1543,30 @@ def pwa_check_in(
             mi,
             "custom_general_installation_type",
             selected_installation_type,
+        )
+
+    if mi.get("custom_intervention_type") == "General Works":
+        selected_work_type = (
+            general_work_type
+            or mi.get("custom_general_work_type")
+            or ""
+        ).strip()
+
+        if not selected_work_type:
+            frappe.throw(
+                "Please select General Work Type before Check In."
+            )
+
+        if not frappe.db.exists(
+            "General Works Type",
+            selected_work_type,
+        ):
+            frappe.throw("Invalid General Work Type.")
+
+        _set_if_field(
+            mi,
+            "custom_general_work_type",
+            selected_work_type,
         )
 
     checked_in_at = now_datetime()

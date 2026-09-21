@@ -1,0 +1,166 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-09-07 12:18:26.565261",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_technician",
+  "custom_start_time",
+  "custom_end_time",
+  "custom_status",
+  "custom_location_context",
+  "custom_workshop",
+  "column_break_sipb",
+  "custom_source_doctype",
+  "custom_source_document",
+  "previous_session",
+  "custom_duration_hours",
+  "custom_timesheet",
+  "custom_session_purpose",
+  "custom_end_reason",
+  "section_break_xxob",
+  "custom_notes",
+  "section_break_nnnt",
+  "custom_timesheet_posted",
+  "column_break_xpmz",
+  "custom_is_presence"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_technician",
+   "fieldtype": "Link",
+   "label": "Technician",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nPaused\nCompleted"
+  },
+  {
+   "fieldname": "custom_location_context",
+   "fieldtype": "Select",
+   "label": "Location",
+   "options": "Workshop\nClient Site\nRemote\nTravel\nOther"
+  },
+  {
+   "fieldname": "custom_source_doctype",
+   "fieldtype": "Link",
+   "label": "Source DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "custom_source_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Source Document",
+   "options": "custom_source_doctype"
+  },
+  {
+   "fieldname": "previous_session",
+   "fieldtype": "Link",
+   "label": "Previous Session",
+   "options": "Tech Work Session"
+  },
+  {
+   "fieldname": "custom_duration_hours",
+   "fieldtype": "Float",
+   "label": "Duration Hours"
+  },
+  {
+   "fieldname": "custom_timesheet",
+   "fieldtype": "Link",
+   "label": "Timesheet",
+   "options": "Timesheet"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_timesheet_posted",
+   "fieldtype": "Check",
+   "label": "Timesheet Posted"
+  },
+  {
+   "fieldname": "column_break_sipb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xxob",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "custom_session_purpose",
+   "fieldtype": "Data",
+   "label": "Session Purpose"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_is_presence",
+   "fieldtype": "Check",
+   "label": "Presence Session"
+  },
+  {
+   "fieldname": "column_break_xpmz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_workshop",
+   "fieldtype": "Link",
+   "label": "Workshop",
+   "options": "Company Workshop"
+  },
+  {
+   "fieldname": "section_break_nnnt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_end_reason",
+   "fieldtype": "Data",
+   "label": "End Reason"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-08 07:36:28.089871",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Tech Work Session",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

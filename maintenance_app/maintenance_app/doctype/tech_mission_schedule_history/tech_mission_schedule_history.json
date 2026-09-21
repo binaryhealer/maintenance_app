@@ -13,7 +13,8 @@
   "custom_changed_on",
   "custom_changed_by",
   "custom_previous_technicians",
-  "custom_change_reason"
+  "custom_change_reason",
+  "custom_previous_team_summary"
  ],
  "fields": [
   {
@@ -21,7 +22,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Change Type",
-   "options": "Schedule Changed\nTechnician Reassigned\nTechnician Added\nTechnician Removed\nSchedule and Technician Changed"
+   "options": "Schedule Changed\nTechnician Reassigned\nTechnician Added\nTechnician Removed\nSchedule and Technician Changed\nVehicle Changed"
   },
   {
    "fieldname": "custom_previous_start",
@@ -61,16 +62,21 @@
    "fieldtype": "Link",
    "label": "Changed By",
    "options": "User"
+  },
+  {
+   "fieldname": "custom_previous_team_summary",
+   "fieldtype": "Small Text",
+   "label": "Previous Team / Vehicle"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-31 20:47:55.991035",
+ "modified": "2026-09-10 07:45:50.522546",
  "modified_by": "Administrator",
  "module": "Maintenance App",
- "name": "Tech Mission Schedule Histor",
+ "name": "Tech Mission Schedule History",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

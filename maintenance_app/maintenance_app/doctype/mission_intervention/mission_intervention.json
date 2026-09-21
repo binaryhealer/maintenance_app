@@ -14,15 +14,16 @@
   "custom_applicant",
   "custom_target_component_name",
   "custom_parent_equipment",
+  "custom_intervention_type",
+  "custom_start_date",
   "column_break_ohxn",
   "custom_model",
   "custom_make",
   "custom_component_group",
   "custom_asset_id",
-  "custom_intervention_type",
-  "custom_start_date",
   "custom_specialised_testing_type",
   "custom_general_installation_type",
+  "custom_general_work_type",
   "section_break_pmao",
   "custom_work_progress",
   "section_break_bzvm",
@@ -35,10 +36,10 @@
   "custom_client_signature",
   "custom_signatory_name",
   "custom_client_signed_on",
-  "column_break_gumq",
-  "custom_tech_signature",
-  "custom_technician_signatory",
+  "section_break_nmzi",
   "custom_technician_signed_on",
+  "custom_technician_signatory",
+  "custom_tech_signature",
   "custom_work_execution",
   "custom_hours_worked",
   "custom_billable_hours",
@@ -48,7 +49,15 @@
   "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
+  "custom_could_not_complete_reason",
+  "section_break_kqrl",
   "custom_component_installation",
+  "column_break_wvdm",
+  "custom_additional_planning_required",
+  "column_break_lajf",
+  "custom_rm_attention_required",
+  "section_break_hhlh",
+  "custom_planning_request_note",
   "section_break_mewf",
   "custom_intervention_team",
   "section_break_sjux",
@@ -61,7 +70,7 @@
   "custom_equipment_changed",
   "column_break_diny",
   "custom_component_changed",
-  "custom_addtional_mi",
+  "column_break_xtvo",
   "custom_additional_mi",
   "custom_contact_communicatio",
   "custom_additional_mi_reason",
@@ -127,6 +136,7 @@
   "custom_technician",
   "custom_calibration_record",
   "custom_external_vehicle",
+  "custom_site_id",
   "column_break_wndv",
   "amended_from",
   "custom_service_type",
@@ -157,6 +167,11 @@
   "custom_checkout_status",
   "custom_company",
   "custom_client_signature_received",
+  "section_break_rrjr",
+  "custom_cancelled_by",
+  "custom_cancelled_on",
+  "column_break_llvg",
+  "custom_cancel_reason",
   "custom_hse_section",
   "custom_incidents"
  ],
@@ -279,7 +294,7 @@
    "fieldname": "custom_intervention_type",
    "fieldtype": "Select",
    "label": "Intervention Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation\nGeneral Works\nOther"
   },
   {
    "fieldname": "custom_parts_table",
@@ -542,11 +557,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "custom_addtional_mi",
-   "fieldtype": "Section Break",
-   "label": "Additional MI"
-  },
-  {
    "fieldname": "custom_additional_mi_reason",
    "fieldtype": "Small Text",
    "label": "Additional MI Reason"
@@ -690,7 +700,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Checkout Status",
-   "options": "Not Started\nChecked In\nWork Completed\nClient Signed\nChecked Out\nDefault: Not Started",
+   "options": "Not Started\nChecked In\nWork Completed\nClient Signed\nChecked Out\nDefault: Not Started\nCancelled",
    "read_only": 1
   },
   {
@@ -989,10 +999,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_gumq",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "custom_customer_remarks",
    "fieldtype": "Small Text",
    "label": "Customer Remarks"
@@ -1033,13 +1039,98 @@
    "fieldtype": "Link",
    "label": "Previous Intervention",
    "options": "Mission Intervention"
+  },
+  {
+   "fieldname": "section_break_nmzi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_site_id",
+   "fieldtype": "Data",
+   "label": "Site Position / Slot ID"
+  },
+  {
+   "fieldname": "custom_general_work_type",
+   "fieldtype": "Link",
+   "label": "General Work Type",
+   "options": "General Works Type"
+  },
+  {
+   "fieldname": "section_break_rrjr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_cancel_reason",
+   "fieldtype": "Small Text",
+   "label": "Cancel Reason"
+  },
+  {
+   "fieldname": "custom_cancelled_by",
+   "fieldtype": "Link",
+   "label": "Cancelled By",
+   "options": "User"
+  },
+  {
+   "fieldname": "custom_cancelled_on",
+   "fieldtype": "Datetime",
+   "label": "Cancelled On"
+  },
+  {
+   "fieldname": "column_break_llvg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kqrl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_wvdm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_additional_planning_required",
+   "fieldtype": "Check",
+   "label": "Additional Planning Required"
+  },
+  {
+   "fieldname": "section_break_hhlh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.custom_additional_planning_required==1",
+   "fieldname": "custom_planning_request_note",
+   "fieldtype": "Small Text",
+   "label": "Planning Request Note"
+  },
+  {
+   "depends_on": "eval:doc.custom_work_outcome==\"Could Not Complete\"",
+   "fieldname": "custom_could_not_complete_reason",
+   "fieldtype": "Select",
+   "label": "Could Not Complete Reason",
+   "mandatory_depends_on": "eval:doc.custom_work_outcome==\"Could Not Complete\"",
+   "options": "Specialist Required\nDifferent Technician Required\nRequired Tool / Equipment Unavailable\nUnable to Access Equipment\nClient / Site Access Issue\nUnsafe to Continue\nWrong Equipment / Component\nMove to Workshop Required\nOther"
+  },
+  {
+   "fieldname": "column_break_lajf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_rm_attention_required",
+   "fieldtype": "Check",
+   "label": "Rm  Attention Required"
+  },
+  {
+   "fieldname": "column_break_xtvo",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-28 06:47:25.191982",
+ "modified": "2026-09-11 08:43:36.194030",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

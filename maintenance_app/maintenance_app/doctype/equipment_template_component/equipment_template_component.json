@@ -9,44 +9,57 @@
   "custom_component_group",
   "custom_equipment_type",
   "custom_qty",
+  "custom_notes",
   "custom_mandatory",
-  "custom_notes"
+  "custom_requires_calibration"
  ],
  "fields": [
   {
    "fieldname": "custom_component_group",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Component Group",
    "options": "Equipment Component Group"
   },
   {
    "fieldname": "custom_qty",
    "fieldtype": "Int",
+   "in_list_view": 1,
    "label": "Quantity"
   },
   {
    "default": "0",
    "fieldname": "custom_mandatory",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Mandatory"
   },
   {
    "fieldname": "custom_notes",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Notes"
   },
   {
    "fieldname": "custom_equipment_type",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Component Type",
    "options": "Equipment Type"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_requires_calibration",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Requires Calibration"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-16 12:01:27.401151",
+ "modified": "2026-09-03 10:14:10.240679",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Equipment Template Component",
