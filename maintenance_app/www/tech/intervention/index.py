@@ -1482,6 +1482,64 @@ def _save_pwa_gps(mi, prefix, latitude=None, longitude=None, accuracy=None):
 
 
 @frappe.whitelist()
+def save_equipment_installation_details(
+    mi_name,
+    site_position=None,
+    reason=None,
+):
+    """
+    Save the physical-action fields needed for a normal new Equipment Installation.
+
+    Design rule:
+    - Customer / Branch / Equipment / Site ID already come from ST -> TM -> MI.
+    - Installation must NOT re-select or move the branch.
+    - Equipment identity (name, serial, site ID) is untouched here.
+    - The central after-submit lifecycle processor performs the master update:
+      status -> Installed, operational -> Operational, installed date/year, slot.
+    """
+    mi = _get_pwa_mi_for_update(mi_name)
+
+    if (mi.get("custom_intervention_type") or "").strip() != "Installation":
+        frappe.throw(
+            "Equipment Installation details can only be saved on an Installation intervention."
+        )
+
+    if not mi.get("custom_start_time"):
+        frappe.throw("Please Check In before entering Installation details.")
+
+    if not mi.get("custom_asset"):
+        frappe.throw("Installed Equipment is required.")
+
+    reason = (reason or "").strip()
+    site_position = (site_position or "").strip()
+
+    if not reason:
+        frappe.throw("Installation Reason / Notes is required.")
+
+    _set_if_field(mi, "custom_primary_action", "Equipment Installation")
+    _set_if_field(mi, "custom_replacement_site_position", site_position or None)
+    _set_if_field(mi, "custom_asset_change_reason", reason)
+
+    # A normal new installation uses the branch already inherited from ST/TM.
+    # Clear movement-only destination fields so stale values cannot turn the
+    # installation into a relocation-like operation.
+    _set_if_field(mi, "custom_new_branch", None)
+
+    # Legacy component flags must not remain set on a whole-equipment install.
+    _set_if_field(mi, "custom_component_installation", 0)
+    _set_if_field(mi, "custom_component_replaced", 0)
+
+    mi.save(ignore_permissions=True)
+
+    return {
+        "ok": True,
+        "primary_action": mi.get("custom_primary_action"),
+        "site_position": mi.get("custom_replacement_site_position") or "",
+        "reason": mi.get("custom_asset_change_reason") or "",
+    }
+
+
+@frappe.whitelist()
 def pwa_check_in(
     mi_name,
     latitude=None,

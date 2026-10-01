@@ -1135,6 +1135,91 @@
         {% endif %}
 
 
+        {% if mi.custom_intervention_type == "Installation" %}
+        <details class="mi-card accordion-card"
+                 {% if mi.custom_start_time and mi.docstatus == 0 and (not mi.custom_primary_action or mi.custom_primary_action == "Equipment Installation") %}open{% endif %}>
+            <summary>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="section-title mb-0">Equipment Installation</span>
+                    <span class="muted-small">tap to expand</span>
+                </div>
+            </summary>
+
+            <div class="accordion-body">
+                {% if not mi.custom_start_time %}
+                    <div class="placeholder-box">
+                        Check in first, then confirm the equipment installation details.
+                    </div>
+
+                {% elif mi.docstatus == 0 %}
+                    <div class="summary-item mb-3">
+                        <div class="info-label">Equipment</div>
+                        <div class="info-value">{{ equipment_display or mi.custom_asset or "-" }}</div>
+                    </div>
+
+                    <div class="summary-grid compact-grid mb-3">
+                        <div class="summary-item">
+                            <div class="info-label">Customer</div>
+                            <div class="info-value">{{ mi.custom_parent_customer or "-" }}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="info-label">Branch</div>
+                            <div class="info-value">{{ mi.custom_branch or "-" }}</div>
+                        </div>
+                    </div>
+
+                    <div class="field-help mb-3">
+                        Customer and Branch come from the Service Ticket / Tech Mission.
+                        Installation does not select a destination branch.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><b>Site Position / Slot</b></label>
+                        <input id="installation_site_position"
+                               class="form-control"
+                               value="{{ mi.custom_replacement_site_position or '' }}"
+                               placeholder="Example: FDU-01, Rack A, Slot 03">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><b>Installation Reason / Notes</b></label>
+                        <textarea id="installation_reason"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="New equipment installation">{{ mi.custom_asset_change_reason or "" }}</textarea>
+                    </div>
+
+                    {% if mi.custom_primary_action == "Equipment Installation" %}
+                    <div class="status-pill pill-green mb-3">
+                        Installation details saved
+                    </div>
+                    {% endif %}
+
+                    <button class="btn btn-primary action-btn"
+                            type="button"
+                            onclick="saveEquipmentInstallationDetails('{{ mi.name }}')">
+                        Save Installation Details
+                    </button>
+
+                {% else %}
+                    <div class="summary-item mb-2">
+                        <div class="info-label">Primary Action</div>
+                        <div class="info-value">{{ mi.custom_primary_action or "-" }}</div>
+                    </div>
+                    <div class="summary-item mb-2">
+                        <div class="info-label">Site Position / Slot</div>
+                        <div class="info-value">{{ mi.custom_replacement_site_position or "-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="info-label">Installation Reason / Notes</div>
+                        <div class="info-value">{{ mi.custom_asset_change_reason or "-" }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        </details>
+        {% endif %}
+
+
         <details class="mi-card accordion-card" {% if mi.custom_start_time and not mi.custom_work_outcome and mi.docstatus == 0 %}open{% endif %}>
             <summary>
                 <div class="d-flex justify-content-between align-items-center">
@@ -2107,6 +2192,43 @@ function check_in(mi_name) {
     });
 }
 
+
+function saveEquipmentInstallationDetails(mi_name) {
+    let positionEl = document.getElementById("installation_site_position");
+    let reasonEl = document.getElementById("installation_reason");
+
+    let sitePosition = positionEl ? positionEl.value.trim() : "";
+    let reason = reasonEl ? reasonEl.value.trim() : "";
+
+    if (!reason) {
+        frappe.msgprint("Please enter Installation Reason / Notes.");
+        return;
+    }
+
+    frappe.call({
+        method: "maintenance_app.www.tech.intervention.index.save_equipment_installation_details",
+        args: {
+            mi_name: mi_name,
+            site_position: sitePosition,
+            reason: reason
+        },
+        freeze: true,
+        freeze_message: __("Saving installation details..."),
+        callback: function(r) {
+            if (!r.message) return;
+
+            frappe.show_alert({
+                message: __("Installation details saved"),
+                indicator: "green"
+            });
+
+            reload_page();
+        },
+        error: show_error
+    });
+}
+
+
 function toggleAdditionalPlanningSection() {
     let outcome =
         document.getElementById("checkout_outcome")?.value || "";
@@ -2125,7 +2247,6 @@ function toggleAdditionalPlanningSection() {
     }
 
     let planningOutcomes = [
-        "Continue Work",
         "Waiting for Parts",
         "Waiting for Client",
         "To Quote (Billable)",
@@ -2209,6 +2330,16 @@ function save_work_outcome(mi_name) {
 
     if (!notes || !notes.trim()) {
         frappe.msgprint("Please enter technical progress notes.");
+        return;
+    }
+
+    if (
+        intervention_type === "Installation" &&
+        {{ (mi.custom_primary_action or "") | tojson }} !== "Equipment Installation"
+    ) {
+        frappe.msgprint(
+            "Please save Equipment Installation Details before saving the final outcome."
+        );
         return;
     }
 
@@ -2334,6 +2465,16 @@ function submit_mi(mi_name) {
 
             if (!doc.custom_work_outcome || !doc.custom_work_progress) {
                 frappe.msgprint("Please save Work Outcome and Technical Progress Notes before submitting.");
+                return;
+            }
+
+            if (
+                doc.custom_intervention_type === "Installation" &&
+                doc.custom_primary_action !== "Equipment Installation"
+            ) {
+                frappe.msgprint(
+                    "Please save Equipment Installation Details before submitting."
+                );
                 return;
             }
 

@@ -10362,3 +10362,991 @@ def receive_workshop_equipment(repair_name):
         "received_on": now,
         "received_by": technician,
     }
+
+# ============================================================================
+# MISSION INTERVENTION - PRIMARY ACTION LIFECYCLE ENGINE (v1)
+# ============================================================================
+# Purpose
+# -------
+# Apply the physical equipment/component movement recorded by
+# Mission Intervention.custom_primary_action after the MI is submitted.
+#
+# Important design rules:
+# - Service Ticket original target is never rewritten here.
+# - MI Intervention Type remains the reason/context for the visit.
+# - Primary Action describes the physical action performed.
+# - This engine is idempotent: a system Comment marks a successfully applied MI.
+# - Field writes are defensive so staged/custom sites do not break when an
+#   optional field is absent.
+#
+# Call from the existing Mission Intervention After Submit automation:
+#     frappe.get_attr(
+#         "maintenance_app.api.process_mi_primary_action_on_submit"
+#     )(doc.name)
+# ============================================================================
+
+
+_PRIMARY_ACTIONS = {
+    "Repair Only",
+    "Equipment Replacement",
+    "Component Replacement",
+    "Equipment Relocation",
+    "Component Relocation",
+    "Equipment Swap",
+    "Component Swap",
+    "Equipment Installation",
+    "Component Installation",
+    "Equipment Decommissioning",
+    "Component Decommissioning",
+}
+
+_PRIMARY_ACTION_MARKER_PREFIX = "PRIMARY_ACTION_LIFECYCLE_APPLIED:"
+
+
+def _pa_set_if_present(doc, fieldname, value):
+    if doc.meta.has_field(fieldname):
+        doc.set(fieldname, value)
+        return True
+    return False
+
+
+def _pa_select_options(doc, fieldname):
+    if not doc.meta.has_field(fieldname):
+        return []
+
+    df = doc.meta.get_field(fieldname)
+    if not df or not df.options:
+        return []
+
+    return [
+        str(option).strip()
+        for option in str(df.options).split("\n")
+        if str(option).strip()
+    ]
+
+
+def _pa_set_first_allowed_select(doc, fieldname, candidates):
+    """Set the first candidate allowed by a Select field.
+
+    If the field is not Select (or has no declared options), the first candidate
+    is used. This lets the same code run across staged custom-field revisions.
+    """
+    if not doc.meta.has_field(fieldname):
+        return None
+
+    candidates = [c for c in (candidates or []) if c not in (None, "")]
+    if not candidates:
+        return None
+
+    df = doc.meta.get_field(fieldname)
+    options = _pa_select_options(doc, fieldname)
+
+    if df and df.fieldtype == "Select" and options:
+        for candidate in candidates:
+            if candidate in options:
+                doc.set(fieldname, candidate)
+                return candidate
+        return None
+
+    doc.set(fieldname, candidates[0])
+    return candidates[0]
+
+
+def _pa_find_field_by_label(doc, labels):
+    wanted = {
+        str(label).strip().lower()
+        for label in (labels or [])
+        if str(label).strip()
+    }
+
+    for df in doc.meta.fields or []:
+        if str(df.label or "").strip().lower() in wanted:
+            return df.fieldname
+
+    return None
+
+
+def _pa_set_equipment_position(equipment, value):
+    if value in (None, ""):
+        return None
+
+    for fieldname in [
+        "custom_site_position",
+        "custom_position",
+        "custom_site_location",
+        "custom_equipment_position",
+    ]:
+        if equipment.meta.has_field(fieldname):
+            equipment.set(fieldname, value)
+            return fieldname
+
+    detected = _pa_find_field_by_label(
+        equipment,
+        ["Site Position", "Equipment Position", "Position / Slot ID", "Site Position / Slot ID"],
+    )
+    if detected:
+        equipment.set(detected, value)
+        return detected
+
+    return None
+
+
+def _pa_marker(mi):
+    return _PRIMARY_ACTION_MARKER_PREFIX + str(mi.name)
+
+
+def _pa_already_applied(mi):
+    marker = _pa_marker(mi)
+    return bool(
+        frappe.db.exists(
+            "Comment",
+            {
+                "reference_doctype": "Mission Intervention",
+                "reference_name": mi.name,
+                "comment_type": "Info",
+                "content": marker,
+            },
+        )
+    )
+
+
+def _pa_mark_applied(mi, action):
+    marker = _pa_marker(mi)
+
+    if _pa_already_applied(mi):
+        return
+
+    comment = frappe.new_doc("Comment")
+    comment.comment_type = "Info"
+    comment.reference_doctype = "Mission Intervention"
+    comment.reference_name = mi.name
+    comment.content = marker
+    comment.comment_email = frappe.session.user
+    comment.comment_by = frappe.utils.get_fullname(frappe.session.user)
+    comment.insert(ignore_permissions=True)
+
+    # Add a readable timeline message without using it as the technical marker.
+    readable = frappe.new_doc("Comment")
+    readable.comment_type = "Info"
+    readable.reference_doctype = "Mission Intervention"
+    readable.reference_name = mi.name
+    readable.content = "Primary Action lifecycle applied: " + str(action)
+    readable.comment_email = frappe.session.user
+    readable.comment_by = frappe.utils.get_fullname(frappe.session.user)
+    readable.insert(ignore_permissions=True)
+
+
+def _pa_equipment_context(equipment):
+    return {
+        "customer": equipment.get("custom_parent_customer"),
+        "branch": equipment.get("custom_branch"),
+        "site_id": equipment.get("custom_site_id"),
+        "company_workshop": equipment.get("custom_company_workshop"),
+        "location_status": equipment.get("custom_location_status"),
+    }
+
+
+def _pa_set_equipment_active_at_site(equipment, customer, branch, site_id=None, position=None):
+    _pa_set_if_present(equipment, "custom_parent_customer", customer or None)
+    _pa_set_if_present(equipment, "custom_branch", branch or None)
+    _pa_set_if_present(equipment, "custom_site_id", site_id or None)
+    _pa_set_if_present(equipment, "custom_company_workshop", None)
+
+    _pa_set_first_allowed_select(
+        equipment,
+        "custom_asset_status",
+        ["Active", "Installed", "Commissioned"],
+    )
+    _pa_set_first_allowed_select(
+        equipment,
+        "custom_location_status",
+        ["Client Site", "Site", "Installed"],
+    )
+
+    _pa_set_equipment_position(equipment, position)
+
+
+def _pa_apply_removed_equipment_outcome(mi, equipment):
+    outcome = (mi.get("custom_removed_asset_outcome") or "").strip()
+    destination_branch = mi.get("custom_new_branch")
+    workshop = mi.get("custom_company_workshop")
+
+    if not outcome:
+        frappe.throw("Removed Asset Outcome is required for this Primary Action.")
+
+    if outcome == "Workshop for Repair":
+        if not workshop:
+            frappe.throw("Company Workshop is required when the removed equipment is sent for repair.")
+
+        _pa_set_if_present(equipment, "custom_company_workshop", workshop)
+        _pa_set_if_present(equipment, "custom_branch", None)
+        _pa_set_if_present(equipment, "custom_site_id", None)
+        _pa_set_first_allowed_select(equipment, "custom_asset_status", ["In Workshop", "Under Repair", "Repair"])
+        _pa_set_first_allowed_select(equipment, "custom_location_status", ["Workshop", "In Workshop"])
+
+    elif outcome == "Returned to Stock":
+        _pa_set_if_present(equipment, "custom_company_workshop", None)
+        _pa_set_if_present(equipment, "custom_branch", None)
+        _pa_set_if_present(equipment, "custom_site_id", None)
+        _pa_set_first_allowed_select(equipment, "custom_asset_status", ["Available", "In Stock", "Stock"])
+        _pa_set_first_allowed_select(equipment, "custom_location_status", ["Stock", "Warehouse"])
+
+    elif outcome == "Installed at another Site":
+        if not destination_branch:
+            frappe.throw("Destination Branch is required when equipment is installed at another site.")
+
+        destination = frappe.get_doc("Client Branch", destination_branch)
+        destination_customer = (
+            destination.get("custom_parent_customer")
+            or equipment.get("custom_parent_customer")
+            or mi.get("custom_parent_customer")
+        )
+        destination_site_id = destination.get("custom_site_id") if destination.meta.has_field("custom_site_id") else None
+
+        _pa_set_equipment_active_at_site(
+            equipment,
+            destination_customer,
+            destination_branch,
+            destination_site_id,
+            mi.get("custom_replacement_site_position"),
+        )
+
+    elif outcome == "Scrapped":
+        _pa_set_if_present(equipment, "custom_branch", None)
+        _pa_set_if_present(equipment, "custom_site_id", None)
+        _pa_set_if_present(equipment, "custom_company_workshop", None)
+        _pa_set_first_allowed_select(equipment, "custom_asset_status", ["Scrapped", "Disposed"])
+        _pa_set_first_allowed_select(equipment, "custom_location_status", ["Scrapped", "Disposed", "Off Site"])
+
+    elif outcome == "Retired":
+        _pa_set_if_present(equipment, "custom_branch", None)
+        _pa_set_if_present(equipment, "custom_site_id", None)
+        _pa_set_if_present(equipment, "custom_company_workshop", None)
+        _pa_set_first_allowed_select(equipment, "custom_asset_status", ["Retired", "Inactive"])
+        _pa_set_first_allowed_select(equipment, "custom_location_status", ["Retired", "Off Site"])
+
+    elif outcome == "Swapped Within Same Site":
+        # The swap action itself performs the position/site exchange. Keeping this
+        # branch here makes replacement/decommission validation tolerant of the
+        # legacy option without silently moving the equipment elsewhere.
+        pass
+
+    else:
+        frappe.throw("Unsupported Removed Asset Outcome: " + str(outcome))
+
+
+def _pa_find_snapshot_row(equipment, component_name):
+    for row in equipment.get("custom_installed_components") or []:
+        if row.get("custom_equipment_component") == component_name:
+            return row
+    return None
+
+
+def _pa_remove_component_snapshot(equipment, component_name):
+    row = _pa_find_snapshot_row(equipment, component_name)
+    if row:
+        equipment.remove(row)
+        return True
+    return False
+
+
+def _pa_install_component_on_equipment(component, equipment, installation_date=None):
+    # Remove the permanent component from its previous parent's snapshot first.
+    # installation_date is supplied only for a true installation/replacement.
+    # Relocation and swap must preserve the historical installation date.
+    previous_parent = component.get("custom_parent_equipment")
+    if previous_parent and previous_parent != equipment.name and frappe.db.exists("Installed Equipment", previous_parent):
+        previous_equipment = frappe.get_doc("Installed Equipment", previous_parent)
+        if _pa_remove_component_snapshot(previous_equipment, component.name):
+            previous_equipment.save(ignore_permissions=True)
+
+    _pa_set_if_present(component, "custom_parent_equipment", equipment.name)
+    _pa_set_if_present(component, "custom_customer", equipment.get("custom_parent_customer"))
+    _pa_set_if_present(component, "custom_branch", equipment.get("custom_branch"))
+    _pa_set_if_present(component, "custom_company_workshop", None)
+    _pa_set_first_allowed_select(component, "custom_status", ["Installed", "Active"])
+
+    if installation_date:
+        _pa_set_if_present(component, "custom_installation_date", installation_date)
+
+    component.save(ignore_permissions=True)
+
+    row = _pa_find_snapshot_row(equipment, component.name)
+    if not row:
+        row = equipment.append("custom_installed_components", {})
+
+    display_name = (
+        component.get("custom_display_name")
+        or component.get("custom_equipment_type")
+        or component.get("custom_component_group")
+        or component.name
+    )
+
+    _update_ie_component_snapshot_row(row, component, display_name)
+    equipment.save(ignore_permissions=True)
+
+
+def _pa_remove_component_from_equipment(component, equipment, mi):
+    _pa_remove_component_snapshot(equipment, component.name)
+    equipment.save(ignore_permissions=True)
+
+    _pa_set_if_present(component, "custom_parent_equipment", None)
+
+    outcome = (mi.get("custom_removed_asset_outcome") or "").strip()
+    workshop = mi.get("custom_company_workshop")
+
+    if outcome == "Workshop for Repair":
+        if not workshop:
+            frappe.throw("Company Workshop is required when the removed component is sent for repair.")
+        _pa_set_if_present(component, "custom_company_workshop", workshop)
+        _pa_set_first_allowed_select(component, "custom_status", ["In Repair", "Under Repair", "Repair", "Available"])
+
+    elif outcome == "Returned to Stock":
+        _pa_set_if_present(component, "custom_company_workshop", None)
+        _pa_set_first_allowed_select(component, "custom_status", ["Available", "Stock"])
+
+    elif outcome == "Scrapped":
+        _pa_set_if_present(component, "custom_company_workshop", None)
+        _pa_set_first_allowed_select(component, "custom_status", ["Scrapped", "Disposed", "Inactive"])
+
+    elif outcome == "Retired":
+        _pa_set_if_present(component, "custom_company_workshop", None)
+        _pa_set_first_allowed_select(component, "custom_status", ["Retired", "Inactive"])
+
+    elif outcome in ["", "Swapped Within Same Site"]:
+        # Relocation/swap functions install the component elsewhere immediately.
+        _pa_set_first_allowed_select(component, "custom_status", ["Available", "Removed"])
+
+    elif outcome == "Installed at another Site":
+        # For a component, a destination equipment is required. This is better
+        # represented by Component Relocation rather than a loose branch move.
+        frappe.throw(
+            "A component cannot be installed at another site without a destination equipment. "
+            "Use Primary Action = Component Relocation."
+        )
+
+    else:
+        frappe.throw("Unsupported Removed Asset Outcome for component: " + str(outcome))
+
+    component.save(ignore_permissions=True)
+
+
+def _pa_event_for_action(action, outcome=None):
+    mapping = {
+        "Equipment Replacement": ["Hardware Swap", "Serviced"],
+        "Component Replacement": ["Component Replaced", "Serviced"],
+        "Equipment Relocation": ["Asset Relocation", "Relocated"],
+        "Component Relocation": ["Asset Relocation", "Relocated"],
+        "Equipment Swap": ["Hardware Swap", "Relocated"],
+        "Component Swap": ["Component Replaced", "Relocated"],
+        "Equipment Installation": ["Installed"],
+        "Component Installation": ["Installed", "Component Replaced"],
+        "Equipment Decommissioning": ["Retired", "Scrapped"],
+        "Component Decommissioning": ["Retired", "Scrapped", "Component Replaced"],
+    }
+
+    if outcome == "Scrapped":
+        return ["Scrapped"] + mapping.get(action, [])
+    if outcome == "Retired":
+        return ["Retired"] + mapping.get(action, [])
+    if outcome == "Workshop for Repair":
+        return ["Sent For Repair"] + mapping.get(action, [])
+
+    return mapping.get(action, [])
+
+
+def _pa_create_lifecycle_log(mi, action, asset=None, component=None, notes=None):
+    if not frappe.db.exists("DocType", "Asset Lifecycle Log"):
+        return None
+
+    log = frappe.new_doc("Asset Lifecycle Log")
+
+    _pa_set_if_present(log, "custom_date", frappe.utils.now_datetime())
+    _pa_set_if_present(log, "custom_customer", mi.get("custom_parent_customer"))
+    _pa_set_if_present(log, "custom_branch", mi.get("custom_branch"))
+    _pa_set_if_present(log, "custom_related_asset", asset)
+    _pa_set_if_present(log, "custom_technician", mi.get("custom_technician"))
+    _pa_set_if_present(log, "custom_service_ticket", mi.get("custom_service_ticket"))
+    _pa_set_if_present(log, "custom_intervention_ref", mi.name)
+    _pa_set_if_present(log, "custom_mission_ref", mi.get("custom_parent_mission"))
+    _pa_set_if_present(log, "custom_event_source", "Intervention")
+    _pa_set_if_present(log, "custom_action_taken", notes or action)
+    _pa_set_if_present(log, "custom_new_asset", mi.get("custom_new_asset"))
+    _pa_set_if_present(log, "custom_new_branch", mi.get("custom_new_branch"))
+
+    if component:
+        _pa_set_if_present(log, "custom_equipment_component", component.name)
+        _pa_set_if_present(log, "custom_component_item", component.get("custom_item") or component.get("custom_equipment_type"))
+        _pa_set_if_present(log, "custom_component_serial", component.get("custom_serial_number"))
+
+    desired_events = _pa_event_for_action(
+        action,
+        mi.get("custom_removed_asset_outcome"),
+    )
+    _pa_set_first_allowed_select(log, "custom_event", desired_events)
+
+    # Some sites require Event. Do not create a misleading log if no compatible
+    # event option exists. The MI itself still remains the audit record.
+    if log.meta.has_field("custom_event"):
+        event_df = log.meta.get_field("custom_event")
+        if event_df and event_df.reqd and not log.get("custom_event"):
+            return None
+
+    log.insert(ignore_permissions=True)
+
+    if log.docstatus == 0:
+        log.submit()
+
+    return log.name
+
+
+def _pa_require_doc(doctype, name, label):
+    if not name:
+        frappe.throw(label + " is required.")
+    if not frappe.db.exists(doctype, name):
+        frappe.throw(label + " does not exist: " + str(name))
+    return frappe.get_doc(doctype, name)
+
+
+def _pa_get_installation_date(mi):
+    """Return the physical installation date recorded by the completed MI."""
+    value = (
+        mi.get("custom_end_time")
+        or mi.get("custom_completed_time")
+        or mi.get("custom_start_time")
+        or frappe.utils.now_datetime()
+    )
+    return frappe.utils.getdate(value)
+
+
+def _pa_equipment_replacement(mi):
+    outgoing = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Current Equipment")
+    incoming = _pa_require_doc("Installed Equipment", mi.get("custom_new_asset"), "Replacement Equipment")
+
+    if outgoing.name == incoming.name:
+        frappe.throw("Replacement Equipment must be different from Current Equipment.")
+
+    original_context = _pa_equipment_context(outgoing)
+
+    _pa_apply_removed_equipment_outcome(mi, outgoing)
+    outgoing.save(ignore_permissions=True)
+
+    # Replacement changes physical placement, not equipment identity.
+    # Keep the incoming equipment's own Site ID / name / serial.
+    _pa_set_if_present(
+        incoming,
+        "custom_parent_customer",
+        original_context.get("customer") or mi.get("custom_parent_customer"),
+    )
+    _pa_set_if_present(
+        incoming,
+        "custom_branch",
+        original_context.get("branch") or mi.get("custom_branch"),
+    )
+    _pa_set_if_present(incoming, "custom_company_workshop", None)
+    _pa_set_first_allowed_select(incoming, "custom_asset_status", ["Installed"])
+    _pa_set_first_allowed_select(incoming, "custom_operational_status", ["Operational"])
+    _pa_set_equipment_position(
+        incoming,
+        mi.get("custom_replacement_site_position")
+        or mi.get("custom_current_site_position"),
+    )
+
+    installation_date = _pa_get_installation_date(mi)
+    _pa_set_if_present(incoming, "custom_installed_date", installation_date)
+    _pa_set_if_present(incoming, "custom_installation_year", installation_date.year)
+    incoming.save(ignore_permissions=True)
+
+    _pa_create_lifecycle_log(mi, "Equipment Replacement", outgoing.name, notes="Equipment replaced by " + incoming.name)
+    _pa_create_lifecycle_log(mi, "Equipment Replacement", incoming.name, notes="Installed as replacement for " + outgoing.name)
+
+
+def _pa_equipment_relocation(mi):
+    equipment = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Equipment")
+    destination_branch = mi.get("custom_new_branch")
+    if not destination_branch:
+        frappe.throw("Destination Branch is required for Equipment Relocation.")
+
+    destination = _pa_require_doc("Client Branch", destination_branch, "Destination Branch")
+    destination_customer = destination.get("custom_parent_customer") or mi.get("custom_parent_customer")
+    destination_site_id = destination.get("custom_site_id") if destination.meta.has_field("custom_site_id") else None
+
+    _pa_set_equipment_active_at_site(
+        equipment,
+        destination_customer,
+        destination_branch,
+        destination_site_id,
+        mi.get("custom_replacement_site_position"),
+    )
+    equipment.save(ignore_permissions=True)
+
+    _pa_create_lifecycle_log(mi, "Equipment Relocation", equipment.name, notes="Equipment relocated to " + destination_branch)
+
+
+def _pa_equipment_swap(mi):
+    first = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Current Equipment")
+    second = _pa_require_doc("Installed Equipment", mi.get("custom_new_asset"), "Swap Equipment")
+
+    if first.name == second.name:
+        frappe.throw("Swap Equipment must be different from Current Equipment.")
+
+    first_ctx = _pa_equipment_context(first)
+    second_ctx = _pa_equipment_context(second)
+
+    if first_ctx.get("customer") and second_ctx.get("customer") and first_ctx.get("customer") != second_ctx.get("customer"):
+        frappe.throw("Equipment Swap is restricted to equipment belonging to the same customer.")
+
+    first_position = mi.get("custom_current_site_position")
+    second_position = mi.get("custom_replacement_site_position")
+
+    _pa_set_equipment_active_at_site(
+        first,
+        second_ctx.get("customer"),
+        second_ctx.get("branch"),
+        second_ctx.get("site_id"),
+        second_position,
+    )
+    _pa_set_equipment_active_at_site(
+        second,
+        first_ctx.get("customer"),
+        first_ctx.get("branch"),
+        first_ctx.get("site_id"),
+        first_position,
+    )
+
+    first.save(ignore_permissions=True)
+    second.save(ignore_permissions=True)
+
+    _pa_create_lifecycle_log(mi, "Equipment Swap", first.name, notes="Swapped position with " + second.name)
+    _pa_create_lifecycle_log(mi, "Equipment Swap", second.name, notes="Swapped position with " + first.name)
+
+
+def _pa_equipment_installation(mi):
+    equipment_name = mi.get("custom_asset") or mi.get("custom_new_asset")
+    equipment = _pa_require_doc("Installed Equipment", equipment_name, "Installed Equipment")
+
+    # The Installed Equipment record is created/assigned to Customer + Branch
+    # before the Installation Service Ticket. Installation therefore MUST NOT
+    # reassign customer, branch, Site ID, equipment name or serial number.
+    # It only confirms the physical installation state and slot/position.
+    if (
+        mi.get("custom_parent_customer")
+        and equipment.get("custom_parent_customer")
+        and equipment.get("custom_parent_customer") != mi.get("custom_parent_customer")
+    ):
+        frappe.throw("Installed Equipment customer does not match the Mission Intervention customer.")
+
+    if (
+        mi.get("custom_branch")
+        and equipment.get("custom_branch")
+        and equipment.get("custom_branch") != mi.get("custom_branch")
+    ):
+        frappe.throw("Installed Equipment branch does not match the Mission Intervention branch.")
+
+    _pa_set_if_present(equipment, "custom_company_workshop", None)
+    _pa_set_first_allowed_select(equipment, "custom_asset_status", ["Installed"])
+    _pa_set_first_allowed_select(equipment, "custom_operational_status", ["Operational"])
+
+    _pa_set_equipment_position(
+        equipment,
+        mi.get("custom_replacement_site_position")
+        or mi.get("custom_current_site_position"),
+    )
+
+    installation_date = _pa_get_installation_date(mi)
+    _pa_set_if_present(equipment, "custom_installed_date", installation_date)
+    _pa_set_if_present(equipment, "custom_installation_year", installation_date.year)
+
+    equipment.save(ignore_permissions=True)
+
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Installation",
+        equipment.name,
+        notes="Equipment installed",
+    )
+
+
+def _pa_equipment_decommissioning(mi):
+    equipment = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Equipment")
+    _pa_apply_removed_equipment_outcome(mi, equipment)
+    equipment.save(ignore_permissions=True)
+    _pa_create_lifecycle_log(mi, "Equipment Decommissioning", equipment.name, notes="Equipment decommissioned: " + (mi.get("custom_removed_asset_outcome") or ""))
+
+
+def _pa_component_replacement(mi):
+    parent = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Parent Equipment")
+    outgoing = _pa_require_doc("Equipment Component", mi.get("custom_equipment_component"), "Outgoing Component")
+    incoming = _pa_require_doc("Equipment Component", mi.get("custom_new_equipment_component"), "Incoming Component")
+
+    if outgoing.name == incoming.name:
+        frappe.throw("Incoming Component must be different from Outgoing Component.")
+
+    _pa_remove_component_from_equipment(outgoing, parent, mi)
+    _pa_install_component_on_equipment(
+        incoming,
+        parent,
+        installation_date=_pa_get_installation_date(mi),
+    )
+
+    _pa_create_lifecycle_log(mi, "Component Replacement", parent.name, outgoing, "Component replaced by " + incoming.name)
+    _pa_create_lifecycle_log(mi, "Component Replacement", parent.name, incoming, "Installed as replacement for " + outgoing.name)
+
+
+def _pa_component_relocation(mi):
+    source_parent = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Source Equipment")
+    component = _pa_require_doc("Equipment Component", mi.get("custom_equipment_component"), "Component")
+    destination = _pa_require_doc("Installed Equipment", mi.get("custom_new_asset"), "Destination Equipment")
+
+    if source_parent.name == destination.name:
+        frappe.throw("Destination Equipment must be different from Source Equipment for Component Relocation.")
+
+    if component.get("custom_parent_equipment") and component.get("custom_parent_equipment") != source_parent.name:
+        frappe.throw("The selected component is no longer installed on the source equipment.")
+
+    _pa_remove_component_snapshot(source_parent, component.name)
+    source_parent.save(ignore_permissions=True)
+    _pa_install_component_on_equipment(component, destination)
+
+    _pa_create_lifecycle_log(mi, "Component Relocation", source_parent.name, component, "Component relocated to " + destination.name)
+    _pa_create_lifecycle_log(mi, "Component Relocation", destination.name, component, "Component received from " + source_parent.name)
+
+
+def _pa_component_swap(mi):
+    first_parent = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Current Equipment")
+    first_component = _pa_require_doc("Equipment Component", mi.get("custom_equipment_component"), "Current Component")
+    second_component = _pa_require_doc("Equipment Component", mi.get("custom_new_equipment_component"), "Swap Component")
+
+    second_parent_name = second_component.get("custom_parent_equipment")
+    second_parent = _pa_require_doc("Installed Equipment", second_parent_name, "Swap Component Parent Equipment")
+
+    if first_component.name == second_component.name:
+        frappe.throw("Swap Component must be different from Current Component.")
+
+    if first_parent.name == second_parent.name:
+        frappe.throw("Component Swap requires components currently installed on different equipment. Use Component Replacement for same-equipment replacement.")
+
+    if first_component.get("custom_parent_equipment") and first_component.get("custom_parent_equipment") != first_parent.name:
+        frappe.throw("The current component is no longer installed on the current equipment.")
+
+    _pa_remove_component_snapshot(first_parent, first_component.name)
+    _pa_remove_component_snapshot(second_parent, second_component.name)
+    first_parent.save(ignore_permissions=True)
+    second_parent.save(ignore_permissions=True)
+
+    _pa_install_component_on_equipment(first_component, second_parent)
+    _pa_install_component_on_equipment(second_component, first_parent)
+
+    _pa_create_lifecycle_log(mi, "Component Swap", first_parent.name, second_component, "Received component from " + second_parent.name)
+    _pa_create_lifecycle_log(mi, "Component Swap", second_parent.name, first_component, "Received component from " + first_parent.name)
+
+
+def _pa_component_installation(mi):
+    parent = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Parent Equipment")
+    incoming = _pa_require_doc("Equipment Component", mi.get("custom_new_equipment_component"), "New Component")
+
+    _pa_install_component_on_equipment(
+        incoming,
+        parent,
+        installation_date=_pa_get_installation_date(mi),
+    )
+    _pa_create_lifecycle_log(mi, "Component Installation", parent.name, incoming, "Component installed")
+
+
+def _pa_component_decommissioning(mi):
+    parent = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Parent Equipment")
+    component = _pa_require_doc("Equipment Component", mi.get("custom_equipment_component"), "Component")
+
+    _pa_remove_component_from_equipment(component, parent, mi)
+    _pa_create_lifecycle_log(mi, "Component Decommissioning", parent.name, component, "Component decommissioned: " + (mi.get("custom_removed_asset_outcome") or ""))
+
+###########################################################################################################
+# function applies after submit
+###########################################################################################################
+@frappe.whitelist()
+def process_mi_primary_action_on_submit(mi_name):
+    """Apply MI Primary Action to equipment/component masters after submission.
+
+    Safe to call repeatedly: a successfully processed MI is marked with an
+    internal Comment and subsequent calls return without moving anything again.
+
+    Important:
+    - Primary Action is only for equipment/component lifecycle changes.
+    - An MI may involve real physical work without changing lifecycle state.
+    """
+
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc("Mission Intervention", mi_name)
+
+    if int(mi.docstatus or 0) != 1:
+        frappe.throw(
+            "Primary Action lifecycle can only be applied to a submitted "
+            "Mission Intervention."
+        )
+
+    if mi.get("custom_work_outcome") != "Work Completed":
+        return {
+            "ok": True,
+            "applied": False,
+            "reason": "Work Outcome is not Work Completed.",
+        }
+
+    action = (mi.get("custom_primary_action") or "").strip()
+
+    # These are valid interventions, but they do not require an
+    # equipment/component lifecycle mutation.
+    no_lifecycle_actions = {
+        "",
+        "Repair Only",
+        "No Lifecycle Change",
+
+        # Temporary backward compatibility for existing MIs.
+        "No Physical Change",
+    }
+
+    if action in no_lifecycle_actions:
+        return {
+            "ok": True,
+            "applied": False,
+            "reason": "No equipment/component lifecycle change to apply.",
+            "primary_action": action or None,
+        }
+
+    if action not in _PRIMARY_ACTIONS:
+        frappe.throw(
+            "Unsupported Primary Action: " + str(action)
+        )
+
+    if _pa_already_applied(mi):
+        return {
+            "ok": True,
+            "applied": False,
+            "already_applied": True,
+            "primary_action": action,
+        }
+
+    handlers = {
+        "Equipment Replacement": _pa_equipment_replacement,
+        "Component Replacement": _pa_component_replacement,
+        "Equipment Relocation": _pa_equipment_relocation,
+        "Component Relocation": _pa_component_relocation,
+        "Equipment Swap": _pa_equipment_swap,
+        "Component Swap": _pa_component_swap,
+        "Equipment Installation": _pa_equipment_installation,
+        "Component Installation": _pa_component_installation,
+        "Equipment Decommissioning": _pa_equipment_decommissioning,
+        "Component Decommissioning": _pa_component_decommissioning,
+    }
+
+    handler = handlers.get(action)
+
+    if not handler:
+        return {
+            "ok": True,
+            "applied": False,
+            "reason": "No lifecycle handler is required.",
+            "primary_action": action,
+        }
+
+    handler(mi)
+
+    _pa_mark_applied(
+        mi,
+        action
+    )
+
+    return {
+        "ok": True,
+        "applied": True,
+        "primary_action": action,
+    }
+
+
+##########################################################################
+# Function to allow change of company in TM that writes to MI and ST     #
+##########################################################################
+@frappe.whitelist()
+def change_tech_mission_company(mission_name, company):
+
+    if not mission_name:
+        frappe.throw("Tech Mission is required.")
+
+    if not company:
+        frappe.throw("Company is required.")
+
+    if not frappe.db.exists("Company", company):
+        frappe.throw("Invalid Company.")
+
+    mission = frappe.get_doc(
+        "Tech Mission",
+        mission_name
+    )
+
+    old_company = mission.get("custom_company")
+
+    if old_company == company:
+        frappe.throw(
+            "The selected company is already assigned."
+        )
+
+    # ---------------------------------
+    # UPDATE TECH MISSION
+    # ---------------------------------
+
+    if mission.meta.has_field("custom_company"):
+        frappe.db.set_value(
+            "Tech Mission",
+            mission.name,
+            "custom_company",
+            company
+        )
+
+    # ---------------------------------
+    # UPDATE LINKED SERVICE TICKET
+    # ---------------------------------
+
+    ticket_name = mission.get(
+        "custom_service_ticket"
+    )
+
+    if (
+        ticket_name
+        and frappe.db.exists(
+            "Service Ticket",
+            ticket_name
+        )
+    ):
+        ticket_meta = frappe.get_meta(
+            "Service Ticket"
+        )
+
+        if ticket_meta.has_field(
+            "custom_company"
+        ):
+            frappe.db.set_value(
+                "Service Ticket",
+                ticket_name,
+                "custom_company",
+                company
+            )
+
+    # ---------------------------------
+    # UPDATE ALL LINKED MIs
+    # ---------------------------------
+
+    intervention_names = frappe.get_all(
+        "Mission Intervention",
+        filters={
+            "custom_parent_mission":
+                mission.name
+        },
+        pluck="name"
+    )
+
+    interventions_updated = 0
+
+    mi_meta = frappe.get_meta(
+        "Mission Intervention"
+    )
+
+    if mi_meta.has_field(
+        "custom_company"
+    ):
+        for intervention_name in intervention_names:
+
+            frappe.db.set_value(
+                "Mission Intervention",
+                intervention_name,
+                "custom_company",
+                company
+            )
+
+            interventions_updated += 1
+
+    # ---------------------------------
+    # LOG CHANGE ON TECH MISSION
+    # ---------------------------------
+
+    frappe.get_doc({
+        "doctype": "Comment",
+        "comment_type": "Info",
+        "reference_doctype":
+            "Tech Mission",
+        "reference_name":
+            mission.name,
+        "content": (
+            "Company changed from "
+            f"<b>{old_company or 'Not Set'}</b> "
+            f"to <b>{company}</b> "
+            f"by {frappe.session.user}."
+        )
+    }).insert(
+        ignore_permissions=True
+    )
+
+    # ---------------------------------
+    # LOG CHANGE ON SERVICE TICKET
+    # ---------------------------------
+
+    if (
+        ticket_name
+        and frappe.db.exists(
+            "Service Ticket",
+            ticket_name
+        )
+    ):
+        frappe.get_doc({
+            "doctype": "Comment",
+            "comment_type": "Info",
+            "reference_doctype":
+                "Service Ticket",
+            "reference_name":
+                ticket_name,
+            "content": (
+                "Company changed from "
+                f"<b>{old_company or 'Not Set'}</b> "
+                f"to <b>{company}</b> "
+                f"from Tech Mission "
+                f"<b>{mission.name}</b> "
+                f"by {frappe.session.user}."
+            )
+        }).insert(
+            ignore_permissions=True
+        )
+
+    # ---------------------------------
+    # LOG CHANGE ON EACH MI
+    # ---------------------------------
+
+    for intervention_name in intervention_names:
+
+        frappe.get_doc({
+            "doctype": "Comment",
+            "comment_type": "Info",
+            "reference_doctype":
+                "Mission Intervention",
+            "reference_name":
+                intervention_name,
+            "content": (
+                "Company changed from "
+                f"<b>{old_company or 'Not Set'}</b> "
+                f"to <b>{company}</b> "
+                f"from Tech Mission "
+                f"<b>{mission.name}</b> "
+                f"by {frappe.session.user}."
+            )
+        }).insert(
+            ignore_permissions=True
+        )
+
+    return {
+        "success": True,
+        "old_company": old_company,
+        "new_company": company,
+        "mission": mission.name,
+        "service_ticket": ticket_name,
+        "interventions_updated":
+            interventions_updated
+    }

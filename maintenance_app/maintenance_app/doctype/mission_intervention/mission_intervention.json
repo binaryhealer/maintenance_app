@@ -50,6 +50,8 @@
   "custom_start_time",
   "custom_end_time",
   "custom_could_not_complete_reason",
+  "custom_primary_action",
+  "custom_commissioning_action",
   "section_break_kqrl",
   "custom_component_installation",
   "column_break_wvdm",
@@ -1124,13 +1126,25 @@
   {
    "fieldname": "column_break_xtvo",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_primary_action",
+   "fieldtype": "Select",
+   "label": "Primary Action",
+   "options": "No Physical Change\nRepair Only\nEquipment Replacement\nComponent Replacement\nEquipment Relocation\nComponent Relocation\nEquipment Swap\nComponent Swap\nEquipment Installation\nComponent Installation\nEquipment Decommissioning\nComponent Decommissioning"
+  },
+  {
+   "fieldname": "custom_commissioning_action",
+   "fieldtype": "Select",
+   "label": "Commissioning",
+   "options": "Not Required\nCommission Now\nCommission Later"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-11 08:43:36.194030",
+ "modified": "2026-09-22 06:15:31.045040",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",
