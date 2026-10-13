@@ -46,6 +46,8 @@
   "custom_planning_ref",
   "custom_work_outcome",
   "custom_fault_type",
+  "custom_equipment_still_on_site",
+  "custom_destination_location_text",
   "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
@@ -139,6 +141,7 @@
   "custom_calibration_record",
   "custom_external_vehicle",
   "custom_site_id",
+  "custom_decommissioning_approval_number",
   "column_break_wndv",
   "amended_from",
   "custom_service_type",
@@ -1138,13 +1141,29 @@
    "fieldtype": "Select",
    "label": "Commissioning",
    "options": "Not Required\nCommission Now\nCommission Later"
+  },
+  {
+   "fieldname": "custom_equipment_still_on_site",
+   "fieldtype": "Select",
+   "label": "Equipment Still On Site",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "custom_decommissioning_approval_number",
+   "fieldtype": "Data",
+   "label": "Decommissioning Approval No."
+  },
+  {
+   "fieldname": "custom_destination_location_text",
+   "fieldtype": "Data",
+   "label": "Destination Location"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-22 06:15:31.045040",
+ "modified": "2026-10-02 10:49:30.521320",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

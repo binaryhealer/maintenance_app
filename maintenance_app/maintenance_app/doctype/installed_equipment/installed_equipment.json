@@ -29,13 +29,16 @@
   "custom_next_maintenance_date",
   "custom_ownership",
   "custom_asset_status",
-  "custom_create_warranty_inline",
   "custom_operational_status",
   "column_break_vyja",
   "custom_warranty",
   "custom_maint_frequency",
   "custom_warranty_period_years",
   "custom_coverage_type",
+  "section_break_baju",
+  "custom_create_warranty_inline",
+  "column_break_dnzf",
+  "custom_disabled",
   "section_break_ajrk",
   "lft",
   "rgt",
@@ -106,7 +109,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Equipment Status",
-   "options": "Pending Installation\nInstalled\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost"
+   "options": "Pending Installation\nInstalled\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost\nDecommissioned"
   },
   {
    "fieldname": "custom_maint_frequency",
@@ -471,6 +474,20 @@
    "fieldname": "custom_installation_year",
    "fieldtype": "Int",
    "label": "Installation Year"
+  },
+  {
+   "fieldname": "section_break_baju",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dnzf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
   }
  ],
  "grid_page_length": 50,
@@ -493,7 +510,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-08-19 07:20:13.032638",
+ "modified": "2026-10-07 09:45:11.380673",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

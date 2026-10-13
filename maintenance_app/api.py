@@ -8628,7 +8628,8 @@ def create_ticket_from_installed_equipment(
     technicians=None,
     work_type="Quick Intervention",
     component_name=None,
-    additional_equipments=None
+    additional_equipments=None,
+    applicant=None
 ):
     """
     Create one Service Ticket from an Installed Equipment record.
@@ -8742,6 +8743,12 @@ def create_ticket_from_installed_equipment(
     ))
 
     equipment = frappe.get_doc("Installed Equipment", equipment_name)
+
+    if equipment.get("custom_disabled"):
+        frappe.throw(
+            "This Installed Equipment is disabled and cannot be used to create a Service Ticket."
+        )
+
     component = None
 
     if component_name:
@@ -8776,6 +8783,13 @@ def create_ticket_from_installed_equipment(
             )
 
         additional_doc = frappe.get_doc("Installed Equipment", additional_name)
+
+        if additional_doc.get("custom_disabled"):
+            frappe.throw(
+                "Installed Equipment {0} is disabled and cannot be added to this Service Ticket.".format(
+                    additional_name
+                )
+            )
 
         if (
             additional_doc.get("custom_parent_customer")
@@ -8916,6 +8930,30 @@ def create_ticket_from_installed_equipment(
 
     if ticket.meta.has_field("custom_raised_by"):
         ticket.custom_raised_by = _current_user_display_name()
+
+    if applicant:
+        if not frappe.db.exists("Contact", applicant):
+            frappe.throw("Applicant Contact not found.")
+
+        if ticket.meta.has_field("custom_applicant"):
+            ticket.custom_applicant = applicant
+
+        applicant_details = _get_primary_contact_details(applicant)
+
+        if ticket.meta.has_field("custom_applicant_role"):
+            ticket.custom_applicant_role = (
+                applicant_details.get("role") or ""
+            )
+
+        if ticket.meta.has_field("custom_applicant_email"):
+            ticket.custom_applicant_email = (
+                applicant_details.get("email") or ""
+            )
+
+        if ticket.meta.has_field("custom_applicant_phone"):
+            ticket.custom_applicant_phone = (
+                applicant_details.get("phone") or ""
+            )
 
     # Whole-equipment tickets keep a normalized target-equipment list.
     # The originating Installed Equipment is always the first row.
@@ -10741,7 +10779,9 @@ def _pa_event_for_action(action, outcome=None):
         "Component Swap": ["Component Replaced", "Relocated"],
         "Equipment Installation": ["Installed"],
         "Component Installation": ["Installed", "Component Replaced"],
-        "Equipment Decommissioning": ["Retired", "Scrapped"],
+        # Decommissioning itself is a service-state change. Do not invent
+        # Retired/Scrapped unless a real removal disposition was selected.
+        "Equipment Decommissioning": [],
         "Component Decommissioning": ["Retired", "Scrapped", "Component Replaced"],
     }
 
@@ -10773,6 +10813,21 @@ def _pa_create_lifecycle_log(mi, action, asset=None, component=None, notes=None)
     _pa_set_if_present(log, "custom_action_taken", notes or action)
     _pa_set_if_present(log, "custom_new_asset", mi.get("custom_new_asset"))
     _pa_set_if_present(log, "custom_new_branch", mi.get("custom_new_branch"))
+    _pa_set_if_present(
+        log,
+        "custom_equipment_still_on_site",
+        mi.get("custom_equipment_still_on_site"),
+    )
+    _pa_set_if_present(
+        log,
+        "custom_destination_location_text",
+        mi.get("custom_destination_location_text"),
+    )
+    _pa_set_if_present(
+        log,
+        "custom_decommissioning_approval_number",
+        mi.get("custom_decommissioning_approval_number"),
+    )
 
     if component:
         _pa_set_if_present(log, "custom_equipment_component", component.name)
@@ -10862,25 +10917,104 @@ def _pa_equipment_replacement(mi):
 
 
 def _pa_equipment_relocation(mi):
-    equipment = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Equipment")
-    destination_branch = mi.get("custom_new_branch")
-    if not destination_branch:
-        frappe.throw("Destination Branch is required for Equipment Relocation.")
-
-    destination = _pa_require_doc("Client Branch", destination_branch, "Destination Branch")
-    destination_customer = destination.get("custom_parent_customer") or mi.get("custom_parent_customer")
-    destination_site_id = destination.get("custom_site_id") if destination.meta.has_field("custom_site_id") else None
-
-    _pa_set_equipment_active_at_site(
-        equipment,
-        destination_customer,
-        destination_branch,
-        destination_site_id,
-        mi.get("custom_replacement_site_position"),
+    equipment = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_asset"),
+        "Equipment",
     )
+
+    destination_branch = (mi.get("custom_new_branch") or "").strip()
+    destination_text = (mi.get("custom_destination_location_text") or "").strip()
+
+    if not destination_branch and not destination_text:
+        frappe.throw(
+            "Please select a Destination Branch or enter a Destination Location "
+            "for Equipment Relocation."
+        )
+
+    previous_operational_status = (
+        equipment.get("custom_operational_status") or ""
+    ).strip()
+
+    if destination_branch:
+        destination = _pa_require_doc(
+            "Client Branch",
+            destination_branch,
+            "Destination Branch",
+        )
+        destination_customer = (
+            destination.get("custom_parent_customer")
+            or mi.get("custom_parent_customer")
+        )
+        destination_site_id = (
+            destination.get("custom_site_id")
+            if destination.meta.has_field("custom_site_id")
+            else None
+        )
+
+        _pa_set_equipment_active_at_site(
+            equipment,
+            destination_customer,
+            destination_branch,
+            destination_site_id,
+            mi.get("custom_replacement_site_position"),
+        )
+
+        # Relocation must not recommission a unit that was already decommissioned.
+        if previous_operational_status == "Out of Service":
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_operational_status",
+                ["Out of Service"],
+            )
+
+        _pa_set_if_present(
+            equipment,
+            "custom_destination_location_text",
+            destination_text or None,
+        )
+
+        destination_label = destination_branch
+
+    else:
+        # Generic off-site move, e.g. client HO / warehouse that is not modelled
+        # as an operational Client Branch.
+        _pa_set_if_present(equipment, "custom_branch", None)
+        _pa_set_if_present(equipment, "custom_site_id", None)
+        _pa_set_if_present(equipment, "custom_company_workshop", None)
+        _pa_set_if_present(
+            equipment,
+            "custom_destination_location_text",
+            destination_text,
+        )
+
+        # The unit is no longer installed at the old site. Pending Installation is
+        # the closest existing non-terminal equipment state for a reusable stored unit.
+        _pa_set_first_allowed_select(
+            equipment,
+            "custom_asset_status",
+            ["Pending Installation"],
+        )
+
+        # Preserve decommissioned state. For an active unit, do not force a new
+        # operational state merely because it moved to storage.
+        if previous_operational_status == "Out of Service":
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_operational_status",
+                ["Out of Service"],
+            )
+
+        destination_label = destination_text
+
     equipment.save(ignore_permissions=True)
 
-    _pa_create_lifecycle_log(mi, "Equipment Relocation", equipment.name, notes="Equipment relocated to " + destination_branch)
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Relocation",
+        equipment.name,
+        notes="Equipment relocated to " + destination_label,
+    )
 
 
 def _pa_equipment_swap(mi):
@@ -10968,10 +11102,188 @@ def _pa_equipment_installation(mi):
 
 
 def _pa_equipment_decommissioning(mi):
-    equipment = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Equipment")
-    _pa_apply_removed_equipment_outcome(mi, equipment)
-    equipment.save(ignore_permissions=True)
-    _pa_create_lifecycle_log(mi, "Equipment Decommissioning", equipment.name, notes="Equipment decommissioned: " + (mi.get("custom_removed_asset_outcome") or ""))
+    """
+    Decommission equipment without treating decommissioning as relocation.
+
+    Still on Site = Yes:
+      - keep physical site/location and asset status as-is
+      - set Operational Status = Out of Service
+      - no Removed Asset Outcome and no lifecycle Event fallback
+
+    Still on Site = No:
+      - require an actual removal disposition
+      - apply the physical destination/disposition
+      - keep Operational Status = Out of Service
+    """
+    equipment = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_asset"),
+        "Equipment",
+    )
+
+    still_on_site = (
+        mi.get("custom_equipment_still_on_site") or ""
+    ).strip()
+    reason = (
+        mi.get("custom_asset_change_reason") or ""
+    ).strip()
+    approval_no = (
+        mi.get("custom_decommissioning_approval_number") or ""
+    ).strip()
+
+    if still_on_site not in ("Yes", "No"):
+        frappe.throw(
+            "Equipment Still on Site is required for Equipment Decommissioning."
+        )
+
+    if not reason:
+        frappe.throw("Reason for Decommissioning is required.")
+
+    if still_on_site == "Yes":
+        # Decommissioned in place. Do NOT change asset status or physical location.
+        _pa_set_first_allowed_select(
+            equipment,
+            "custom_operational_status",
+            ["Out of Service"],
+        )
+        equipment.save(ignore_permissions=True)
+
+        notes = (
+            "Equipment decommissioned and remains on site. "
+            "Reason: " + reason
+        )
+
+    else:
+        outcome = (
+            mi.get("custom_removed_asset_outcome") or ""
+        ).strip()
+        destination_text = (
+            mi.get("custom_destination_location_text") or ""
+        ).strip()
+        workshop = mi.get("custom_company_workshop")
+
+        if not outcome:
+            frappe.throw(
+                "Removed Asset Outcome is required when decommissioned "
+                "equipment is no longer on site."
+            )
+
+        if outcome == "Returned to Client Storage":
+            if not destination_text:
+                frappe.throw(
+                    "Destination Location is required when equipment is "
+                    "returned to client storage."
+                )
+
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Pending Installation"],
+            )
+
+        elif outcome in ("Returned to GoTech Stock", "Returned to Stock"):
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or "GoTech Stock",
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Pending Installation"],
+            )
+
+        elif outcome == "Workshop for Repair":
+            if not workshop:
+                frappe.throw(
+                    "Company Workshop is required when decommissioned "
+                    "equipment is sent for repair."
+                )
+            _pa_set_if_present(equipment, "custom_company_workshop", workshop)
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or None,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["In Workshop"],
+            )
+
+        elif outcome == "Retired":
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or None,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Retired"],
+            )
+
+        elif outcome == "Scrapped":
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or None,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Scrapped"],
+            )
+
+        else:
+            frappe.throw(
+                "Unsupported Removed Asset Outcome for Equipment "
+                "Decommissioning: " + outcome
+            )
+
+        _pa_set_first_allowed_select(
+            equipment,
+            "custom_operational_status",
+            ["Out of Service"],
+        )
+        equipment.save(ignore_permissions=True)
+
+        notes = (
+            "Equipment decommissioned and removed from site. "
+            "Outcome: " + outcome
+        )
+        if destination_text:
+            notes += ". Destination: " + destination_text
+        notes += ". Reason: " + reason
+
+    if approval_no:
+        notes += ". Approval No.: " + approval_no
+
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Decommissioning",
+        equipment.name,
+        notes=notes,
+    )
 
 
 def _pa_component_replacement(mi):
