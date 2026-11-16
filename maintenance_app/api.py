@@ -4913,11 +4913,27 @@ def build_components_for_equipment(equipment_name):
             if component.meta.has_field("custom_status"):
                 component.custom_status = "Installed"
 
+            position = len(kept_components) + 1
+
             if component.meta.has_field("custom_sequence"):
-                component.custom_sequence = len(kept_components) + 1
+                component.custom_sequence = position
+
+            # custom_display_name is unique, so the final equipment-prefixed
+            # name must be assigned BEFORE insert.
+            default_short_name = (
+                str(type_name) + "-" + str(position)
+                if desired_qty > 1
+                else str(type_name)
+            )
+
+            full_display_name = (
+                str(equipment_prefix).strip()
+                + " - "
+                + str(default_short_name).strip()
+            )
 
             if component.meta.has_field("custom_display_name"):
-                component.custom_display_name = str(type_name)
+                component.custom_display_name = full_display_name
 
             component.insert(ignore_permissions=True)
 
