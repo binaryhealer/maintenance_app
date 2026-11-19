@@ -1,0 +1,89 @@
+{% if is_submitted
+      and mi.custom_work_outcome == "Continue Work" %}
+
+<div id="tech2-follow-up-modal"
+     class="tech2-follow-up-backdrop"
+     style="display:none;">
+
+    <div class="tech2-follow-up-dialog">
+
+        <div class="tech2-follow-up-head">
+            <div>
+                <div class="tech2-label">NEXT ACTION</div>
+
+                <h4>Continue Job</h4>
+
+                <div class="tech2-muted">
+                    Plan the next work session for this mission.
+                </div>
+            </div>
+        </div>
+
+        <div class="tech2-form-group">
+            <label class="tech2-label"
+                   for="tech2-follow-up-date">
+                Next Planned Work Date
+            </label>
+
+            <input id="tech2-follow-up-date"
+                   type="date"
+                   class="form-control">
+        </div>
+
+        <div class="tech2-form-group">
+            <label class="tech2-label"
+                   for="tech2-follow-up-reason">
+                Continuation Reason / Plan
+            </label>
+
+            <textarea id="tech2-follow-up-reason"
+                      class="form-control"
+                      rows="4"
+                      placeholder="What remains to be done?">{{ mi.custom_work_progress or "" }}</textarea>
+        </div>
+
+        <div class="tech2-follow-up-actions">
+            <button type="button"
+                    id="tech2-create-follow-up"
+                    class="btn btn-warning"
+                    onclick="tech2CreateFollowUpMI()">
+                Create Follow-up MI
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="tech2CloseFollowUpModal()">
+                Later
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<div class="continue3-card">
+
+    <div class="continue3-kicker">
+        CONTINUE WORK
+    </div>
+
+    <h4>Next work session</h4>
+
+    <div class="continue3-sub">
+        This intervention is submitted, but more work remains.
+    </div>
+
+    <button type="button"
+            class="btn btn-warning tech2-primary-action"
+            onclick="tech2OpenFollowUpModal()">
+        Plan Next Work
+    </button>
+
+</div>
+
+<script>
+window.TECH2_FOLLOW_UP_SOURCE_MI =
+    {{ mi.name | tojson }};
+window.TECH2_AUTO_OPEN_FOLLOW_UP = true;
+</script>
+
+{% endif %}

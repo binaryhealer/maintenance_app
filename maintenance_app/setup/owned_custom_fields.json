@@ -1,0 +1,55 @@
+{
+  "Asset Lifecycle Log": [
+    {
+      "fieldname": "custom_equipment_still_on_site",
+      "label": "Equipment Still On Site",
+      "fieldtype": "Select",
+      "options": "Yes\nNo",
+      "insert_after": "custom_event",
+      "translatable": 1
+    }
+  ],
+  "Tech Mission": [
+    {
+      "fieldname": "custom_swap_route_reversed",
+      "label": "Swap Route Reversed",
+      "fieldtype": "Check",
+      "default": "0",
+      "insert_after": "custom_swap_reason",
+      "read_only": 1
+    },
+    {
+      "fieldname": "custom_swap_route_change_reason",
+      "label": "Swap Route Change Reason",
+      "fieldtype": "Small Text",
+      "insert_after": "custom_swap_route_reversed",
+      "read_only": 1
+    },
+    {
+      "fieldname": "custom_swap_route_changed_by",
+      "label": "Swap Route Changed By",
+      "fieldtype": "Link",
+      "options": "User",
+      "insert_after": "custom_swap_route_change_reason",
+      "read_only": 1
+    },
+    {
+      "fieldname": "custom_swap_route_changed_on",
+      "label": "Swap Route Changed On",
+      "fieldtype": "Datetime",
+      "insert_after": "custom_swap_route_changed_by",
+      "read_only": 1
+    }
+  ],
+  "Service Ticket": [
+    {
+      "fieldname": "custom_notification_emails",
+      "label": "Notification Emails",
+      "fieldtype": "Small Text",
+      "options": "Email",
+      "read_only": 1,
+      "insert_after": "custom_applicant_email",
+      "description": "Current ST applicant, customer and notified external contact emails for status notifications."
+    }
+  ]
+}

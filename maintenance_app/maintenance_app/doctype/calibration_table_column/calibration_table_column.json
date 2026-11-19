@@ -1,0 +1,40 @@
+{
+  "doctype": "DocType",
+  "name": "Calibration Table Column",
+  "module": "Maintenance App",
+  "custom": 0,
+  "istable": 1,
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "custom_column_label",
+    "custom_value_type",
+    "custom_required"
+  ],
+  "fields": [
+    {
+      "fieldname": "custom_column_label",
+      "fieldtype": "Data",
+      "label": "Column Name",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_value_type",
+      "fieldtype": "Select",
+      "label": "Type",
+      "options": "Text\nNumber",
+      "default": "Text",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_required",
+      "fieldtype": "Check",
+      "label": "Required",
+      "default": 0,
+      "in_list_view": 1
+    }
+  ],
+  "permissions": []
+}

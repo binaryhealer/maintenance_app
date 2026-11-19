@@ -53,3 +53,13 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+
+# Local development backups
+*.backup*
+*.bak*
+*.before-*
+*.before_*
+
+# Deprecated / unused intervention3 prototypes
+/intervention3/
+/maintenance_app/www/tech/intervention3/

@@ -1,0 +1,138 @@
+<div class="tech2-card">
+
+    <h4>Check Out</h4>
+
+    {% if mi.docstatus == 1 %}
+
+        <div class="tech2-check-status tech2-check-status-done">
+            Intervention Submitted
+        </div>
+
+    {% elif not mi.custom_end_time %}
+
+        <div class="tech2-checkout-summary">
+
+            <div>
+                <div class="tech2-label">
+                    Work Outcome
+                </div>
+
+                <div class="tech2-value">
+                    {{ mi.custom_work_outcome or "-" }}
+                </div>
+            </div>
+
+            <div>
+                <div class="tech2-label">
+                    Checked In
+                </div>
+
+                <div class="tech2-value">
+                    {{ mi.custom_start_time or "-" }}
+                </div>
+            </div>
+
+        </div>
+
+        <button type="button"
+                class="btn btn-warning tech2-primary-action"
+                onclick="tech2CheckOut('{{ mi.name }}')">
+            Check Out
+        </button>
+
+    {% else %}
+
+        <div class="tech2-check-status tech2-check-status-done">
+
+            <strong>✓ Technical Work Completed</strong>
+
+            <div class="tech2-muted">
+                Checked Out:
+                {{ mi.custom_end_time }}
+            </div>
+
+            {% if mi.custom_hours_worked %}
+            <div class="tech2-muted">
+                Hours Worked:
+                {{ mi.custom_hours_worked }}
+            </div>
+            {% endif %}
+
+        </div>
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Planned / Current Ticket Type
+            </div>
+
+            <div class="tech2-value">
+                {{ mi.custom_intervention_type or "-" }}
+            </div>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <div class="tech2-label">
+                Was this Ticket Type correct? *
+            </div>
+
+            <label class="tech2-check-row">
+                <input type="radio"
+                       name="tech2-ticket-type-correct"
+                       value="yes"
+                       onchange="tech2ActualTypeChoiceChanged()">
+                <span>Yes</span>
+            </label>
+
+            <label class="tech2-check-row">
+                <input type="radio"
+                       name="tech2-ticket-type-correct"
+                       value="no"
+                       onchange="tech2ActualTypeChoiceChanged()">
+                <span>No</span>
+            </label>
+
+        </div>
+
+
+        <div class="tech2-form-group"
+             id="tech2-actual-type-wrap"
+             style="display:none;">
+
+            <label class="tech2-label">
+                Actual Ticket Type *
+            </label>
+
+            <select id="tech2-actual-ticket-type"
+                    class="form-control">
+
+                <option value="">
+                    Select actual ticket type
+                </option>
+
+                {% for option in actual_type_options %}
+
+                <option value="{{ option }}">
+                    {{ option }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <button type="button"
+                class="btn btn-primary tech2-primary-action"
+                onclick="tech2ConfirmActualType('{{ mi.name }}', '{{ mi.custom_intervention_type or '' }}')">
+            Confirm & Continue to Client
+        </button>
+
+    {% endif %}
+
+</div>

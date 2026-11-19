@@ -2206,6 +2206,7 @@ function eqOpenTicketModal(eqName, componentId) {
     eqOnRequestTypeChange();
     eqLoadTechnicians();
     eqLoadApplicants(eq.name);
+    eqLoadAdditionalEquipment(eq);
 
     document.getElementById("eq-modal-confirm").className = "eq-modal-confirm";
     document.getElementById("eq-modal-error").className = "eq-modal-error";
@@ -2466,6 +2467,44 @@ function eqOpenInDesk() {
   window.location.href = "/app/service-ticket/new-service-ticket-1";
 }
 
+// GMAO_ST_MULTI_IE_V1: additional equipment picker for IE ticket creation.
+function eqLoadAdditionalEquipment(eq) {
+  var holder = document.getElementById("eq-m-additional-equipment");
+  if (!holder) return;
+  holder.textContent = "Loading equipment…";
+  var selectedPrimary = eq.name;
+  frappe.call({
+    method: "maintenance_app.api.get_st_additional_equipment_options",
+    args: { equipment_name: selectedPrimary },
+    callback: function(r) {
+      // Ignore stale async results if the user opened another equipment.
+      if (!EQ.modalEq || EQ.modalEq.name !== selectedPrimary) return;
+      var items = (r && r.message) || [];
+      if (!items.length) {
+        holder.textContent = "No other accessible equipment found at this customer and branch.";
+        return;
+      }
+      holder.innerHTML = items.map(function(item) {
+        var title = item.custom_display_name || item.custom_asset_name || item.name;
+        var ref = item.custom_asset_id ? " (" + item.custom_asset_id + ")" : "";
+        return '<label style="display:block;margin:6px 0;cursor:pointer">'
+          + '<input type="checkbox" class="eq-st-additional" value="' + eqEscapeAttr(item.name) + '"> '
+          + eqEscape(title + ref) + '</label>';
+      }).join("");
+    },
+    error: function() {
+      if (EQ.modalEq && EQ.modalEq.name === selectedPrimary) {
+        holder.textContent = "Could not load other equipment. You can still create a ticket for the primary equipment.";
+      }
+    }
+  });
+}
+
+function eqGetSTAdditionalEquipment() {
+  return Array.from(document.querySelectorAll("#eq-m-additional-equipment input.eq-st-additional:checked"))
+    .map(function(input) { return input.value; });
+}
+
 function eqSubmitTicket() {
   if (!EQ.modalEq) return;
 
@@ -2491,6 +2530,7 @@ function eqSubmitTicket() {
       // The backend should now interpret this as the permanent
       // Equipment Component document ID (COMP-xxxxx).
       component_row_id: EQ.modalComponentId || "",
+      additional_equipments: JSON.stringify(eqGetSTAdditionalEquipment()),
 
       request_type: document.getElementById("eq-m-req-type").value,
       ticket_type: document.getElementById("eq-m-ticket-type").value,

@@ -1,0 +1,49 @@
+<details class="mi-card accordion-card" open>
+            <summary>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="section-title mb-0">Job Summary</span>
+                    <span class="summary-chevron">⌄</span>
+                </div>
+            </summary>
+
+            <div class="accordion-body">
+                <div class="info-label">Subject</div>
+                <div class="subject-box">
+                    {{ mi.custom_subject or "No subject" }}
+                </div>
+
+                <div class="summary-grid compact-grid">
+                    <div class="summary-item">
+                        <div class="info-label">Customer</div>
+                        <div class="info-value">{{ mi.custom_parent_customer or "-" }}</div>
+                    </div>
+
+                    <a class="summary-item info-link" href="/app/client-branch/{{ mi.custom_branch }}">
+                        <div class="info-label">Branch</div>
+                        <div class="info-value">{{ mi.custom_branch or "-" }} ›</div>
+                    </a>
+
+                    <div class="summary-item">
+                        <div class="info-label">Target / Faulty Item</div>
+                        <div class="info-value">
+                            {{ mi.custom_target_component_name or "-" }}
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="info-label">Technician</div>
+                        <div class="info-value">{{ technician_display or mi.custom_technician or "-" }}</div>
+                    </div>
+                </div>
+
+                {% if mi.custom_equipment_changed %}
+                    <div class="mt-3 p-3 rounded" style="background:#fff7ed;border:1px solid #fed7aa;">
+                        <div class="info-label">Original Equipment</div>
+                        <div class="info-value">{{ mi.custom_original_equipment or "-" }}</div>
+
+                        <div class="info-label mt-2">Change Reason</div>
+                        <div class="info-value">{{ mi.custom_equipment_change_reason or "-" }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        </details>

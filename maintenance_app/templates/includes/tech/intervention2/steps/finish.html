@@ -1,0 +1,289 @@
+<div class="tech2-card">
+
+    <h4>Finish Work</h4>
+
+    {% if not is_checked_in %}
+
+        <div class="tech2-note">
+            Check In before entering the work outcome.
+        </div>
+
+    {% elif is_submitted %}
+
+        <div class="tech2-note">
+            This intervention has already been submitted.
+        </div>
+
+    {% else %}
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Work Outcome
+            </label>
+
+            <select id="tech2-work-outcome"
+                    class="form-control"
+                    onchange="tech2OutcomeChanged()">
+
+                <option value="">
+                    Select outcome
+                </option>
+
+                {% for value in [
+                    "Work Completed",
+                    "Continue Work",
+                    "Waiting for Parts",
+                    "Waiting for Client",
+                    "To Quote (Billable)",
+                    "Could Not Complete",
+                    "False Call Out"
+                ] %}
+
+                <option value="{{ value }}"
+                    {% if mi.custom_work_outcome == value %}
+                    selected
+                    {% endif %}>
+                    {{ value }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Technical Progress Notes
+            </label>
+
+            <textarea id="tech2-work-progress"
+                      class="form-control"
+                      rows="6"
+                      placeholder="Work performed, findings, pending work, observations...">{{ mi.custom_work_progress or "" }}</textarea>
+
+        </div>
+
+
+        <!-- SWAP MOVEMENT -->
+        <div id="tech2-swap-movement"
+             class="tech2-conditional-box"
+             style="display:none;">
+
+            <label class="tech2-check-row">
+
+                <input type="checkbox"
+                       id="tech2-equipment-being-moved"
+                       {% if mi.custom_equipment_being_moved %}
+                       checked
+                       {% endif %}>
+
+                <span>
+                    <strong>Equipment Being Moved</strong>
+
+                    <small>
+                        Tick this when the equipment is physically leaving this site.
+                    </small>
+                </span>
+
+            </label>
+
+        </div>
+
+
+        <!-- WAITING FOR CLIENT -->
+        <div id="tech2-waiting-client"
+             class="tech2-conditional-box"
+             style="display:none;">
+
+            <div class="tech2-form-group">
+                <label class="tech2-label">
+                    Reason for Waiting on Client *
+                </label>
+
+                <textarea
+                    id="tech2-waiting-client-reason"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Explain why we are waiting for the client...">{{ mi.custom_waiting_client_reason or "" }}</textarea>
+            </div>
+
+            <div class="tech2-form-group">
+                <label class="tech2-label">
+                    Action Required from Client *
+                </label>
+
+                <textarea
+                    id="tech2-client-action-required"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Explain what the client must do...">{{ mi.custom_client_action_required or "" }}</textarea>
+            </div>
+
+        </div>
+
+        <!-- OTHER EQUIPMENT / CNC -->
+        <div id="tech2-other-equipment-wrap"
+             class="tech2-conditional-box"
+             style="display:none;">
+
+            <div class="tech2-form-group">
+                <label class="tech2-label">
+                    Other equipment to work on during this visit? *
+                </label>
+
+                <select id="tech2-other-equipment"
+                        class="form-control">
+
+                    <option value="">
+                        Select Yes or No
+                    </option>
+
+                    <option value="Yes"
+                        {% if mi.custom_other_equipment_to_work_on == "Yes" %}
+                        selected
+                        {% endif %}>
+                        Yes
+                    </option>
+
+                    <option value="No"
+                        {% if mi.custom_other_equipment_to_work_on == "No" %}
+                        selected
+                        {% endif %}>
+                        No
+                    </option>
+
+                </select>
+
+                <small>
+                    Select Yes if you still have other equipment
+                    to work on under this Tech Mission.
+                </small>
+            </div>
+        </div>
+
+        <!-- COULD NOT COMPLETE -->
+        <div id="tech2-could-not-complete"
+             class="tech2-conditional-box"
+             style="display:none;">
+
+            <div class="tech2-form-group">
+
+                <label class="tech2-label">
+                    Could Not Complete Reason
+                </label>
+
+                <select id="tech2-could-not-complete-reason"
+                        class="form-control"
+                        onchange="tech2CNCReasonChanged()">
+
+                    <option value="">
+                        Select reason
+                    </option>
+
+                    {% for value in [
+                        "Specialist Required",
+                        "Different Technician Required",
+                        "Required Tool / Equipment Unavailable",
+                        "Unable to Access Equipment",
+                        "Client / Site Access Issue",
+                        "Unsafe to Continue",
+                        "Wrong Equipment / Component",
+                        "Move to Workshop Required",
+                        "Other"
+                    ] %}
+
+                    <option value="{{ value }}"
+                        {% if mi.custom_could_not_complete_reason == value %}
+                        selected
+                        {% endif %}>
+                        {{ value }}
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="tech2-exception-actions">
+
+                <label class="tech2-check-row">
+
+                    <input type="checkbox"
+                           id="tech2-additional-planning"
+                           onchange="tech2ExceptionActionChanged()"
+                           {% if mi.custom_additional_planning_required %}
+                           checked
+                           {% endif %}>
+
+                    <span>
+                        <strong>Additional Planning Required</strong>
+                    </span>
+
+                </label>
+
+
+                <label class="tech2-check-row">
+
+                    <input type="checkbox"
+                           id="tech2-rm-attention"
+                           onchange="tech2ExceptionActionChanged()"
+                           {% if mi.custom_rm_attention_required %}
+                           checked
+                           {% endif %}>
+
+                    <span>
+                        <strong>RM Attention Required</strong>
+                    </span>
+
+                </label>
+
+            </div>
+
+
+            <div id="tech2-planning-note-wrap"
+                 class="tech2-form-group"
+                 style="display:none;">
+
+                <label class="tech2-label">
+                    Action Required from RM / Planning
+                </label>
+
+                <textarea id="tech2-planning-request-note"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Explain what needs to be arranged or reviewed...">{{ mi.custom_planning_request_note or "" }}</textarea>
+
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                id="tech2-save-outcome"
+                class="btn btn-warning tech2-primary-action"
+                onclick="tech2SaveWorkOutcome('{{ mi.name }}')">
+            Complete Work
+        </button>
+
+        <div id="tech2-finish-message"
+             class="tech2-checkin-message">
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+<script>
+window.TECH2_INTERVENTION_TYPE =
+    {{ (mi.custom_intervention_type or "") | tojson }};
+
+window.TECH2_SWAP_STAGE =
+    {{ (mi.custom_swap_stage or "") | tojson }};
+</script>

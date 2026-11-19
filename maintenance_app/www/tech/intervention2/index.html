@@ -1,0 +1,144 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+
+<link rel="stylesheet"
+      href="/assets/maintenance_app/css/tech/intervention2/ui3.css?v=checkin-fix-20261117">
+
+{% set page_base = "/tech/intervention2?name=" ~ mi.name ~ "&step=" %}
+
+{% set steps = [
+    {"key": "job", "label": "Job / Check in", "done": is_checked_in, "locked": False},
+    {"key": "actions", "label": "Actions", "done": False, "locked": not is_checked_in},
+    {"key": "work", "label": intervention_type, "done": False, "locked": not is_checked_in},
+    {"key": "finish", "label": "Finish work", "done": has_outcome, "locked": not is_checked_in},
+    {"key": "checkout", "label": "Check out", "done": is_checked_out, "locked": not has_outcome},
+    {"key": "client", "label": "Client sign-off", "done": client_confirmed, "locked": not is_checked_out},
+    {"key": "submit", "label": "Submit", "done": is_submitted, "locked": not client_confirmed}
+] %}
+
+{% set tools = [
+    {"key": "plan", "label": "Mission plan"},
+    {"key": "equipment", "label": "Equipment details"},
+    {"key": "component", "label": "Component details"},
+    {"key": "sla", "label": "SLA / Service info"},
+    {"key": "photos", "label": "Photos & Documents"},
+    {"key": "parts", "label": "Parts"},
+    {"key": "hse", "label": "HSE / Incident"},
+    {"key": "more", "label": "More details"}
+] %}
+
+{% set ns = namespace(index=0, label="") %}
+
+{% for s in steps %}
+    {% if s.key == step %}
+        {% set ns.index = loop.index %}
+        {% set ns.label = s.label %}
+    {% endif %}
+{% endfor %}
+
+{% for t in tools %}
+    {% if t.key == step %}
+        {% set ns.label = t.label %}
+    {% endif %}
+{% endfor %}
+
+{% set current_step_index = ns.index %}
+{% set current_step_label = ns.label %}
+
+<div class="i3">
+
+    {% include "maintenance_app/templates/includes/tech/intervention2/shell/header.html" %}
+
+    {% include "maintenance_app/templates/includes/tech/intervention2/shell/mobile_navigation.html" %}
+
+    <div class="i3-layout">
+
+        {% include "maintenance_app/templates/includes/tech/intervention2/shell/navigation.html" %}
+
+        <main class="i3-main">
+
+            <section class="i3-card i3-legacy">
+
+                {% if step == "job" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/steps/job.html" %}
+
+                {% elif step == "actions" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/steps/actions.html" %}
+
+                {% elif step == "work" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/work/work_router.html" %}
+
+                {% elif step == "finish" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/steps/finish.html" %}
+
+                {% elif step == "checkout" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/steps/checkout.html" %}
+
+                {% elif step == "client" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/steps/client_confirmation.html" %}
+
+                {% elif step == "submit" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/steps/submit.html" %}
+                    {% if is_submitted and intervention_type == "Calibration" %}
+                    <section id="gmao-cal-batch-host" data-mi="{{ mi.name | e }}" class="tech2-card" style="margin-top:20px">
+                      <h4>Consolidated Calibration Report</h4>
+                      <p class="tech2-note">Your MI is submitted. Continue with another FDU or prepare one signed report for the completed equipment.</p>
+                      <div id="gmao-cal-batch-content"></div>
+                    </section>
+                    {% endif %}
+
+
+                {% elif step == "plan" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/mission_plan.html" %}
+
+                {% elif step == "equipment" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/equipment_details.html" %}
+
+                {% elif step == "component" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/component_details.html" %}
+
+                {% elif step == "sla" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/sla_service_info.html" %}
+
+                {% elif step == "photos" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/photos.html" %}
+
+                {% elif step == "parts" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/parts.html" %}
+
+                {% elif step == "hse" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/hse.html" %}
+
+                {% elif step == "more" %}
+                    {% include "maintenance_app/templates/includes/tech/intervention2/tools/more_details.html" %}
+                {% endif %}
+
+            </section>
+
+        </main>
+
+    </div>
+
+</div>
+
+<script src="/assets/maintenance_app/js/tech/intervention2/checkin.js?v=20261110-2"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/finish.js?v=20261113-2"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/repair.js?v=20261111-1"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/actions.js?v=20261111-2"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/mission_finish.js?v=20261112-2"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/calibration.js?v=20261118-cal-finish-unlock-v2"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/calibration_ui.js?v=20261116-2"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/calibration_batch.js?v=20261117-two-signatures"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/photos.js?v=20261111-1"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/hse.js?v=20261111-1"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/client_confirmation.js?v=20261111-3"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/mi_email.js?v=20261118-cal-combined-email-v1"></script>
+<script src="/assets/maintenance_app/js/tech/intervention2/checkout.js?v=20261111-2"></script>
+
+
+<script src="/assets/maintenance_app/js/tech/intervention2/relocation.js?v=20261119-movement-save-v5"></script>
+
+<script src="/assets/maintenance_app/js/tech/intervention2/equipment_movement.js?v=20261118-move-init-v3"></script>
+
+{% endblock %}

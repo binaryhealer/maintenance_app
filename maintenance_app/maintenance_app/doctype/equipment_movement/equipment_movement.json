@@ -1,0 +1,208 @@
+{
+ "actions": [],
+ "autoname": "format:MOVE-{YYYY}-{#####}",
+ "creation": "2026-11-18 13:51:07.897037",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_mission_intervention",
+  "custom_service_ticket",
+  "custom_tech_mission",
+  "custom_equipment",
+  "custom_scope",
+  "custom_source_type",
+  "custom_source_reference",
+  "custom_source_branch",
+  "custom_source_site_id",
+  "custom_destination_type",
+  "custom_destination_branch",
+  "custom_destination_workshop",
+  "custom_destination_warehouse",
+  "custom_destination_text",
+  "custom_destination_detail",
+  "custom_custodian",
+  "custom_condition",
+  "custom_proposed_disposition",
+  "custom_reason",
+  "custom_applied",
+  "custom_applied_at",
+  "custom_lifecycle_log"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_mission_intervention",
+   "fieldtype": "Link",
+   "label": "Mission Intervention",
+   "options": "Mission Intervention",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "label": "Service Ticket",
+   "options": "Service Ticket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_tech_mission",
+   "fieldtype": "Link",
+   "label": "Tech Mission",
+   "options": "Tech Mission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_equipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Installed Equipment",
+   "options": "Installed Equipment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_scope",
+   "fieldtype": "Select",
+   "label": "Movement Scope",
+   "options": "Complete Equipment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_source_type",
+   "fieldtype": "Data",
+   "label": "Source Location Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_source_reference",
+   "fieldtype": "Data",
+   "label": "Source Location Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_source_branch",
+   "fieldtype": "Link",
+   "label": "Source Branch",
+   "options": "Client Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_source_site_id",
+   "fieldtype": "Data",
+   "label": "Source Site ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_destination_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Destination Type",
+   "options": "Customer Branch\nWorkshop\nCompany Warehouse\nCustomer Warehouse\nOther Location",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_destination_branch",
+   "fieldtype": "Link",
+   "label": "Destination Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_destination_workshop",
+   "fieldtype": "Link",
+   "label": "Destination Workshop",
+   "options": "Company Workshop"
+  },
+  {
+   "fieldname": "custom_destination_warehouse",
+   "fieldtype": "Link",
+   "label": "Destination Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "custom_destination_text",
+   "fieldtype": "Data",
+   "label": "Destination Name / Address"
+  },
+  {
+   "fieldname": "custom_destination_detail",
+   "fieldtype": "Small Text",
+   "label": "Position / Bay / Shelf"
+  },
+  {
+   "fieldname": "custom_custodian",
+   "fieldtype": "Select",
+   "label": "Destination Custodian",
+   "options": "Customer\nCompany\nThird Party",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_condition",
+   "fieldtype": "Select",
+   "label": "Condition at Movement",
+   "options": "Operational\nGood\nDegraded\nFaulty\nOut of Service\nAwaiting Component\nUnknown"
+  },
+  {
+   "fieldname": "custom_proposed_disposition",
+   "fieldtype": "Select",
+   "label": "Proposed Disposition",
+   "options": "Pending Assessment\nRepair\nReturn to Service\nKeep for Spare Parts\nPropose Scrap\nReturn to Customer"
+  },
+  {
+   "fieldname": "custom_reason",
+   "fieldtype": "Small Text",
+   "label": "Movement Reason",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_applied",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Applied",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_applied_at",
+   "fieldtype": "Datetime",
+   "label": "Applied On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_lifecycle_log",
+   "fieldtype": "Link",
+   "label": "Asset Lifecycle Log",
+   "options": "Asset Lifecycle Log",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-19 08:24:51.375314",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Equipment Movement",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Agent",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Maint App Tech",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

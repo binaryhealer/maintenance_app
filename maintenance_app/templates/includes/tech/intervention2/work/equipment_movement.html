@@ -1,0 +1,19 @@
+<div class="tech2-card" id="tech2-eq-move" data-mi="{{ mi.name | e }}">
+  <h4>Relocate Complete Equipment</h4>
+  <p class="tech2-note">Moving equipment does not change ownership, repair outcome, or scrap status. The movement applies when this MI is submitted as Work Completed.</p>
+  <p><strong>Equipment:</strong> {{ (equipment.label or equipment.asset_name or mi.custom_asset or '-') | e }}<br>
+  <span class="tech2-muted">Equipment ID: {{ (equipment.name or mi.custom_asset or '-') | e }}</span><br>
+  <strong>Current location:</strong> {{ (equipment.location_status or '-') | e }}<br>
+  <strong>Current branch:</strong> {{ (mi.custom_branch or '-') | e }}</p>
+  {% if is_submitted %}<div class="tech2-note">Submitted — the movement cannot be edited.</div>{% else %}
+  <div class="tech2-form-group"><label>Destination Type *</label><select id="tech2-move-type" class="form-control"><option value="">Select destination type</option><option>Customer Branch</option><option>Workshop</option><option>Company Warehouse</option><option>Customer Warehouse</option><option>Other Location</option></select></div>
+  <div class="tech2-form-group"><label>Destination *</label><select id="tech2-move-select" class="form-control"><option value="">Select</option></select><input id="tech2-move-text" class="form-control" maxlength="140" placeholder="Destination name / address" style="display:none"></div>
+  <div class="tech2-form-group"><label>Location / shelf / position</label><textarea id="tech2-move-details" rows="2" class="form-control" maxlength="500"></textarea></div>
+  <div class="tech2-form-group"><label>Receiving custodian *</label><select id="tech2-move-custodian" class="form-control"><option value="Customer">Customer</option><option value="Company">Company</option><option value="Third Party">Third Party</option></select></div>
+  <div class="tech2-form-group"><label>Equipment condition</label><select id="tech2-move-condition" class="form-control"><option>Unknown</option><option>Operational</option><option>Degraded</option><option>Faulty</option><option>Beyond Repair</option></select></div>
+  <div class="tech2-form-group"><label>Proposed disposition (not a final decision)</label><select id="tech2-move-disposition" class="form-control"><option>Pending Assessment</option><option>Repair</option><option>Return to Service</option><option>Keep for Spare Parts</option><option>Propose Scrap</option><option>Return to Customer</option></select></div>
+  <div class="tech2-form-group"><label>Movement reason *</label><textarea id="tech2-move-reason" class="form-control" rows="3"></textarea></div>
+  <p class="tech2-note" id="tech2-move-status" role="status"></p>
+  <button id="tech2-move-save" type="button" class="btn btn-primary tech2-primary-action">Save Movement &amp; Continue to Finish Work</button>
+  {% endif %}
+</div>

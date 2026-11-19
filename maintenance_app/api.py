@@ -1499,6 +1499,48 @@ def _sync_mi_to_target_equipment_row(mission, mi):
         equipment_name,
     )
 
+    # --------------------------------------------------------
+    # Pure Equipment Swap - final stage
+    #
+    # In a cross-site Swap the final MI is performed on the
+    # second equipment, while the TM planned-equipment row
+    # represents the original equipment.
+    #
+    # Therefore the final "Work Completed" MI may legitimately
+    # not match the planned row by custom_asset.
+    # --------------------------------------------------------
+    if (
+        not target_row
+        and (mi.get("custom_intervention_type") or "").strip() == "Swap"
+        and (mi.get("custom_swap_stage") or "").strip() == "Final Installation"
+        and int(mi.docstatus or 0) == 1
+        and (mi.get("custom_work_outcome") or "").strip() == "Work Completed"
+    ):
+        original_equipment = (
+            mission.get("custom_asset")
+            or frappe.db.get_value(
+                "Service Ticket",
+                mission.get("custom_service_ticket"),
+                "custom_target_equipment",
+            )
+        )
+
+        if original_equipment:
+            target_row = _find_planned_equipment_row(
+                mission,
+                original_equipment,
+            )
+
+            if target_row:
+                target_row.custom_status = "Completed"
+
+                if target_row.meta.has_field(
+                    "custom_mission_intervention"
+                ):
+                    target_row.custom_mission_intervention = mi.name
+
+                return target_row
+
     # Additional/discovered equipment is not part of the planned list.
     if not target_row:
         return None
@@ -1576,6 +1618,23 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
       6. Planned-equipment completion remains authoritative for planned work.
       7. TM completes only when no active/hold/additional/planned work remains.
     """
+    # Closed Tech Missions are terminal.
+    if mission.get("custom_mission_status") in ("Closed", "Completed"):
+        return {
+            "mission_status": mission.get("custom_mission_status"),
+            "ticket_status": None,
+            "hold_reason": mission.get("custom_hold_reason") or "",
+        }
+
+    # Recalculate the pending-client summary from authoritative MI data.
+    for fieldname in [
+        "custom_pending_client_reason",
+        "custom_pending_client_action",
+        "custom_pending_client_source_mi",
+    ]:
+        if mission.meta.has_field(fieldname):
+            mission.set(fieldname, None)
+
     mi_meta = frappe.get_meta("Mission Intervention")
 
     query_fields = [
@@ -1596,6 +1655,9 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
         "custom_additional_planning_required",
         "custom_planning_request_note",
         "custom_could_not_complete_reason",
+        "custom_other_equipment_to_work_on",
+        "custom_waiting_client_reason",
+        "custom_client_action_required",
         "custom_checkout_status",
     ]:
         if mi_meta.has_field(optional_field):
@@ -1629,6 +1691,9 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
             "custom_additional_planning_required",
             "custom_planning_request_note",
             "custom_could_not_complete_reason",
+            "custom_other_equipment_to_work_on",
+            "custom_waiting_client_reason",
+            "custom_client_action_required",
             "custom_checkout_status",
         ]:
             if mi_meta.has_field(optional_field):
@@ -1725,6 +1790,22 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
             continue
 
         source_row = matching[-1]
+
+        if outcome == "Waiting for Client":
+            client_fields = {
+                "custom_pending_client_reason": (
+                    source_row.get("custom_waiting_client_reason") or ""
+                ).strip(),
+                "custom_pending_client_action": (
+                    source_row.get("custom_client_action_required") or ""
+                ).strip(),
+                "custom_pending_client_source_mi": source_row.get("name"),
+            }
+
+            for fieldname, value in client_fields.items():
+                if mission.meta.has_field(fieldname):
+                    mission.set(fieldname, value)
+
         additional_planning_required = int(
             source_row.get("custom_additional_planning_required") or 0
         )
@@ -1737,9 +1818,15 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
 
         if mission.meta.has_field("custom_planning_required"):
             mission.custom_planning_required = additional_planning_required
+        rm_attention_required = int(
+            source_row.get("custom_rm_attention_required") or 0
+        )
+
         if mission.meta.has_field("custom_rm_attention_required"):
             mission.custom_rm_attention_required = (
-                1 if outcome == "Could Not Complete" else 0
+                rm_attention_required
+                if outcome == "Could Not Complete"
+                else 0
             )
         if mission.meta.has_field("custom_rm_attention_reason"):
             if outcome == "Could Not Complete":
@@ -1750,6 +1837,11 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
                 )
             else:
                 mission.custom_rm_attention_reason = ""
+
+        # The MI outcome records unresolved work.
+        # Only the explicit Finish Mission backend operation may
+        # finalize this Tech Mission as Closed or Completed.
+        # Until then, preserve the existing On Hold workflow.
 
         mission.custom_mission_status = "On Hold"
         if mission.meta.has_field("custom_hold_reason"):
@@ -1980,121 +2072,24 @@ def _recalculate_mission_status_from_mis(mission, current_mi=None):
             }
 
     # ------------------------------------------------------------
-    # EVERYTHING REQUIRED IS FINISHED
+    # ALL CURRENT MI WORK IS ACCOUNTED FOR
     # ------------------------------------------------------------
-    mission.custom_mission_status = "Completed"
+    # Submission must not finalize the Tech Mission.
+    # Finish Mission is the authoritative finalization action.
+
+    mission.custom_mission_status = "On Hold"
 
     if mission.meta.has_field("custom_hold_reason"):
         mission.custom_hold_reason = ""
+
     if mission.meta.has_field("custom_open_work_remaining"):
         mission.custom_open_work_remaining = 0
-    if mission.meta.has_field("custom_planning_required"):
-        mission.custom_planning_required = 0
-    if mission.meta.has_field("custom_rm_attention_required"):
-        mission.custom_rm_attention_required = 0
-    if mission.meta.has_field("custom_rm_attention_reason"):
-        mission.custom_rm_attention_reason = ""
-
-    ticket_name = mission.get("custom_service_ticket")
-    if ticket_name:
-        ticket = frappe.get_doc("Service Ticket", ticket_name)
-        if ticket.meta.has_field("custom_ticket_status"):
-            ticket.custom_ticket_status = "Resolved"
-        if ticket.meta.has_field("custom_hold_reason"):
-            ticket.custom_hold_reason = ""
-        ticket.save(ignore_permissions=True)
 
     return {
-        "mission_status": "Completed",
-        "ticket_status": "Resolved",
+        "mission_status": "On Hold",
+        "ticket_status": None,
         "hold_reason": "",
-    }
-
-@frappe.whitelist()
-def cancel_unused_draft_mi(mission_name, mi_name, reason):
-    """Retain an unused Draft MI and mark it Cancelled for audit/history."""
-    if not mission_name:
-        frappe.throw("Tech Mission is required.")
-    if not mi_name:
-        frappe.throw("Mission Intervention is required.")
-
-    reason = (reason or "").strip()
-    if not reason:
-        frappe.throw("Cancellation Reason is required.")
-
-    mission = frappe.get_doc("Tech Mission", mission_name)
-    mi = frappe.get_doc("Mission Intervention", mi_name)
-
-    if mi.get("custom_parent_mission") != mission.name:
-        frappe.throw("This Mission Intervention does not belong to this Tech Mission.")
-    if int(mi.docstatus or 0) != 0:
-        frappe.throw("Only an unused Draft Mission Intervention can be cancelled.")
-    if mi.get("custom_start_time"):
-        frappe.throw(
-            "This Mission Intervention has already been checked in and cannot be cancelled with this action."
-        )
-
-    for fieldname in [
-        "custom_checkout_status",
-        "custom_cancel_reason",
-        "custom_cancelled_by",
-        "custom_cancelled_on",
-    ]:
-        if not mi.meta.has_field(fieldname):
-            frappe.throw(f"Mission Intervention field {fieldname} is missing.")
-
-    if (mi.get("custom_checkout_status") or "").strip() == "Cancelled":
-        frappe.throw("This Mission Intervention is already cancelled.")
-
-    mi.custom_checkout_status = "Cancelled"
-    mi.custom_cancel_reason = reason
-    mi.custom_cancelled_by = frappe.session.user
-    mi.custom_cancelled_on = frappe.utils.now_datetime()
-    mi.save(ignore_permissions=True)
-
-    # Preserve the MI in the mission work log/register and show it as Cancelled.
-    _sync_mi_row_to_mission(mission, mi)
-
-    # If this was a planned/initial MI, also release its planned-equipment row.
-    # Additional MI is deliberately ignored by this helper.
-    _sync_mi_to_target_equipment_row(mission, mi)
-
-    # Recalculate after cancellation. Retained cancelled MI is ignored as open work.
-    result = _recalculate_mission_status_from_mis(mission, current_mi=mi)
-    mission.save(ignore_permissions=True)
-
-    mission_status = mission.get("custom_mission_status") or ""
-
-    if mission_status in ["Completed", "Closed", "Cancelled"]:
-        todo_names = frappe.get_all(
-            "ToDo",
-            filters={
-                "reference_type": "Tech Mission",
-                "reference_name": mission.name,
-                "status": "Open",
-            },
-            pluck="name",
-        )
-
-        for todo_name in todo_names:
-            todo = frappe.get_doc("ToDo", todo_name)
-            todo.status = "Closed"
-            todo.description = (
-                (todo.description or "")
-                + "<br><br><b>MI Cancelled:</b> "
-                + frappe.utils.escape_html(mi.name)
-                + "<br><b>Reason:</b> "
-                + frappe.utils.escape_html(reason)
-            )
-            todo.save(ignore_permissions=True)
-
-    frappe.db.commit()
-
-    return {
-        "ok": True,
-        "cancelled_mi": mi.name,
-        "mission_status": mission_status,
-        "result": result,
+        "ready_for_finish": True,
     }
 
 
@@ -3741,7 +3736,8 @@ def create_service_ticket_from_equipment(
     description=None,
     technician=None,
     technicians=None,
-    applicant=None
+    applicant=None,
+    additional_equipments=None
 ):
     if not equipment_name:
         frappe.throw("Equipment is required.")
@@ -3928,6 +3924,46 @@ def create_service_ticket_from_equipment(
         ticket.custom_component_model = component_row.get("custom_model")
         ticket.custom_component_serial = component_row.get("custom_serial_number")
 
+
+    # GMAO_ST_MULTI_IE_V1: normalize primary and additional equipment on the ST.
+    additional_names = frappe.parse_json(additional_equipments) if additional_equipments else []
+    if not isinstance(additional_names, list):
+        frappe.throw("Additional equipment must be a list.")
+    if len(additional_names) > 100:
+        frappe.throw("A maximum of 100 additional equipment may be selected.")
+
+    seen_equipment = {equipment.name}
+    target_docs = [equipment]
+    for additional_name in additional_names:
+        if not isinstance(additional_name, str):
+            frappe.throw("Invalid additional equipment value.")
+        additional_name = additional_name.strip()
+        if not additional_name or additional_name in seen_equipment:
+            continue
+        if not frappe.db.exists("Installed Equipment", additional_name):
+            frappe.throw("Installed Equipment not found: " + additional_name)
+        another = frappe.get_doc("Installed Equipment", additional_name)
+        if another.get("custom_parent_customer") != equipment.get("custom_parent_customer"):
+            frappe.throw("Additional equipment must belong to the same customer: " + additional_name)
+        if another.get("custom_branch") != equipment.get("custom_branch"):
+            frappe.throw("Additional equipment must belong to the same branch: " + additional_name)
+        seen_equipment.add(additional_name)
+        target_docs.append(another)
+
+    if ticket.meta.has_field("custom_target_equipments"):
+        for position, equipment_doc in enumerate(target_docs):
+            ticket.append("custom_target_equipments", {
+                "custom_equipment": equipment_doc.name,
+                "custom_is_primary": 1 if position == 0 else 0,
+                "custom_asset_name": equipment_doc.get("custom_asset_name") or equipment_doc.get("custom_display_name"),
+                "custom_site_id": equipment_doc.get("custom_site_id"),
+                "custom_status": "Pending",
+                "custom_client_asset_code": equipment_doc.get("custom_client_asset_code"),
+                "custom_asset_id": equipment_doc.get("custom_asset_id"),
+                "custom_make": equipment_doc.get("custom_make"),
+                "custom_model": equipment_doc.get("custom_model"),
+                "custom_asset_category": equipment_doc.get("custom_asset_category"),
+            })
 
     ticket.insert(ignore_permissions=True)
 
@@ -4426,6 +4462,16 @@ def get_service_ticket_applicants(doctype, txt, searchfield, start, page_len, fi
         )
         allowed.extend(ho_contacts)
 
+    # ISP / external Contacts explicitly permitted as applicants across
+    # multiple customers. Do not create fake Customer Dynamic Links.
+    if frappe.get_meta("Contact").has_field("custom_allow_as_service_applicant"):
+        external_applicants = frappe.get_all(
+            "Contact",
+            filters={"custom_allow_as_service_applicant": 1},
+            pluck="name",
+        )
+        allowed.extend(external_applicants)
+
     allowed = list(set(allowed))
 
     if not allowed:
@@ -4917,7 +4963,17 @@ def build_components_for_equipment(equipment_name):
                 component.custom_sequence = len(kept_components) + 1
 
             if component.meta.has_field("custom_display_name"):
-                component.custom_display_name = str(type_name)
+                next_position = len(kept_components) + 1
+                short_display_name = (
+                    str(type_name) + "-" + str(next_position)
+                    if desired_qty > 1
+                    else str(type_name)
+                )
+                component.custom_display_name = (
+                    str(equipment_prefix).strip()
+                    + " - "
+                    + str(short_display_name).strip()
+                )
 
             component.insert(ignore_permissions=True)
 
@@ -6753,6 +6809,7 @@ def get_replacement_components(
     - Stock
     - Customer Supplied
     - New Component
+    - Swap (internal query mode for a true component-to-component exchange)
 
     The selected value is always an Equipment Component permanent ID
     such as COMP-00045.
@@ -6880,6 +6937,50 @@ def get_replacement_components(
                 OR ec.name != %(outgoing_component)s
             )
     """
+
+    # --------------------------------------------------------
+    # TRUE COMPONENT SWAP
+    # Existing compatible component installed on another
+    # equipment belonging to the same customer. Branch may be
+    # the same or different because both components exchange
+    # their current parent equipment.
+    # --------------------------------------------------------
+    if replacement_source == "Swap":
+        return frappe.db.sql(
+            select_columns
+            + """
+            FROM `tabEquipment Component` ec
+            INNER JOIN `tabInstalled Equipment` ie
+                ON ie.name = ec.custom_parent_equipment
+            """
+            + common_conditions
+            + """
+                AND ec.custom_status = 'Installed'
+                AND ec.custom_parent_equipment IS NOT NULL
+                AND ec.custom_parent_equipment != %(current_equipment)s
+                AND ec.custom_customer = %(customer)s
+
+                AND (
+                    %(asset_type)s IS NULL
+                    OR %(asset_type)s = ''
+                    OR ie.custom_asset_type = %(asset_type)s
+                )
+
+                AND (
+                    %(asset_category)s IS NULL
+                    OR %(asset_category)s = ''
+                    OR ie.custom_asset_category = %(asset_category)s
+                )
+            """
+            + compatibility_conditions
+            + text_condition
+            + """
+            ORDER BY ec.custom_branch, ec.custom_display_name,
+                     ec.custom_parent_equipment
+            LIMIT %(page_len)s OFFSET %(start)s
+            """,
+            values
+        )
 
     # --------------------------------------------------------
     # SAME SITE
@@ -8628,7 +8729,8 @@ def create_ticket_from_installed_equipment(
     technicians=None,
     work_type="Quick Intervention",
     component_name=None,
-    additional_equipments=None
+    additional_equipments=None,
+    applicant=None
 ):
     """
     Create one Service Ticket from an Installed Equipment record.
@@ -8720,6 +8822,9 @@ def create_ticket_from_installed_equipment(
         "General Installation",
         "Survey",
         "Service",
+        "Preventive Maintenance",
+        "Calibration",
+        "Asset Relocation",
         "Training",
         "Audit",
         "Inspection",
@@ -8743,6 +8848,16 @@ def create_ticket_from_installed_equipment(
 
     equipment = frappe.get_doc("Installed Equipment", equipment_name)
     component = None
+
+    # Branchless relocation is valid for equipment held away from a client site.
+    # The movement form will capture the actual workshop/warehouse destination.
+    if ticket_type == "Asset Relocation" and not equipment.get("custom_branch"):
+        location = (equipment.get("custom_location_status") or "").strip()
+        if location not in ("Workshop", "Warehouse", "Van", "In Transit"):
+            frappe.throw(
+                "Equipment without a Client Branch must have its current "
+                "Location Status set to Workshop, Warehouse, Van or In Transit."
+            )
 
     if component_name:
         component = frappe.get_doc("Equipment Component", component_name)
@@ -8787,7 +8902,10 @@ def create_ticket_from_installed_equipment(
                 )
             )
 
-        if additional_doc.get("custom_branch") != equipment.get("custom_branch"):
+        # A relocation ticket may collect equipment from different source
+        # branches, workshop or warehouse. All must still share one customer.
+        if (ticket_type != "Asset Relocation" and
+                additional_doc.get("custom_branch") != equipment.get("custom_branch")):
             frappe.throw(
                 "Additional equipment {0} does not belong to the same branch.".format(
                     additional_name
@@ -8797,6 +8915,63 @@ def create_ticket_from_installed_equipment(
         validated_additional_equipment.append(additional_doc)
 
     ticket = frappe.new_doc("Service Ticket")
+
+    # IE_APPLICANT_FROM_DIALOG: populate the same applicant snapshot fields
+    # that the Service Ticket form populates in its client-side handler.
+    if applicant:
+        applicant_contact = frappe.get_doc("Contact", applicant)
+        customer_name = equipment.get("custom_parent_customer")
+        branch_name = equipment.get("custom_branch")
+        scope = applicant_contact.get("custom_contact_scope")
+
+        is_external_applicant = bool(
+            applicant_contact.get("custom_allow_as_service_applicant")
+        )
+        is_branch_applicant = bool(
+            branch_name
+            and scope == "Branch Level"
+            and applicant_contact.get("custom_client_branch") == branch_name
+        )
+        is_head_office_applicant = bool(
+            customer_name
+            and scope == "Head Office Level"
+            and frappe.db.exists("Dynamic Link", {
+                "parenttype": "Contact",
+                "parent": applicant_contact.name,
+                "link_doctype": "Customer",
+                "link_name": customer_name,
+            })
+        )
+
+        if not (
+            is_external_applicant
+            or is_branch_applicant
+            or is_head_office_applicant
+        ):
+            frappe.throw(
+                "The selected Applicant is not authorized for this Service Ticket."
+            )
+
+        email_rows = applicant_contact.get("email_ids") or []
+        phone_rows = applicant_contact.get("phone_nos") or []
+        primary_email = next(
+            (row for row in email_rows if row.get("is_primary")),
+            email_rows[0] if email_rows else None,
+        )
+        primary_phone = next(
+            (row for row in phone_rows if row.get("is_primary_mobile_no")
+             or row.get("is_primary_phone")),
+            phone_rows[0] if phone_rows else None,
+        )
+
+        ticket.custom_applicant = applicant_contact.name
+        ticket.custom_applicant_role = applicant_contact.get("designation") or ""
+        ticket.custom_applicant_email = (
+            primary_email.get("email_id") if primary_email else ""
+        ) or applicant_contact.get("email_id") or ""
+        ticket.custom_applicant_phone = (
+            primary_phone.get("phone") if primary_phone else ""
+        ) or applicant_contact.get("mobile_no") or applicant_contact.get("phone") or ""
 
     ticket.custom_customer = equipment.get("custom_parent_customer")
     ticket.custom_client_branch = equipment.get("custom_branch")
@@ -10741,7 +10916,9 @@ def _pa_event_for_action(action, outcome=None):
         "Component Swap": ["Component Replaced", "Relocated"],
         "Equipment Installation": ["Installed"],
         "Component Installation": ["Installed", "Component Replaced"],
-        "Equipment Decommissioning": ["Retired", "Scrapped"],
+        # Decommissioning itself is a service-state change. Do not invent
+        # Retired/Scrapped unless a real removal disposition was selected.
+        "Equipment Decommissioning": [],
         "Component Decommissioning": ["Retired", "Scrapped", "Component Replaced"],
     }
 
@@ -10773,6 +10950,21 @@ def _pa_create_lifecycle_log(mi, action, asset=None, component=None, notes=None)
     _pa_set_if_present(log, "custom_action_taken", notes or action)
     _pa_set_if_present(log, "custom_new_asset", mi.get("custom_new_asset"))
     _pa_set_if_present(log, "custom_new_branch", mi.get("custom_new_branch"))
+    _pa_set_if_present(
+        log,
+        "custom_equipment_still_on_site",
+        mi.get("custom_equipment_still_on_site"),
+    )
+    _pa_set_if_present(
+        log,
+        "custom_destination_location_text",
+        mi.get("custom_destination_location_text"),
+    )
+    _pa_set_if_present(
+        log,
+        "custom_decommissioning_approval_number",
+        mi.get("custom_decommissioning_approval_number"),
+    )
 
     if component:
         _pa_set_if_present(log, "custom_equipment_component", component.name)
@@ -10862,43 +11054,211 @@ def _pa_equipment_replacement(mi):
 
 
 def _pa_equipment_relocation(mi):
-    equipment = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Equipment")
-    destination_branch = mi.get("custom_new_branch")
-    if not destination_branch:
-        frappe.throw("Destination Branch is required for Equipment Relocation.")
 
-    destination = _pa_require_doc("Client Branch", destination_branch, "Destination Branch")
-    destination_customer = destination.get("custom_parent_customer") or mi.get("custom_parent_customer")
-    destination_site_id = destination.get("custom_site_id") if destination.meta.has_field("custom_site_id") else None
+    # ST_APPROVED_RELOCATION_ROUTE_V2
+    # The approved ST request is authoritative.
+    # Execute it before the generic Equipment Movement handler.
+    ticket = mi.get("custom_service_ticket")
+    equipment_name = mi.get("custom_asset")
 
-    _pa_set_equipment_active_at_site(
-        equipment,
-        destination_customer,
-        destination_branch,
-        destination_site_id,
-        mi.get("custom_replacement_site_position"),
+    if (
+        mi.get("custom_relocation_destination_type")
+        and ticket
+        and equipment_name
+        and frappe.db.exists(
+            "Service Ticket Movement Request",
+            {
+                "parent": ticket,
+                "custom_equipment": equipment_name,
+                "custom_request_status": [
+                    "in", ["Approved", "Planned", "Completed"]
+                ],
+            },
+        )
+    ):
+        from maintenance_app.relocation_v1 import (
+            apply_whole_equipment_relocation,
+        )
+        return apply_whole_equipment_relocation(mi)
+
+
+    # Stage 1: Equipment Movement is separate from the large MI table.
+    from maintenance_app.equipment_movement import apply_movement_for_mi
+    if apply_movement_for_mi(mi):
+        return
+
+    # New explicit relocation destinations use the validated v1 engine.
+    # Older saved relocation MIs continue through the legacy branch below.
+    if mi.get("custom_relocation_destination_type"):
+        from maintenance_app.relocation_v1 import apply_whole_equipment_relocation
+        return apply_whole_equipment_relocation(mi)
+
+    equipment = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_asset"),
+        "Equipment",
     )
+
+    destination_branch = (mi.get("custom_new_branch") or "").strip()
+    destination_text = (mi.get("custom_destination_location_text") or "").strip()
+
+    if not destination_branch and not destination_text:
+        frappe.throw(
+            "Please select a Destination Branch or enter a Destination Location "
+            "for Equipment Relocation."
+        )
+
+    previous_operational_status = (
+        equipment.get("custom_operational_status") or ""
+    ).strip()
+
+    if destination_branch:
+        destination = _pa_require_doc(
+            "Client Branch",
+            destination_branch,
+            "Destination Branch",
+        )
+        destination_customer = (
+            destination.get("custom_parent_customer")
+            or mi.get("custom_parent_customer")
+        )
+        destination_site_id = (
+            destination.get("custom_site_id")
+            if destination.meta.has_field("custom_site_id")
+            else None
+        )
+
+        _pa_set_equipment_active_at_site(
+            equipment,
+            destination_customer,
+            destination_branch,
+            destination_site_id,
+            mi.get("custom_replacement_site_position"),
+        )
+
+        # Relocation must not recommission a unit that was already decommissioned.
+        if previous_operational_status == "Out of Service":
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_operational_status",
+                ["Out of Service"],
+            )
+
+        _pa_set_if_present(
+            equipment,
+            "custom_destination_location_text",
+            destination_text or None,
+        )
+
+        destination_label = destination_branch
+
+    else:
+        # Generic off-site move, e.g. client HO / warehouse that is not modelled
+        # as an operational Client Branch.
+        _pa_set_if_present(equipment, "custom_branch", None)
+        _pa_set_if_present(equipment, "custom_site_id", None)
+        _pa_set_if_present(equipment, "custom_company_workshop", None)
+        _pa_set_if_present(
+            equipment,
+            "custom_destination_location_text",
+            destination_text,
+        )
+
+        # The unit is no longer installed at the old site. Pending Installation is
+        # the closest existing non-terminal equipment state for a reusable stored unit.
+        _pa_set_first_allowed_select(
+            equipment,
+            "custom_asset_status",
+            ["Pending Installation"],
+        )
+
+        # Preserve decommissioned state. For an active unit, do not force a new
+        # operational state merely because it moved to storage.
+        if previous_operational_status == "Out of Service":
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_operational_status",
+                ["Out of Service"],
+            )
+
+        destination_label = destination_text
+
     equipment.save(ignore_permissions=True)
 
-    _pa_create_lifecycle_log(mi, "Equipment Relocation", equipment.name, notes="Equipment relocated to " + destination_branch)
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Relocation",
+        equipment.name,
+        notes="Equipment relocated to " + destination_label,
+    )
 
 
 def _pa_equipment_swap(mi):
-    first = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Current Equipment")
-    second = _pa_require_doc("Installed Equipment", mi.get("custom_new_asset"), "Swap Equipment")
+    first = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_asset"),
+        "Current Equipment",
+    )
+    second = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_new_asset"),
+        "Second Equipment",
+    )
 
     if first.name == second.name:
-        frappe.throw("Swap Equipment must be different from Current Equipment.")
+        frappe.throw(
+            "Second Equipment must be different from Current Equipment."
+        )
+
+    swap_type = (
+        mi.get("custom_swap_classification") or ""
+    ).strip()
+
+    if swap_type not in ("Permanent Swap", "Temporary Swap"):
+        frappe.throw(
+            "Swap Type must be Permanent Swap or Temporary Swap."
+        )
+
+    swap_reason = (
+        mi.get("custom_asset_change_reason") or ""
+    ).strip()
+
+    if not swap_reason:
+        frappe.throw("Swap Reason is required.")
 
     first_ctx = _pa_equipment_context(first)
     second_ctx = _pa_equipment_context(second)
 
-    if first_ctx.get("customer") and second_ctx.get("customer") and first_ctx.get("customer") != second_ctx.get("customer"):
-        frappe.throw("Equipment Swap is restricted to equipment belonging to the same customer.")
+    if (
+        first_ctx.get("customer")
+        and second_ctx.get("customer")
+        and first_ctx.get("customer") != second_ctx.get("customer")
+    ):
+        frappe.throw(
+            "Equipment Swap is restricted to equipment belonging "
+            "to the same customer."
+        )
 
-    first_position = mi.get("custom_current_site_position")
-    second_position = mi.get("custom_replacement_site_position")
+    if not first_ctx.get("branch") or not second_ctx.get("branch"):
+        frappe.throw(
+            "A true Equipment Swap requires both equipment records to "
+            "currently belong to client branches. Use Equipment Replacement "
+            "when the incoming equipment comes from Stock or Workshop."
+        )
 
+    first_position = (
+        mi.get("custom_current_site_position")
+        or first.get("custom_site_position")
+        or first.get("custom_position")
+    )
+    second_position = (
+        mi.get("custom_replacement_site_position")
+        or second.get("custom_site_position")
+        or second.get("custom_position")
+    )
+
+    # True exchange: equipment identities, names, serial numbers and
+    # installation dates remain unchanged. Only their site contexts move.
     _pa_set_equipment_active_at_site(
         first,
         second_ctx.get("customer"),
@@ -10917,8 +11277,30 @@ def _pa_equipment_swap(mi):
     first.save(ignore_permissions=True)
     second.save(ignore_permissions=True)
 
-    _pa_create_lifecycle_log(mi, "Equipment Swap", first.name, notes="Swapped position with " + second.name)
-    _pa_create_lifecycle_log(mi, "Equipment Swap", second.name, notes="Swapped position with " + first.name)
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Swap",
+        first.name,
+        notes=(
+            swap_type
+            + " with "
+            + second.name
+            + ". Reason: "
+            + swap_reason
+        ),
+    )
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Swap",
+        second.name,
+        notes=(
+            swap_type
+            + " with "
+            + first.name
+            + ". Reason: "
+            + swap_reason
+        ),
+    )
 
 
 def _pa_equipment_installation(mi):
@@ -10968,10 +11350,188 @@ def _pa_equipment_installation(mi):
 
 
 def _pa_equipment_decommissioning(mi):
-    equipment = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Equipment")
-    _pa_apply_removed_equipment_outcome(mi, equipment)
-    equipment.save(ignore_permissions=True)
-    _pa_create_lifecycle_log(mi, "Equipment Decommissioning", equipment.name, notes="Equipment decommissioned: " + (mi.get("custom_removed_asset_outcome") or ""))
+    """
+    Decommission equipment without treating decommissioning as relocation.
+
+    Still on Site = Yes:
+      - keep physical site/location and asset status as-is
+      - set Operational Status = Out of Service
+      - no Removed Asset Outcome and no lifecycle Event fallback
+
+    Still on Site = No:
+      - require an actual removal disposition
+      - apply the physical destination/disposition
+      - keep Operational Status = Out of Service
+    """
+    equipment = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_asset"),
+        "Equipment",
+    )
+
+    still_on_site = (
+        mi.get("custom_equipment_still_on_site") or ""
+    ).strip()
+    reason = (
+        mi.get("custom_asset_change_reason") or ""
+    ).strip()
+    approval_no = (
+        mi.get("custom_decommissioning_approval_number") or ""
+    ).strip()
+
+    if still_on_site not in ("Yes", "No"):
+        frappe.throw(
+            "Equipment Still on Site is required for Equipment Decommissioning."
+        )
+
+    if not reason:
+        frappe.throw("Reason for Decommissioning is required.")
+
+    if still_on_site == "Yes":
+        # Decommissioned in place. Do NOT change asset status or physical location.
+        _pa_set_first_allowed_select(
+            equipment,
+            "custom_operational_status",
+            ["Out of Service"],
+        )
+        equipment.save(ignore_permissions=True)
+
+        notes = (
+            "Equipment decommissioned and remains on site. "
+            "Reason: " + reason
+        )
+
+    else:
+        outcome = (
+            mi.get("custom_removed_asset_outcome") or ""
+        ).strip()
+        destination_text = (
+            mi.get("custom_destination_location_text") or ""
+        ).strip()
+        workshop = mi.get("custom_company_workshop")
+
+        if not outcome:
+            frappe.throw(
+                "Removed Asset Outcome is required when decommissioned "
+                "equipment is no longer on site."
+            )
+
+        if outcome == "Returned to Client Storage":
+            if not destination_text:
+                frappe.throw(
+                    "Destination Location is required when equipment is "
+                    "returned to client storage."
+                )
+
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Pending Installation"],
+            )
+
+        elif outcome in ("Returned to GoTech Stock", "Returned to Stock"):
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or "GoTech Stock",
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Pending Installation"],
+            )
+
+        elif outcome == "Workshop for Repair":
+            if not workshop:
+                frappe.throw(
+                    "Company Workshop is required when decommissioned "
+                    "equipment is sent for repair."
+                )
+            _pa_set_if_present(equipment, "custom_company_workshop", workshop)
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or None,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["In Workshop"],
+            )
+
+        elif outcome == "Retired":
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or None,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Retired"],
+            )
+
+        elif outcome == "Scrapped":
+            _pa_set_if_present(equipment, "custom_branch", None)
+            _pa_set_if_present(equipment, "custom_site_id", None)
+            _pa_set_if_present(equipment, "custom_company_workshop", None)
+            _pa_set_if_present(
+                equipment,
+                "custom_destination_location_text",
+                destination_text or None,
+            )
+            _pa_set_first_allowed_select(
+                equipment,
+                "custom_asset_status",
+                ["Scrapped"],
+            )
+
+        else:
+            frappe.throw(
+                "Unsupported Removed Asset Outcome for Equipment "
+                "Decommissioning: " + outcome
+            )
+
+        _pa_set_first_allowed_select(
+            equipment,
+            "custom_operational_status",
+            ["Out of Service"],
+        )
+        equipment.save(ignore_permissions=True)
+
+        notes = (
+            "Equipment decommissioned and removed from site. "
+            "Outcome: " + outcome
+        )
+        if destination_text:
+            notes += ". Destination: " + destination_text
+        notes += ". Reason: " + reason
+
+    if approval_no:
+        notes += ". Approval No.: " + approval_no
+
+    _pa_create_lifecycle_log(
+        mi,
+        "Equipment Decommissioning",
+        equipment.name,
+        notes=notes,
+    )
 
 
 def _pa_component_replacement(mi):
@@ -11013,32 +11573,134 @@ def _pa_component_relocation(mi):
 
 
 def _pa_component_swap(mi):
-    first_parent = _pa_require_doc("Installed Equipment", mi.get("custom_asset"), "Current Equipment")
-    first_component = _pa_require_doc("Equipment Component", mi.get("custom_equipment_component"), "Current Component")
-    second_component = _pa_require_doc("Equipment Component", mi.get("custom_new_equipment_component"), "Swap Component")
+    first_parent = _pa_require_doc(
+        "Installed Equipment",
+        mi.get("custom_asset"),
+        "Current Equipment",
+    )
+    first_component = _pa_require_doc(
+        "Equipment Component",
+        mi.get("custom_equipment_component"),
+        "Current Component",
+    )
+    second_component = _pa_require_doc(
+        "Equipment Component",
+        mi.get("custom_new_equipment_component"),
+        "Second Component",
+    )
 
-    second_parent_name = second_component.get("custom_parent_equipment")
-    second_parent = _pa_require_doc("Installed Equipment", second_parent_name, "Swap Component Parent Equipment")
+    swap_type = (
+        mi.get("custom_swap_classification") or ""
+    ).strip()
+
+    if swap_type not in ("Permanent Swap", "Temporary Swap"):
+        frappe.throw(
+            "Swap Type must be Permanent Swap or Temporary Swap."
+        )
+
+    swap_reason = (
+        mi.get("custom_component_replacement_reason") or ""
+    ).strip()
+
+    if not swap_reason:
+        frappe.throw("Swap Reason is required.")
+
+    second_parent_name = second_component.get(
+        "custom_parent_equipment"
+    )
+    second_parent = _pa_require_doc(
+        "Installed Equipment",
+        second_parent_name,
+        "Second Component Parent Equipment",
+    )
 
     if first_component.name == second_component.name:
-        frappe.throw("Swap Component must be different from Current Component.")
+        frappe.throw(
+            "Second Component must be different from Current Component."
+        )
 
     if first_parent.name == second_parent.name:
-        frappe.throw("Component Swap requires components currently installed on different equipment. Use Component Replacement for same-equipment replacement.")
+        frappe.throw(
+            "Component Swap requires components currently installed on "
+            "different equipment. Use Component Replacement for a "
+            "same-equipment replacement."
+        )
 
-    if first_component.get("custom_parent_equipment") and first_component.get("custom_parent_equipment") != first_parent.name:
-        frappe.throw("The current component is no longer installed on the current equipment.")
+    if (
+        first_component.get("custom_parent_equipment")
+        and first_component.get("custom_parent_equipment")
+        != first_parent.name
+    ):
+        frappe.throw(
+            "The current component is no longer installed on the "
+            "current equipment."
+        )
 
-    _pa_remove_component_snapshot(first_parent, first_component.name)
-    _pa_remove_component_snapshot(second_parent, second_component.name)
+    first_customer = first_parent.get("custom_parent_customer")
+    second_customer = second_parent.get("custom_parent_customer")
+
+    if (
+        first_customer
+        and second_customer
+        and first_customer != second_customer
+    ):
+        frappe.throw(
+            "Component Swap is restricted to equipment belonging "
+            "to the same customer."
+        )
+
+    _pa_remove_component_snapshot(
+        first_parent,
+        first_component.name,
+    )
+    _pa_remove_component_snapshot(
+        second_parent,
+        second_component.name,
+    )
     first_parent.save(ignore_permissions=True)
     second_parent.save(ignore_permissions=True)
 
-    _pa_install_component_on_equipment(first_component, second_parent)
-    _pa_install_component_on_equipment(second_component, first_parent)
+    # Do not pass installation_date: a swap preserves the component's
+    # historical installation date.
+    _pa_install_component_on_equipment(
+        first_component,
+        second_parent,
+    )
+    _pa_install_component_on_equipment(
+        second_component,
+        first_parent,
+    )
 
-    _pa_create_lifecycle_log(mi, "Component Swap", first_parent.name, second_component, "Received component from " + second_parent.name)
-    _pa_create_lifecycle_log(mi, "Component Swap", second_parent.name, first_component, "Received component from " + first_parent.name)
+    _pa_create_lifecycle_log(
+        mi,
+        "Component Swap",
+        first_parent.name,
+        second_component,
+        (
+            swap_type
+            + ": received "
+            + second_component.name
+            + " from "
+            + second_parent.name
+            + ". Reason: "
+            + swap_reason
+        ),
+    )
+    _pa_create_lifecycle_log(
+        mi,
+        "Component Swap",
+        second_parent.name,
+        first_component,
+        (
+            swap_type
+            + ": received "
+            + first_component.name
+            + " from "
+            + first_parent.name
+            + ". Reason: "
+            + swap_reason
+        ),
+    )
 
 
 def _pa_component_installation(mi):
@@ -11350,3 +12012,99 @@ def change_tech_mission_company(mission_name, company):
         "interventions_updated":
             interventions_updated
     }
+
+@frappe.whitelist()
+def complete_mission_intervention_work(
+    mi_name,
+    work_outcome=None,
+    work_progress=None,
+):
+    """
+    Shared MI Complete Work action.
+    Used by PWA / future mobile app.
+    """
+
+    if not mi_name:
+        frappe.throw("Mission Intervention is required.")
+
+    mi = frappe.get_doc(
+        "Mission Intervention",
+        mi_name
+    )
+
+    mi.check_permission("write")
+
+    if mi.docstatus != 0:
+        frappe.throw(
+            "Only a draft intervention can be completed."
+        )
+
+    if not mi.get("custom_start_time"):
+        frappe.throw(
+            "Please Check In before completing work."
+        )
+
+    if work_outcome is not None:
+        mi.custom_work_outcome = work_outcome
+
+    if work_progress is not None:
+        mi.custom_work_progress = work_progress
+
+    if not mi.get("custom_work_outcome"):
+        frappe.throw("Work Outcome is required.")
+
+    if not mi.get("custom_work_progress"):
+        frappe.throw(
+            "Technical Progress Notes are required."
+        )
+
+    if not mi.get("custom_completed_time"):
+        mi.custom_completed_time = (
+            frappe.utils.now_datetime()
+        )
+
+    if mi.meta.has_field(
+        "custom_checkout_status"
+    ):
+        mi.custom_checkout_status = (
+            "Work Completed"
+        )
+
+    mi.save(ignore_permissions=True)
+
+    if mi.get("custom_parent_mission"):
+        sync_mi_to_mission_register(
+            mi.name
+        )
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "intervention": mi.name,
+        "work_outcome":
+            mi.get("custom_work_outcome"),
+        "completed_time":
+            mi.get("custom_completed_time"),
+    }
+
+
+@frappe.whitelist()
+def get_st_additional_equipment_options(equipment_name):
+    """List accessible equipment at the originating equipment's customer/branch."""
+    if not equipment_name or not frappe.db.exists("Installed Equipment", equipment_name):
+        frappe.throw("Valid originating equipment required.")
+    primary = frappe.get_doc("Installed Equipment", equipment_name)
+    customer = primary.get("custom_parent_customer")
+    branch = primary.get("custom_branch")
+    if not customer or not branch:
+        return []
+    # get_list applies the requesting user's DocType permissions.
+    rows = frappe.get_list(
+        "Installed Equipment",
+        filters={"custom_parent_customer": customer, "custom_branch": branch},
+        fields=["name", "custom_display_name", "custom_asset_name", "custom_asset_id"],
+        limit_page_length=500,
+        order_by="name asc",
+    )
+    return [r for r in rows if r.name != equipment_name]

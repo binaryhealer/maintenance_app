@@ -46,11 +46,17 @@
   "custom_planning_ref",
   "custom_work_outcome",
   "custom_fault_type",
+  "custom_equipment_still_on_site",
+  "custom_destination_location_text",
   "column_break_ryio",
   "custom_start_time",
   "custom_end_time",
   "custom_could_not_complete_reason",
   "custom_primary_action",
+  "custom_swap_stage",
+  "custom_equipment_being_moved",
+  "custom_swap_branch",
+  "custom_swap_site_id",
   "custom_commissioning_action",
   "section_break_kqrl",
   "custom_component_installation",
@@ -139,6 +145,7 @@
   "custom_calibration_record",
   "custom_external_vehicle",
   "custom_site_id",
+  "custom_decommissioning_approval_number",
   "column_break_wndv",
   "amended_from",
   "custom_service_type",
@@ -380,7 +387,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Swap Type",
-   "options": "Commissioned\nInstalled\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nRetired\nDisposed\nPermanent Swap",
+   "options": "Commissioned\nInstalled\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nRetired\nDisposed\nPermanent Swap\nTemporary Swap",
    "read_only": 1
   },
   {
@@ -1138,13 +1145,55 @@
    "fieldtype": "Select",
    "label": "Commissioning",
    "options": "Not Required\nCommission Now\nCommission Later"
+  },
+  {
+   "fieldname": "custom_equipment_still_on_site",
+   "fieldtype": "Select",
+   "label": "Equipment Still On Site",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "custom_decommissioning_approval_number",
+   "fieldtype": "Data",
+   "label": "Decommissioning Approval No."
+  },
+  {
+   "fieldname": "custom_destination_location_text",
+   "fieldtype": "Data",
+   "label": "Destination Location"
+  },
+  {
+   "fieldname": "custom_swap_stage",
+   "fieldtype": "Select",
+   "label": "Swap Stage",
+   "options": "\nSame Site Exchange\nCollection from Source\nExchange at Swap Branch\nFinal Installation",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_equipment_being_moved",
+   "fieldtype": "Check",
+   "label": "Equipment Being Moved"
+  },
+  {
+   "fieldname": "custom_swap_branch",
+   "fieldtype": "Link",
+   "label": "Swap Branch",
+   "options": "Client Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_site_id",
+   "fieldtype": "Data",
+   "label": "Swap Equipment Site Position / Slot",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-22 06:15:31.045040",
+ "modified": "2026-11-09 17:07:23.675782",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Mission Intervention",

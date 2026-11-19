@@ -1,0 +1,155 @@
+<div class="tech2-card tech2-tool-compact hse3">
+
+    <div class="tool3-head">
+        <h4>HSE / Incident</h4>
+        <div class="tool3-sub">
+            Record an onsite safety, health or environmental incident.
+        </div>
+    </div>
+
+    {% if mi.docstatus == 0 %}
+
+        <div class="hse3-intro">
+            Use this only for incidents noticed onsite, such as a spill,
+            injury, near miss, fire or unsafe condition.
+        </div>
+
+        <button type="button"
+                class="btn hse3-add"
+                onclick="tech2ShowHSEIncidentModal()">
+            Report incident
+        </button>
+
+    {% else %}
+
+        <div class="hse3-lock">
+            Submitted intervention. Incident entries are read-only.
+        </div>
+
+    {% endif %}
+
+    <div class="hse3-section-head">
+        Incidents
+    </div>
+
+    <div id="tech2-hse-incident-list"
+         class="hse3-list">
+        <div class="tech2-muted">
+            Loading incidents...
+        </div>
+    </div>
+
+</div>
+
+
+<div id="tech2-hse-modal"
+     class="hse3-modal"
+     style="display:none;">
+
+    <div class="hse3-modal-box">
+
+        <div class="hse3-modal-head">
+            <div>
+                <h4>Report HSE incident</h4>
+                <div class="tool3-sub">
+                    Add the incident details below.
+                </div>
+            </div>
+
+            <button type="button"
+                    class="hse3-close"
+                    onclick="tech2CloseHSEIncidentModal()"
+                    aria-label="Close">
+                ×
+            </button>
+        </div>
+
+        <label class="hse3-label" for="tech2-hse-incident-type">
+            Incident type
+        </label>
+        <select id="tech2-hse-incident-type"
+                class="form-control"
+                onchange="tech2HSEIncidentTypeChange()">
+            <option value="">Loading incident types...</option>
+        </select>
+
+        <div class="hse3-grid">
+
+            <div>
+                <label class="hse3-label" for="tech2-hse-severity">
+                    Severity
+                </label>
+                <input id="tech2-hse-severity"
+                       class="form-control"
+                       readonly>
+            </div>
+
+            <div>
+                <label class="hse3-label" for="tech2-hse-datetime">
+                    Incident date / time
+                </label>
+                <input id="tech2-hse-datetime"
+                       class="form-control"
+                       type="datetime-local">
+            </div>
+
+        </div>
+
+        <label class="hse3-check">
+            <input id="tech2-hse-investigation"
+                   type="checkbox">
+            <span>Requires investigation</span>
+        </label>
+
+        <label class="hse3-label" for="tech2-hse-description">
+            Description
+        </label>
+        <textarea id="tech2-hse-description"
+                  class="form-control"
+                  rows="3"
+                  placeholder="What happened?"></textarea>
+
+        <label class="hse3-label" for="tech2-hse-action">
+            Immediate action
+        </label>
+        <textarea id="tech2-hse-action"
+                  class="form-control"
+                  rows="3"
+                  placeholder="What action was taken immediately?"></textarea>
+
+        <label class="hse3-label" for="tech2-hse-photo">
+            Photo
+        </label>
+        <input id="tech2-hse-photo"
+               class="form-control"
+               type="file"
+               accept="image/*">
+
+        <div class="hse3-modal-actions">
+
+            <button type="button"
+                    class="btn hse3-save"
+                    onclick="tech2SubmitHSEIncident()">
+                Save incident
+            </button>
+
+            <button type="button"
+                    class="btn hse3-cancel"
+                    onclick="tech2CloseHSEIncidentModal()">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+window.TECH2_HSE_MI_NAME =
+    {{ mi.name | tojson }};
+
+window.TECH2_HSE_MI_SUBMITTED =
+    {{ 1 if mi.docstatus == 1 else 0 }};
+</script>

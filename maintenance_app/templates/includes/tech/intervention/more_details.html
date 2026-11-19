@@ -1,0 +1,65 @@
+<details class="mi-card accordion-card">
+            <summary>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="section-title mb-0">More Details</span>
+                    <span class="muted-small">tap to expand</span>
+                </div>
+            </summary>
+
+            <div class="accordion-body summary-grid compact-grid">
+                <div class="summary-item">
+                    <div class="info-label">Ticket Type</div>
+                    <div class="info-value">{{ ticket_type or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Actual Intervention Type</div>
+                    <div class="info-value">{{ mi.custom_intervention_type or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Service Type</div>
+                    <div class="info-value">{{ mi.custom_service_type or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Request Type</div>
+                    <div class="info-value">{{ request_type or "-" }}</div>
+                </div>
+
+
+                {% if mi.custom_parent_equipment %}
+                <div class="summary-item">
+                    <div class="info-label">Parent Equipment</div>
+                    <div class="info-value">{{ mi.custom_parent_equipment }}</div>
+                </div>
+                {% endif %}
+
+                <div class="summary-item">
+                    <div class="info-label">Component Brand</div>
+                    <div class="info-value">{{ mi.custom_component_brand or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Component Model</div>
+                    <div class="info-value">{{ mi.custom_component_model or "-" }}</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="info-label">Component Serial</div>
+                    <div class="info-value">{{ mi.custom_component_serial or "-" }}</div>
+                </div>
+
+<!-- existing fields continue below -->
+
+                <a class="summary-item info-link" href="/app/service-ticket/{{ mi.custom_service_ticket }}">
+                    <div class="info-label">Service Ticket</div>
+                    <div class="info-value">{{ mi.custom_service_ticket or "-" }} ›</div>
+                </a>
+
+                <a class="summary-item info-link" href="/app/tech-mission/{{ mi.custom_parent_mission }}">
+                    <div class="info-label">Tech Mission</div>
+                    <div class="info-value">{{ mi.custom_parent_mission or "-" }} ›</div>
+                </a>
+            </div>
+        </details>

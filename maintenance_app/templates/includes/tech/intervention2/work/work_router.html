@@ -1,0 +1,41 @@
+{% if mi.custom_intervention_type == "Swap" %}
+
+    {% include "templates/includes/tech/intervention2/work/swap.html" %}
+
+{% elif mi.custom_intervention_type == "Calibration" %}
+
+    {% include "templates/includes/tech/intervention2/work/calibration.html" %}
+
+{% elif mi.custom_intervention_type == "Config Change" %}
+
+    {% include "templates/includes/tech/intervention2/work/config_change.html" %}
+
+{% elif mi.custom_intervention_type == "Asset Relocation" %}
+
+    {% include "templates/includes/tech/intervention2/work/relocation.html" %}
+
+{% elif mi.custom_intervention_type == "Repair" %}
+
+    {% include "templates/includes/tech/intervention2/work/repair.html" %}
+
+{% else %}
+
+<div class="tech2-card">
+
+    <h4>
+        {{ mi.custom_intervention_type or "Work" }}
+    </h4>
+
+    <div class="tech2-note">
+        Detailed work controls for this intervention type
+        will be added with its validated workflow.
+    </div>
+
+    <a href="/tech/intervention2?name={{ mi.name }}&step=finish"
+       class="btn btn-primary tech2-primary-action">
+        Continue to Finish Work
+    </a>
+
+</div>
+
+{% endif %}

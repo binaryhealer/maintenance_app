@@ -1,0 +1,115 @@
+<div class="tech2-card">
+
+    <h4>Mission Plan</h4>
+
+    <div class="tech2-grid">
+
+        <div>
+            <div class="tech2-label">
+                Tech Mission
+            </div>
+
+            <div class="tech2-value">
+                {{ mission_plan.mission_name or "-" }}
+            </div>
+        </div>
+
+        <div>
+            <div class="tech2-label">
+                Planned Start
+            </div>
+
+            <div class="tech2-value">
+                {{ mission_plan.planned_start or "-" }}
+            </div>
+        </div>
+
+        <div>
+            <div class="tech2-label">
+                Planned End
+            </div>
+
+            <div class="tech2-value">
+                {{ mission_plan.planned_end or "-" }}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            Assigned Team
+        </div>
+
+        {% if mission_plan.team %}
+
+            <div class="tech2-team-list">
+
+                {% for row in mission_plan.team %}
+
+                    <div class="tech2-team-row">
+
+                        <div class="tech2-team-line">
+                            <span class="tech2-team-key">Tech:</span>
+                            <span class="tech2-team-value">
+                                {{ row.technician or "-" }}
+                            </span>
+                        </div>
+
+                        <div class="tech2-team-line">
+                            <span class="tech2-team-key">Vehicle:</span>
+                            <span class="tech2-team-value">
+                                {{ row.vehicle or "-" }}
+                            </span>
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="tech2-muted">
+                No assigned technicians found.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+    {% if mission_plan.mission_vehicle %}
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            Mission Vehicle
+        </div>
+
+        <div class="tech2-value">
+            {{ mission_plan.mission_vehicle }}
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    {% if mission_plan.external_vehicle %}
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            External Vehicle
+        </div>
+
+        <div class="tech2-value">
+            {{ mission_plan.external_vehicle }}
+        </div>
+
+    </div>
+
+    {% endif %}
+
+</div>

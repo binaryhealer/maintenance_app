@@ -1,0 +1,661 @@
+<div class="tech2-card">
+
+    <h4>Actions / Work Setup</h4>
+
+    {% if not is_checked_in %}
+
+        <div class="tech2-note">
+            Check In before preparing the work.
+        </div>
+
+    {% elif is_submitted %}
+
+        <div class="tech2-note">
+            This intervention has already been submitted.
+        </div>
+
+    {% else %}
+
+        <div class="tech2-grid">
+
+            <div>
+                <div class="tech2-label">
+                    Intervention Type
+                </div>
+
+                <div class="tech2-value">
+                    {{ intervention_type }}
+                </div>
+            </div>
+
+            <div>
+                <div class="tech2-label">
+                    Equipment
+                </div>
+
+                <div class="tech2-value">
+                    {{ pwa_equipment_display or mi.custom_asset or "-" }}
+                </div>
+            </div>
+
+            {% if pwa_is_component_target or pwa_component_display %}
+            <div>
+                <div class="tech2-label">
+                    Component
+                </div>
+
+                <div class="tech2-value">
+                    {{ pwa_component_display or mi.custom_target_component_name or "-" }}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+
+        {% if work_setup.fieldname %}
+
+            <div class="tech2-form-group tech2-actions-setup">
+
+                <label class="tech2-label">
+                    {{ work_setup.label }}
+                </label>
+
+                <div class="tech2-field-wrap">
+
+                    <select id="tech2-work-subtype"
+                            class="form-control">
+
+                    <option value="">
+                        Select {{ work_setup.label }}
+                    </option>
+
+                    {% for value in work_setup.options %}
+
+                        <option value="{{ value }}"
+                            {% if work_setup.current_value == value %}
+                            selected
+                            {% endif %}>
+                            {{ value }}
+                        </option>
+
+                    {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="tech2-muted tech2-field-help">
+                    Select the actual work type identified onsite.
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <div class="tech2-note">
+                No additional work setup is required for
+                <strong>{{ intervention_type }}</strong>.
+            </div>
+
+        {% endif %}
+
+
+        <div class="tech2-actions-section">
+
+            <div class="tech2-label">
+                On-site Actions
+            </div>
+
+            <div class="tech2-action-list">
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="tech2ShowChangeInterventionType()">
+                    Change Intervention Type
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="tech2ShowChangeComponent()">
+                    Change Component
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="tech2ShowChangeEquipment()">
+                    Change Equipment
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="tech2ShowAdditionalMI()">
+                    Additional MI
+                </button>
+
+            </div>
+
+            <div class="tech2-muted tech2-field-help">
+                Correct the actual work target or create another
+                intervention for additional equipment/work.
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                id="tech2-save-work-setup"
+                class="btn btn-primary tech2-primary-action"
+                onclick="tech2SaveWorkSetup('{{ mi.name }}')">
+
+            {% if work_setup.fieldname %}
+                Save & Continue to Work
+            {% else %}
+                Continue to Work
+            {% endif %}
+
+        </button>
+
+    {% endif %}
+
+
+</div>
+
+
+<style>
+.tech2-shortcut-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 18px;
+    overflow-y: auto;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.tech2-shortcut-modal.is-open {
+    display: flex;
+}
+
+.tech2-shortcut-modal-box {
+    background: #fff;
+    width: 100%;
+    max-width: 560px;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 35px;
+    box-shadow: 0 12px 35px rgba(0,0,0,.22);
+}
+
+.tech2-shortcut-modal-box h4 {
+    margin-top: 0;
+    margin-bottom: 18px;
+}
+
+.tech2-shortcut-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.tech2-shortcut-modal-actions .btn {
+    min-height: 42px;
+}
+
+.tech2-shortcut-help {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6c757d;
+}
+</style>
+
+
+<!-- =====================================================
+     CHANGE INTERVENTION TYPE
+===================================================== -->
+
+<div id="tech2-change-type-modal"
+     class="tech2-shortcut-modal">
+
+    <div class="tech2-shortcut-modal-box">
+
+        <h4>Change Intervention Type</h4>
+
+        <div class="tech2-form-group">
+            <label class="tech2-label">
+                Intervention Type
+            </label>
+
+            <select id="tech2-change-type-select"
+                    class="form-control"
+                    onchange="tech2ChangeTypeSelectionChanged(false)">
+                <option value="">
+                    Loading intervention types...
+                </option>
+            </select>
+        </div>
+
+
+        <div id="tech2-change-testing-wrap"
+             class="tech2-form-group"
+             style="display:none;">
+
+            <label class="tech2-label">
+                Specialised Testing Type
+            </label>
+
+            <select id="tech2-change-testing-type"
+                    class="form-control">
+                <option value="">
+                    Select testing type
+                </option>
+            </select>
+
+            <div class="tech2-shortcut-help">
+                Required for Specialised Testing.
+            </div>
+        </div>
+
+
+        <div id="tech2-change-installation-wrap"
+             class="tech2-form-group"
+             style="display:none;">
+
+            <label class="tech2-label">
+                General Installation Type
+            </label>
+
+            <select id="tech2-change-installation-type"
+                    class="form-control">
+                <option value="">
+                    Select installation type
+                </option>
+            </select>
+
+            <div class="tech2-shortcut-help">
+                Required for General Installation.
+            </div>
+        </div>
+
+
+        <div id="tech2-change-general-work-wrap"
+             class="tech2-form-group"
+             style="display:none;">
+
+            <label class="tech2-label">
+                General Work Type
+            </label>
+
+            <select id="tech2-change-general-work-type"
+                    class="form-control">
+                <option value="">
+                    Select work type
+                </option>
+            </select>
+
+            <div class="tech2-shortcut-help">
+                Required for General Works.
+            </div>
+        </div>
+
+
+        <div class="tech2-shortcut-help">
+            This changes the actual intervention classification.
+            The original Service Ticket request remains unchanged.
+        </div>
+
+
+        <div class="tech2-shortcut-modal-actions">
+
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="tech2SubmitChangeInterventionType()">
+                Update Intervention Type
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="tech2CloseModal('tech2-change-type-modal')">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- =====================================================
+     CHANGE COMPONENT
+===================================================== -->
+
+<div id="tech2-change-component-modal"
+     class="tech2-shortcut-modal">
+
+    <div class="tech2-shortcut-modal-box">
+
+        <h4>Correct Target Component</h4>
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Actual Component
+            </label>
+
+            <select id="tech2-change-component-select"
+                    class="form-control">
+            </select>
+
+        </div>
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Reason
+            </label>
+
+            <textarea id="tech2-change-component-reason"
+                      class="form-control"
+                      rows="3"
+                      placeholder="Why was the original component incorrect?"></textarea>
+
+        </div>
+
+        <div class="tech2-shortcut-modal-actions">
+
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="tech2SubmitChangeComponent()">
+                Update Component
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="tech2CloseModal('tech2-change-component-modal')">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- =====================================================
+     CHANGE EQUIPMENT
+===================================================== -->
+
+<div id="tech2-change-equipment-modal"
+     class="tech2-shortcut-modal">
+
+    <div class="tech2-shortcut-modal-box">
+
+        <h4>Correct Target Equipment</h4>
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Actual Equipment
+            </label>
+
+            <select id="tech2-change-equipment-select"
+                    class="form-control">
+            </select>
+
+        </div>
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Reason
+            </label>
+
+            <textarea id="tech2-change-equipment-reason"
+                      class="form-control"
+                      rows="3"
+                      placeholder="Why was the original equipment incorrect?"></textarea>
+
+        </div>
+
+        <div class="tech2-shortcut-modal-actions">
+
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="tech2SubmitChangeEquipment()">
+                Update Equipment
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="tech2CloseModal('tech2-change-equipment-modal')">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- =====================================================
+     ADDITIONAL MI
+===================================================== -->
+
+<div id="tech2-additional-mi-modal"
+     class="tech2-shortcut-modal">
+
+    <div class="tech2-shortcut-modal-box">
+
+        <h4>Add Additional Intervention</h4>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Equipment
+            </label>
+
+            <select id="tech2-additional-equipment"
+                    class="form-control"
+                    onchange="tech2AdditionalEquipmentChanged()">
+            </select>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Target
+            </label>
+
+            <select id="tech2-additional-target-scope"
+                    class="form-control"
+                    onchange="tech2AdditionalTargetChanged()">
+
+                <option value="Equipment">
+                    Equipment
+                </option>
+
+                <option value="Component">
+                    Component
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div id="tech2-additional-component-wrap"
+             class="tech2-form-group"
+             style="display:none;">
+
+            <label class="tech2-label">
+                Component
+            </label>
+
+            <select id="tech2-additional-component"
+                    class="form-control">
+            </select>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Subject
+            </label>
+
+            <input id="tech2-additional-subject"
+                   class="form-control"
+                   type="text"
+                   placeholder="Short description of the additional work">
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Intervention Type
+            </label>
+
+            <select id="tech2-additional-type"
+                    class="form-control"
+                    onchange="tech2AdditionalTypeChanged()">
+
+                <option value="">
+                    Loading intervention types...
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div id="tech2-additional-testing-wrap"
+             class="tech2-form-group"
+             style="display:none;">
+
+            <label class="tech2-label">
+                Specialised Testing Type
+            </label>
+
+            <select id="tech2-additional-testing-type"
+                    class="form-control">
+                <option value="">
+                    Select testing type
+                </option>
+            </select>
+
+        </div>
+
+
+        <div id="tech2-additional-general-work-wrap"
+             class="tech2-form-group"
+             style="display:none;">
+
+            <label class="tech2-label">
+                General Work Type
+            </label>
+
+            <select id="tech2-additional-general-work-type"
+                    class="form-control">
+                <option value="">
+                    Select work type
+                </option>
+            </select>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Applicant
+            </label>
+
+            <select id="tech2-additional-applicant"
+                    class="form-control">
+
+                <option value="">
+                    Loading contacts...
+                </option>
+
+            </select>
+
+            <div class="tech2-shortcut-help">
+                Valid branch / head-office applicant contacts only.
+            </div>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Reason / Work Required
+            </label>
+
+            <textarea id="tech2-additional-reason"
+                      class="form-control"
+                      rows="3"
+                      placeholder="Explain the additional work required"></textarea>
+
+        </div>
+
+
+        <div class="tech2-shortcut-modal-actions">
+
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="tech2SubmitAdditionalMI()">
+                Create MI
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="tech2CloseModal('tech2-additional-mi-modal')">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+window.TECH2_WORK_SETUP_REQUIRED =
+    {{ 1 if work_setup.fieldname else 0 }};
+
+window.TECH2_MI_NAME =
+    {{ mi.name | tojson }};
+
+window.TECH2_BRANCH =
+    {{ (mi.custom_branch or "") | tojson }};
+
+window.TECH2_ASSET =
+    {{ (mi.custom_asset or "") | tojson }};
+
+window.TECH2_PARENT_MISSION =
+    {{ (mi.custom_parent_mission or "") | tojson }};
+
+window.TECH2_CURRENT_INTERVENTION_TYPE =
+    {{ (mi.custom_intervention_type or "") | tojson }};
+
+window.TECH2_CURRENT_SPECIALISED_TESTING_TYPE =
+    {{ (mi.custom_specialised_testing_type or "") | tojson }};
+
+window.TECH2_CURRENT_GENERAL_INSTALLATION_TYPE =
+    {{ (mi.custom_general_installation_type or "") | tojson }};
+
+window.TECH2_CURRENT_GENERAL_WORK_TYPE =
+    {{ (mi.custom_general_work_type or "") | tojson }};
+</script>
+
+

@@ -54,6 +54,11 @@
   "custom_service_ticket",
   "custom_tech_planning",
   "custom_ticket_type",
+  "custom_swap_reason",
+  "custom_swap_type",
+  "custom_swap_site_id",
+  "custom_swap_equipment",
+  "custom_swap_branch",
   "custom_component_brand",
   "custom_component_model",
   "custom_component_item",
@@ -194,13 +199,14 @@
    "in_standard_filter": 1,
    "label": "Service Ticket",
    "options": "Service Ticket",
-   "unique": 1
+   "unique": 0
   },
   {
    "fieldname": "custom_mission_status",
    "fieldtype": "Select",
    "label": "Mission Status",
-   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work\nOn Hold"
+   "options": "Draft\nScheduled\nOngoing\nCompleted\nClosed\nCancelled\nContinue Work\nOn Hold",
+   "read_only": 1
   },
   {
    "fieldname": "custom_tech_planning",
@@ -321,6 +327,7 @@
   {
    "fieldname": "custom_head_office_contacts",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Head Office Contacts",
    "options": "Client Branch Contact"
   },
@@ -332,6 +339,7 @@
   {
    "fieldname": "custom_branch_contacts",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Branch Contact",
    "options": "Client Branch Contact"
   },
@@ -455,6 +463,7 @@
    "fieldname": "custom_notification_emails",
    "fieldtype": "Small Text",
    "label": "Notification Emails",
+   "options": "Email",
    "read_only": 1
   },
   {
@@ -538,12 +547,45 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Calendar Display"
+  },
+  {
+   "fieldname": "custom_swap_branch",
+   "fieldtype": "Link",
+   "label": "Swap Branch",
+   "options": "Client Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_equipment",
+   "fieldtype": "Link",
+   "label": "Swap Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_site_id",
+   "fieldtype": "Data",
+   "label": "Swap Equipment Site Position / Slot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_type",
+   "fieldtype": "Select",
+   "label": "Swap Type",
+   "options": "\nPermanent Swap\nTemporary Swap",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_reason",
+   "fieldtype": "Small Text",
+   "label": "Swap Reason",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-11 16:21:48.840875",
+ "modified": "2026-11-09 18:35:59.557232",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Mission",

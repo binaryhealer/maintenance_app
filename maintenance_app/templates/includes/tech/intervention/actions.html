@@ -1,0 +1,30 @@
+<details class="mi-card accordion-card">
+            <summary>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="section-title mb-0">Actions</span>
+                    <span class="muted-small">tap to expand</span>
+                </div>
+            </summary>
+
+            <div class="accordion-body action-list">
+                {% if mi.docstatus == 0 %}
+                <button class="btn btn-outline-primary action-btn"
+                        type="button"
+                        onclick="showChangeInterventionTypeDialog()">
+                    Change Intervention Type
+                </button>
+                {% endif %}
+               <button class="btn btn-outline-primary action-btn" onclick="showChangeEquipmentDialog()">
+                    Correct Target Equipment
+                </button>
+                <button class="btn btn-outline-primary action-btn" onclick="showChangeComponentDialog()">
+                    Correct Target Component
+                </button>
+                <button class="btn btn-outline-primary action-btn" onclick="showAdditionalMIDialog()">
+                    Add Additional Equipment MI
+                </button>
+                <!--<button class="btn btn-outline-primary action-btn" onclick="change_request_placeholder()">
+                    Raise Change Request
+                </button>-->
+            </div>
+        </details>

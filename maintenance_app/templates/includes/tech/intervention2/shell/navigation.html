@@ -1,0 +1,47 @@
+<aside class="i3-card i3-side" aria-label="Steps">
+
+    <div class="i3-nav-group">
+        <div class="i3-label i3-nav-head">Job</div>
+
+        {% for s in steps %}
+            {% set cur = (s.key == step) %}
+
+            {% if s.locked and not cur %}
+                <div class="i3-nav-item is-locked">
+                    <span class="i3-dot is-locked">{{ loop.index }}</span>
+                    <span class="i3-grow">{{ s.label }}</span>
+                    <span class="i3-lock" aria-label="Locked"></span>
+                </div>
+            {% else %}
+                <a href="{{ page_base ~ s.key }}"
+                   class="i3-nav-item {% if cur %}is-current{% endif %}"
+                   {% if cur %}aria-current="step"{% endif %}>
+
+                    {% if s.done and not cur %}
+                        <span class="i3-dot is-done">✓</span>
+                    {% else %}
+                        <span class="i3-dot {% if cur %}is-current{% endif %}">
+                            {{ loop.index }}
+                        </span>
+                    {% endif %}
+
+                    <span class="i3-grow">{{ s.label }}</span>
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="i3-divider"></div>
+
+    <div class="i3-nav-group">
+        <div class="i3-label i3-nav-head">Tools</div>
+
+        {% for t in tools %}
+            <a href="{{ page_base ~ t.key }}"
+               class="i3-nav-tool {% if t.key == step %}is-current{% endif %}">
+                {{ t.label }}
+            </a>
+        {% endfor %}
+    </div>
+
+</aside>

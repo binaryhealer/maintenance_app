@@ -1,0 +1,134 @@
+<div class="tech2-card" id="tech2-calibration-panel" data-mi="{{ mi.name | e }}">
+  <h4>Calibration</h4>
+  <p class="tech2-note">Select what you are calibrating, then follow the tests provided by its template.</p>
+  <div id="tech2-cal-targets" class="tech2-cal-targets"><div class="tech2-muted">Loading calibration targets...</div></div>
+  <div id="tech2-cal-status" role="status" aria-live="polite"></div>
+  {% if mi.docstatus == 0 %}
+    <div class="tech2-cal-toolbar">
+      <label class="tech2-cal-toggle"><input type="checkbox" id="tech2-cal-show-all"> Show all components</label>
+    </div>
+    <button type="button" class="btn btn-primary tech2-cal-main-btn" id="tech2-cal-save">Save Targets &amp; Continue to Tests</button>
+  {% endif %}
+  <div id="tech2-cal-tests" class="tech2-cal-tests" hidden></div>
+  <div id="tech2-cal-test-status" role="status" aria-live="polite"></div>
+  {% if mi.docstatus == 0 %}
+    <button type="button" id="tech2-cal-save-readings" class="btn btn-primary tech2-cal-main-btn" hidden>Save Draft Readings</button>
+  {% endif %}
+
+{% if mi.docstatus == 0 %}
+<div class="tech2-cal-next">
+  <p>Finished entering calibration readings?</p>
+  <a class="btn btn-primary tech2-cal-next-btn"
+     href="/tech/intervention2?name={{ mi.name | urlencode }}&step=finish">
+    Continue to Finish Work
+  </a>
+  <small>Save all readings before continuing.</small>
+</div>
+{% endif %}
+  {% if mi.docstatus == 1 %}
+  <div class="tech2-cal-report-after-submit" style="margin-top:18px;padding:14px;border:1px solid var(--border-color,#ddd);border-radius:12px">
+    <p>Calibration MI submitted. Manage the consolidated report from the Submit step.</p>
+    <a class="btn btn-primary" style="display:block;text-align:center;padding:10px" href="/tech/intervention2?name={{ mi.name | urlencode }}&amp;step=submit">Open Calibration Reports</a>
+  </div>
+  {% endif %}
+</div>
+<style>
+#tech2-calibration-panel .tech2-cal-equipment {border:1px solid var(--border-color,#ddd);border-radius:12px;padding:14px;margin:12px 0}
+#tech2-calibration-panel .tech2-cal-target {padding:12px 0;border-top:1px solid var(--border-color,#eee)}
+#tech2-calibration-panel .tech2-cal-target label {display:flex;align-items:center;gap:10px;cursor:pointer}
+#tech2-calibration-panel .tech2-cal-target select {width:100%;max-width:480px;min-height:42px;padding:7px;margin:9px 0 0 24px}
+#tech2-calibration-panel .tech2-cal-component {margin-left:12px}
+#tech2-calibration-panel .tech2-cal-toolbar {margin:12px 0}
+#tech2-calibration-panel .tech2-cal-main-btn {width:100%;margin:12px 0;min-height:44px}
+#tech2-calibration-panel .tech2-cal-tests {margin-top:22px}
+#tech2-calibration-panel .tech2-cal-test-card {border:1px solid var(--border-color,#ddd);border-radius:12px;padding:14px;margin:12px 0}
+#tech2-calibration-panel .tech2-cal-measure {padding:12px 0;border-top:1px solid var(--border-color,#eee)}
+#tech2-calibration-panel .tech2-cal-measure input {width:100%;min-height:40px;padding:8px;margin:4px 0 10px}
+#tech2-calibration-panel .tech2-cal-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+#tech2-calibration-panel .tech2-cal-muted {opacity:.7;font-size:.92em}
+#tech2-calibration-panel .tech2-cal-result {font-weight:600}
+</style>
+
+
+<style>
+#tech2-calibration-panel .tech2-cal-next {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 12px;
+}
+#tech2-calibration-panel .tech2-cal-next-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+}
+#tech2-calibration-panel .tech2-cal-next small {
+  display: block;
+  margin-top: 10px;
+}
+#tech2-calibration-panel .tech2-cal-fold-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--control-bg, #f1f3f5);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+}
+#tech2-calibration-panel .tech2-cal-test-card.tech2-collapsed
+  > :not(.tech2-cal-fold-btn) {
+  display: none !important;
+}
+#tech2-calibration-panel .tech2-cal-fold-tools {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+#tech2-calibration-panel .tech2-cal-measure label {
+  display: block;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+#tech2-calibration-panel .tech2-cal-measure input {
+  box-sizing: border-box;
+  width: 100%;
+}
+#tech2-calibration-panel .tech2-cal-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media(max-width: 650px) {
+  #tech2-calibration-panel .tech2-cal-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>
+<style>
+
+/* PWA calibration: grouped readings, accessible radio cards and one clear save action. */
+#tech2-calibration-panel .tech2-cal-reading-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin:12px 0}
+#tech2-calibration-panel .tech2-cal-field {display:flex;flex-direction:column;gap:5px;min-width:0;font-weight:500}
+#tech2-calibration-panel .tech2-cal-field-name {font-size:.9rem;color:var(--text-color,#27334a)}
+#tech2-calibration-panel .tech2-cal-input {box-sizing:border-box;width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;background:var(--control-bg,#fff);color:var(--text-color,#182133)}
+#tech2-calibration-panel .tech2-cal-result-box {border:0;border-top:1px solid #e2e8f0;padding:17px 0 5px;margin:18px 0 8px;min-width:0}
+#tech2-calibration-panel .tech2-cal-result-heading {font-size:1rem;font-weight:700;padding:0 0 9px;color:var(--text-color,#182133)}
+#tech2-calibration-panel .tech2-cal-radio-option {display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:10px 14px;margin:0 0 8px;border:1px solid #d9e1eb;border-radius:11px;background:var(--card-bg,#fff);box-sizing:border-box;cursor:pointer}
+#tech2-calibration-panel .tech2-cal-radio-option:has(input:checked) {border-color:#3159bd;background:#edf3ff}
+#tech2-calibration-panel .tech2-cal-radio-option input[type=radio] {appearance:auto;width:19px;height:19px;min-height:0;margin:0;flex:0 0 19px;accent-color:#3159bd}
+#tech2-calibration-panel .tech2-cal-combined-save {width:100%;min-height:48px;border-radius:11px;font-weight:700;margin-top:10px}
+#tech2-calibration-panel .tech2-cal-save-message {margin:10px 0 4px;min-height:1.5em;font-size:.92rem}
+#tech2-calibration-panel .tech2-cal-save-message.is-success {color:#18744a;font-weight:600}
+#tech2-calibration-panel .tech2-cal-save-message.is-error {color:#b42318;font-weight:600}
+#tech2-calibration-panel .tech2-cal-save-message.is-pending {color:#64748b}
+#tech2-calibration-panel .tech2-cal-add {margin:8px 0}
+@media(max-width:650px) { #tech2-calibration-panel .tech2-cal-reading-grid {grid-template-columns:1fr;gap:8px}}
+
+</style>

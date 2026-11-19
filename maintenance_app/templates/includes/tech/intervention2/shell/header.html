@@ -1,0 +1,42 @@
+<header class="i3-card i3-header">
+    <div class="i3-header-meta">
+        <div class="i3-header-status-row">
+            <span class="i3-mono i3-header-id">{{ mi.name }}</span>
+
+            {% if mi.docstatus == 1 %}
+                <span class="i3-chip ok"><span class="d"></span>Submitted</span>
+            {% elif is_checked_out %}
+                <span class="i3-chip ok"><span class="d"></span>Checked out</span>
+            {% elif is_checked_in %}
+                <span class="i3-chip ok">
+                    <span class="d"></span>
+                    Checked in
+                    {% if mi.custom_start_time %}
+                        {{ frappe.utils.format_datetime(mi.custom_start_time, "HH:mm") }}
+                    {% endif %}
+                </span>
+            {% else %}
+                <span class="i3-chip"><span class="d"></span>Not checked in</span>
+            {% endif %}
+
+            <span class="i3-chip info">{{ intervention_type }}</span>
+        </div>
+
+        <h1>{{ mi.custom_subject or intervention_type }}</h1>
+
+        <div class="i3-sub">
+            {{ mi.custom_parent_customer or "" }}
+            {% if mi.custom_branch %}
+                {% if mi.custom_parent_customer %} · {% endif %}
+                {{ mi.custom_branch }}
+            {% endif %}
+        </div>
+    </div>
+
+    <nav class="i3-header-actions" aria-label="Page actions">
+        <a class="i3-btn-ghost" href="/tech">← Dashboard</a>
+        <a class="i3-btn-ghost" href="/tech/branch_info?mi={{ mi.name }}">
+            Address &amp; contacts
+        </a>
+    </nav>
+</header>

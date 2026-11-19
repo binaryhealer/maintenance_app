@@ -1,0 +1,108 @@
+{
+  "doctype": "DocType",
+  "name": "FDU Calibration Reading",
+  "module": "Maintenance App",
+  "custom": 0,
+  "istable": 1,
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "custom_nozzle_number",
+    "custom_nozzle_component",
+    "custom_totaliser_id",
+    "custom_product",
+    "custom_totaliser_before",
+    "custom_verification_slow",
+    "custom_verification_fast",
+    "custom_totaliser_after",
+    "custom_adjustment_slow",
+    "custom_adjustment_fast",
+    "custom_lmd_seal",
+    "custom_emima_seal",
+    "custom_notes"
+  ],
+  "fields": [
+    {
+      "fieldname": "custom_nozzle_number",
+      "fieldtype": "Int",
+      "label": "Nozzle Number",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_nozzle_component",
+      "fieldtype": "Link",
+      "label": "Nozzle Component",
+      "in_list_view": 0,
+      "options": "Equipment Component"
+    },
+    {
+      "fieldname": "custom_totaliser_id",
+      "fieldtype": "Data",
+      "label": "Totaliser ID",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_product",
+      "fieldtype": "Data",
+      "label": "Product",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_totaliser_before",
+      "fieldtype": "Float",
+      "label": "Totaliser Before",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_verification_slow",
+      "fieldtype": "Float",
+      "label": "Verification Slow",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_verification_fast",
+      "fieldtype": "Float",
+      "label": "Verification Fast",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_totaliser_after",
+      "fieldtype": "Float",
+      "label": "Totaliser After",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_adjustment_slow",
+      "fieldtype": "Float",
+      "label": "After Adjustment Slow",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_adjustment_fast",
+      "fieldtype": "Float",
+      "label": "After Adjustment Fast",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_lmd_seal",
+      "fieldtype": "Data",
+      "label": "Original LMD Seal",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_emima_seal",
+      "fieldtype": "Data",
+      "label": "New EMIMA Seal",
+      "in_list_view": 0
+    },
+    {
+      "fieldname": "custom_notes",
+      "fieldtype": "Small Text",
+      "label": "Notes",
+      "in_list_view": 0
+    }
+  ],
+  "permissions": [],
+  "sort_field": "idx",
+  "sort_order": "ASC"
+}

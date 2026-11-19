@@ -1,0 +1,21 @@
+<div class="tech2-card" id="tech2-relocation-v1" data-mi="{{ mi.name | e }}">
+  <h4>Relocate Complete Equipment</h4>
+  <div class="tech2-note">Record where this equipment is moving. Ownership is unchanged. Repair, scrapping and keeping for spare parts are proposed decisions only.</div>
+  <div class="tech2-grid">
+    <div><div class="tech2-label">Equipment</div><div class="tech2-value">{{ pwa_equipment_display or mi.custom_asset or '-' }}</div></div>
+    <div><div class="tech2-label">Current branch</div><div class="tech2-value">{{ mi.custom_branch or '-' }}</div></div>
+  </div>
+  {% if is_submitted %}
+  <div class="tech2-note">This intervention is submitted and cannot be changed.</div>
+  {% else %}
+  <div class="tech2-form-group"><label class="tech2-label">Destination Type *</label><select class="form-control" id="tech2-reloc-type"><option value="">Loading...</option></select></div>
+  <div class="tech2-form-group"><label class="tech2-label">Destination *</label><select class="form-control" id="tech2-reloc-select"><option value="">Select destination type first</option></select><input type="text" id="tech2-reloc-text" class="form-control" maxlength="140" placeholder="Name or address of destination" style="display:none"></div>
+  <div class="tech2-form-group"><label class="tech2-label" id="tech2-reloc-details-label">Site Position / Slot ID</label><input class="form-control" id="tech2-reloc-details" maxlength="140" placeholder="Location / shelf / bay / site position (optional)"></div>
+  <div class="tech2-form-group"><label class="tech2-label">Destination Custodian *</label><select class="form-control" id="tech2-reloc-custodian"><option value="">Select</option><option>Customer</option><option>Company</option><option>Third Party</option></select></div>
+  <div class="tech2-form-group"><label class="tech2-label">Condition at Movement</label><select class="form-control" id="tech2-reloc-condition"><option value="">Select</option><option>Operational</option><option>Degraded</option><option>Faulty</option><option>Unknown</option><option>Beyond Repair</option></select></div>
+  <div class="tech2-form-group"><label class="tech2-label">Proposed Disposition (not a final decision)</label><select class="form-control" id="tech2-reloc-disposition"><option value="">Select</option><option>Pending Assessment</option><option>Repair</option><option>Return to Service</option><option>Keep for Spare Parts</option><option>Propose Scrap</option><option>Return to Customer</option></select></div>
+  <div class="tech2-form-group"><label class="tech2-label">Reason for Movement *</label><textarea class="form-control" id="tech2-reloc-reason" rows="3" maxlength="1000" placeholder="Why is the equipment being moved?"></textarea></div>
+  <div id="tech2-reloc-feedback" class="tech2-note" role="status"></div>
+  <button type="button" class="btn btn-primary tech2-primary-action" id="tech2-reloc-save">Save Relocation &amp; Continue to Finish Work</button>
+  {% endif %}
+</div>

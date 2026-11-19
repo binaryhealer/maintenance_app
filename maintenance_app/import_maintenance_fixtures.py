@@ -15,6 +15,18 @@ def import_maintenance_fixtures():
     Import Maintenance App GUI Client Scripts and Server Scripts
     after bench migrate.
     """
+    from maintenance_app.notifications.install import (
+        ensure_contact_applicant_field,
+        copy_legacy_external_contact_role,
+    )
+
+    ensure_contact_applicant_field()
+    copy_legacy_external_contact_role()
+    # Future fresh installations: create the editable update Notification disabled.
+    # Never replace administrator edits to an existing Notification.
+    from maintenance_app.notifications.tech_mission import ensure_tm_updated_notification
+    ensure_tm_updated_notification()
+
 
     fixtures_path = (
         Path(frappe.get_app_path("maintenance_app"))

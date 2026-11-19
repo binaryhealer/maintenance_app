@@ -1,0 +1,123 @@
+<div class="tech2-card tech2-job-v3">
+
+    {% if is_submitted %}
+
+        <div class="job3-head">
+            <h4>Job complete</h4>
+            <div class="job3-sub">
+                This intervention has been submitted.
+            </div>
+        </div>
+
+    {% elif not is_checked_in %}
+
+        <div class="job3-head">
+            <h4>Arrived on site?</h4>
+            <div class="job3-sub">
+                Check in when you reach the site. Your time and location are saved.
+            </div>
+        </div>
+
+    {% else %}
+
+        <div class="job3-head">
+            <h4>Checked in</h4>
+            <div class="job3-sub">
+                Work can now continue.
+            </div>
+        </div>
+
+    {% endif %}
+
+
+    <div class="job3-target-grid">
+
+        <div class="job3-target">
+            <div class="tech2-label">Equipment</div>
+
+            <div class="job3-target-value">
+                {{ pwa_equipment_display or "-" }}
+            </div>
+
+            {% if pwa_equipment_site_id %}
+                <div class="job3-target-meta">
+                    Site ID: {{ pwa_equipment_site_id }}
+                </div>
+            {% endif %}
+        </div>
+
+
+        {% if pwa_is_component_target and pwa_component_display %}
+            <div class="job3-target">
+                <div class="tech2-label">Component</div>
+
+                <div class="job3-target-value">
+                    {{ pwa_component_display }}
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+
+
+    {% if not is_submitted and not is_checked_in %}
+
+        <div class="job3-location">
+
+            <div class="job3-location-icon" aria-hidden="true">
+                ◎
+            </div>
+
+            <div class="job3-location-copy">
+                <div class="job3-location-title">
+                    Location
+                </div>
+
+                <div class="job3-location-text">
+                    GPS will be captured when available.
+                    You can still check in without GPS.
+                </div>
+            </div>
+
+        </div>
+
+
+        <div id="tech2-checkin-message"
+             class="tech2-checkin-message">
+        </div>
+
+
+        <div class="job3-next-row">
+
+            <div class="job3-next">
+                Next: <strong>Actions</strong>
+            </div>
+
+            <button type="button"
+                    id="tech2-checkin-button"
+                    class="btn job3-checkin-btn"
+                    onclick="tech2CheckIn('{{ mi.name }}')">
+                <span class="job3-pin" aria-hidden="true">⌖</span>
+                Check in now
+            </button>
+
+        </div>
+
+    {% elif not is_submitted %}
+
+        <div class="job3-next-row">
+
+            <div class="job3-next">
+                Next: <strong>Actions</strong>
+            </div>
+
+            <a href="/tech/intervention2?name={{ mi.name }}&step=actions"
+               class="btn job3-next-btn">
+                Continue to Actions →
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</div>

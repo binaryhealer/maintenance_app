@@ -1,0 +1,14 @@
+{
+  "is_system_generated": 0,
+  "doctype_or_field": "DocField",
+  "doc_type": "Service Ticket Movement Request",
+  "field_name": "custom_request_status",
+  "row_name": null,
+  "module": null,
+  "property": "read_only",
+  "property_type": "Check",
+  "value": "1",
+  "default_value": null,
+  "doctype": "Property Setter",
+  "name": "Service Ticket Movement Request-custom_request_status-read_only"
+}

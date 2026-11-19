@@ -1,0 +1,207 @@
+<div class="tech2-card">
+
+    <div class="tech2-work-heading">
+
+        <div>
+            <div class="tech2-label">
+                Swap Stage
+            </div>
+
+            <h4 class="tech2-work-title">
+                {{ swap_work.stage or "Swap" }}
+            </h4>
+        </div>
+
+        {% if swap_work.route_reversed %}
+        <span class="tech2-route-badge">
+            Reversed Route
+        </span>
+        {% endif %}
+
+    </div>
+
+
+    <div class="tech2-swap-instruction">
+
+        <strong>What to do</strong>
+
+        <div>
+            {{ swap_work.instruction or
+               "Follow the planned Swap work for this intervention." }}
+        </div>
+
+    </div>
+
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            At This Site
+        </div>
+
+        <div class="tech2-grid tech2-swap-grid">
+
+            <div>
+                <div class="tech2-label">
+                    Branch
+                </div>
+
+                <div class="tech2-value">
+                    {{ swap_work.current_branch or "-" }}
+                </div>
+            </div>
+
+
+            <div>
+                <div class="tech2-label">
+                    Site / Position
+                </div>
+
+                <div class="tech2-value">
+                    {{ swap_work.current_site or "-" }}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            Equipment Being Handled
+        </div>
+
+        <div class="tech2-equipment-panel">
+
+            <div class="tech2-equipment-name">
+                {{ swap_work.equipment.asset_name or "-" }}
+            </div>
+
+            {% if
+                swap_work.equipment.make
+                or swap_work.equipment.model
+                or swap_work.equipment.site_id
+            %}
+
+            <div class="tech2-muted">
+
+                {% if swap_work.equipment.make %}
+                    {{ swap_work.equipment.make }}
+                {% endif %}
+
+                {% if swap_work.equipment.model %}
+                    {{ swap_work.equipment.model }}
+                {% endif %}
+
+                {% if swap_work.equipment.site_id %}
+                    · Site ID:
+                    {{ swap_work.equipment.site_id }}
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            Swap Partner
+        </div>
+
+        <div class="tech2-equipment-panel">
+
+            <div class="tech2-equipment-name">
+                {{ swap_work.partner.asset_name or "-" }}
+            </div>
+
+            {% if
+                swap_work.partner.make
+                or swap_work.partner.model
+            %}
+
+            <div class="tech2-muted">
+
+                {% if swap_work.partner.make %}
+                    {{ swap_work.partner.make }}
+                {% endif %}
+
+                {% if swap_work.partner.model %}
+                    {{ swap_work.partner.model }}
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    {% if swap_work.destination_branch %}
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            Next / Destination
+        </div>
+
+        <div class="tech2-destination-panel">
+
+            <div>
+                <span class="tech2-team-key">
+                    Branch:
+                </span>
+
+                <span class="tech2-team-value">
+                    {{ swap_work.destination_branch }}
+                </span>
+            </div>
+
+            {% if swap_work.destination_site %}
+
+            <div>
+                <span class="tech2-team-key">
+                    Site / Position:
+                </span>
+
+                <span class="tech2-team-value">
+                    {{ swap_work.destination_site }}
+                </span>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="tech2-section-block">
+
+        <div class="tech2-label">
+            Swap Type
+        </div>
+
+        <div class="tech2-value">
+            {{ mi.custom_swap_classification or "-" }}
+        </div>
+
+    </div>
+
+
+    <a href="/tech/intervention2?name={{ mi.name }}&step=finish"
+       class="btn btn-primary tech2-primary-action">
+        Work Done → Finish Work
+    </a>
+
+</div>

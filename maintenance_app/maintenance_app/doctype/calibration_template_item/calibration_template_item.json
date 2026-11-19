@@ -1,0 +1,87 @@
+{
+  "doctype": "DocType",
+  "name": "Calibration Template Item",
+  "module": "Maintenance App",
+  "custom": 0,
+  "istable": 1,
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "custom_test_point",
+    "custom_component_type",
+    "custom_instructions",
+    "custom_evaluation_method",
+    "custom_expected_value",
+    "custom_tolerance",
+    "custom_min_value",
+    "custom_max_value",
+    "custom_unit",
+    "custom_required"
+  ],
+  "fields": [
+    {
+      "fieldname": "custom_test_point",
+      "fieldtype": "Data",
+      "label": "Test Point",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_component_type",
+      "fieldtype": "Link",
+      "label": "Component Type (if applicable)",
+      "options": "Equipment Type",
+      "description": "Use the component type (e.g. Pump, Nozzle), not an individual component ID."
+    },
+    {
+      "fieldname": "custom_instructions",
+      "fieldtype": "Small Text",
+      "label": "Procedure / Instructions"
+    },
+    {
+      "fieldname": "custom_evaluation_method",
+      "fieldtype": "Select",
+      "label": "Evaluation Method",
+      "options": "Absolute Tolerance\nRange\nRecord Only",
+      "default": "Absolute Tolerance",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_expected_value",
+      "fieldtype": "Float",
+      "label": "Expected Value",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_tolerance",
+      "fieldtype": "Float",
+      "label": "Allowed Tolerance (+/-)",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_min_value",
+      "fieldtype": "Float",
+      "label": "Minimum Acceptable Value"
+    },
+    {
+      "fieldname": "custom_max_value",
+      "fieldtype": "Float",
+      "label": "Maximum Acceptable Value"
+    },
+    {
+      "fieldname": "custom_unit",
+      "fieldtype": "Data",
+      "label": "Unit",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_required",
+      "fieldtype": "Check",
+      "label": "Required Test",
+      "default": "1"
+    }
+  ],
+  "permissions": [],
+  "track_changes": 0
+}

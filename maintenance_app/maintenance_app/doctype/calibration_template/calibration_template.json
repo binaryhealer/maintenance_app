@@ -1,0 +1,182 @@
+{
+  "doctype": "DocType",
+  "name": "Calibration Template",
+  "module": "Maintenance App",
+  "custom": 0,
+  "istable": 0,
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "custom_template_name",
+    "custom_enabled",
+    "custom_equipment_category",
+    "custom_calibrate_components",
+    "custom_applicable_scope",
+    "custom_equipment_type",
+    "custom_component_group",
+    "custom_calibration_type",
+    "custom_calibration_method",
+    "custom_reference_standard",
+    "custom_calibration_interval_months",
+    "custom_entry_format",
+    "custom_reading_layout",
+    "custom_table_title",
+    "custom_table_component_type",
+    "custom_table_columns",
+    "custom_field_mapping",
+    "custom_test_points",
+    "custom_notes"
+  ],
+  "fields": [
+    {
+      "fieldname": "custom_template_name",
+      "fieldtype": "Data",
+      "label": "Template Name",
+      "reqd": 1,
+      "unique": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_enabled",
+      "fieldtype": "Check",
+      "label": "Enabled",
+      "default": "1",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_equipment_category",
+      "fieldtype": "Link",
+      "label": "Equipment Category",
+      "options": "Item Group",
+      "reqd": 1,
+      "in_list_view": 1,
+      "description": "Choose the same Equipment Category used on Installed Equipment."
+    },
+    {
+      "fieldname": "custom_calibrate_components",
+      "fieldtype": "Select",
+      "label": "Calibrate Components?",
+      "options": "No\nYes",
+      "default": "No",
+      "reqd": 1,
+      "description": "No = complete equipment; Yes = components installed on that equipment."
+    },
+    {
+      "fieldname": "custom_applicable_scope",
+      "fieldtype": "Select",
+      "label": "Applicable To",
+      "options": "Equipment\nComponent\nBoth",
+      "default": "Both",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_equipment_type",
+      "fieldtype": "Link",
+      "label": "Equipment Type (Optional)",
+      "options": "Equipment Type"
+    },
+    {
+      "fieldname": "custom_component_group",
+      "fieldtype": "Link",
+      "label": "Component Group (Optional)",
+      "options": "Equipment Component Group"
+    },
+    {
+      "fieldname": "custom_calibration_type",
+      "fieldtype": "Select",
+      "label": "Default Calibration Type",
+      "options": "Initial Calibration\nPeriodic Calibration\nPost-Repair Calibration\nVerification\nAdjustment and Calibration",
+      "default": "Periodic Calibration"
+    },
+    {
+      "fieldname": "custom_calibration_method",
+      "fieldtype": "Small Text",
+      "label": "Calibration Method / Instructions"
+    },
+    {
+      "fieldname": "custom_reference_standard",
+      "fieldtype": "Data",
+      "label": "Reference Standard"
+    },
+    {
+      "fieldname": "custom_calibration_interval_months",
+      "fieldtype": "Int",
+      "label": "Suggested Calibration Interval (Months)"
+    },
+    {
+      "fieldname": "custom_entry_format",
+      "fieldtype": "Select",
+      "label": "How will readings be entered?",
+      "options": "Standard Tests\nCustom Table\nBoth",
+      "default": "Standard Tests",
+      "reqd": 1,
+      "description": "Standard Tests = simple before/after readings. Custom Table = repeating rows, like a pump calibration sheet."
+    },
+    {
+      "fieldname": "custom_table_title",
+      "fieldtype": "Data",
+      "label": "Table Title",
+      "description": "Example: Pump Calibration Readings"
+    },
+    {
+      "fieldname": "custom_table_component_type",
+      "fieldtype": "Link",
+      "label": "Component Type for This Table (Optional)",
+      "options": "Equipment Type",
+      "description": "Example: Pumping Unit. Leave blank only if the table applies to all components in this equipment category."
+    },
+    {
+      "fieldname": "custom_table_columns",
+      "fieldtype": "Table",
+      "label": "Table Columns",
+      "options": "Calibration Table Column",
+      "description": "Add columns in the order shown on the technician screen. Each row will represent a product or another repeatable test entry."
+    },
+    {
+      "fieldname": "custom_test_points",
+      "fieldtype": "Table",
+      "label": "Calibration Test Points",
+      "options": "Calibration Template Item"
+    },
+    {
+      "fieldname": "custom_notes",
+      "fieldtype": "Small Text",
+      "label": "Internal Notes"
+    },
+    {
+      "fieldname": "custom_reading_layout",
+      "label": "Specialized Readings",
+      "fieldtype": "Select",
+      "options": "\nFDU Readings\nGeneric Mapped Readings",
+      "description": "Choose FDU Readings for fuel dispensers. Leave blank to keep the existing Standard Tests / Custom Table behaviour."
+    },
+    {
+      "fieldname": "custom_field_mapping",
+      "label": "Reading Field Mapping",
+      "fieldtype": "Table",
+      "options": "Calibration Field Mapping",
+      "description": "Choose generic fields, display labels, units, input types, and required status. Used only for Generic Mapped Readings."
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "print": 1,
+      "email": 1,
+      "export": 1,
+      "report": 1,
+      "share": 1
+    }
+  ],
+  "track_changes": 1,
+  "autoname": "field:custom_template_name",
+  "title_field": "custom_template_name",
+  "search_fields": "custom_template_name",
+  "sort_field": "modified",
+  "sort_order": "DESC"
+}

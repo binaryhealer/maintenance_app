@@ -1,0 +1,247 @@
+<div class="tech2-card">
+
+    <h4>Submit Intervention</h4>
+
+    {% if is_submitted %}
+
+        <div class="tech2-check-status tech2-check-status-done">
+            ✓ Intervention Submitted
+        </div>
+
+    {% elif not client_confirmed %}
+
+        <div class="tech2-note">
+            Client Confirmation must be completed before submission.
+        </div>
+
+        <a href="/tech/intervention2?name={{ mi.name }}&step=client"
+           class="btn btn-primary tech2-primary-action">
+            Go to Client Confirmation
+        </a>
+
+    {% else %}
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Work Outcome
+            </div>
+
+            <div class="tech2-value">
+                {{ mi.custom_work_outcome or "-" }}
+            </div>
+
+        </div>
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Actual Ticket Type
+            </div>
+
+            <div class="tech2-value">
+                {{ mi.custom_intervention_type or "-" }}
+            </div>
+
+        </div>
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Equipment
+            </div>
+
+            <div class="tech2-value">
+                {{ (equipment.label or equipment.asset_name or "-") | e }}
+                <div class="tech2-muted">Equipment ID: {{ (equipment.name or "-") | e }}</div>
+            </div>
+
+        </div>
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Client Signatory
+            </div>
+
+            <div class="tech2-value">
+                {{ mi.custom_signatory_name or "-" }}
+            </div>
+
+            {% if mi.custom_client_signed_on %}
+            <div class="tech2-muted">
+                Signed:
+                {{ mi.custom_client_signed_on }}
+            </div>
+            {% endif %}
+
+        </div>
+
+        {% if mi.custom_work_outcome == "Continue Work" %}
+
+        <div class="tech2-section-block"
+             id="tech2-continue-work-plan">
+
+            <div class="tech2-label">
+                Next Planned Work
+            </div>
+
+            <div class="tech2-grid">
+
+                <div>
+                    <label class="tech2-label"
+                           for="tech2-follow-up-date">
+                        Date
+                    </label>
+
+                    <input type="date"
+                           id="tech2-follow-up-date"
+                           class="form-control"
+                           required>
+                </div>
+
+                <div>
+                    <label class="tech2-label"
+                           for="tech2-follow-up-start-time">
+                        Start Time
+                    </label>
+
+                    <input type="time"
+                           id="tech2-follow-up-start-time"
+                           class="form-control"
+                           value="08:00"
+                           required>
+                </div>
+
+                <div>
+                    <label class="tech2-label"
+                           for="tech2-follow-up-end-time">
+                        End Time
+                    </label>
+
+                    <input type="time"
+                           id="tech2-follow-up-end-time"
+                           class="form-control"
+                           value="17:00"
+                           required>
+                </div>
+
+            </div>
+
+            <div class="tech2-label"
+                 style="margin-top:12px;">
+                Continuation Reason / Plan
+            </div>
+
+            <textarea id="tech2-follow-up-reason"
+                      class="form-control"
+                      rows="4"
+                      placeholder="What remains to be done?"
+                      required>{{ mi.custom_work_progress or "" }}</textarea>
+
+            <div class="tech2-muted"
+                 style="margin-top:8px;">
+                These values will become the next planned schedule
+                for the follow-up intervention and Tech Mission.
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+        <button type="button"
+                class="btn btn-dark tech2-primary-action"
+                onclick="tech2SubmitIntervention('{{ mi.name }}')">
+            Submit Intervention
+        </button>
+
+    {% endif %}
+
+</div>
+
+
+<!-- Reuses the existing old PWA backend recipient validation and MI email sender. -->
+<section class="tech2-card tech2-mi-email" id="tech2-mi-email-panel"
+         data-mi="{{ mi.name | e }}" data-submitted="{{ 1 if is_submitted else 0 }}">
+  <h4>MI Report Email</h4>
+  {% if not is_submitted %}
+    <label class="tech2-mi-email-option"><input type="checkbox" id="tech2-mi-email-on-submit">
+      Email the MI report after submission (optional)
+    </label>
+  {% else %}
+    <p class="tech2-note">This intervention has been submitted. You can send or resend its report.</p>
+  {% endif %}
+  <div id="tech2-mi-email-choices" {% if not is_submitted %}hidden{% endif %}>
+    <p class="tech2-note">Only approved applicant, customer/branch contacts and enabled ERPNext users can be selected.</p>
+    <div class="tech2-mi-email-grid">
+      <div class="tech2-mi-email-side"><label for="tech2-mi-email-search-to">To</label>
+        <input type="search" id="tech2-mi-email-search-to" placeholder="Search approved recipients">
+        <div id="tech2-mi-email-to" class="tech2-mi-email-options"></div></div>
+      <div class="tech2-mi-email-side"><label for="tech2-mi-email-search-cc">CC</label>
+        <input type="search" id="tech2-mi-email-search-cc" placeholder="Search approved recipients">
+        <div id="tech2-mi-email-cc" class="tech2-mi-email-options"></div></div>
+    </div>
+    <label class="tech2-mi-email-option"><input type="checkbox" id="tech2-mi-email-photos">
+      Include client-approved photos and attachments
+    </label>
+    <p class="tech2-note">Files marked Private for Client are excluded by the existing backend.</p>
+    <!-- GMAO_COMBINED_MI_CAL_EMAIL_V1: available only for signed reports containing this MI. -->
+    {% if is_submitted and mi.custom_intervention_type == 'Calibration' %}
+      <div id="tech2-mi-email-cal-wrap" hidden>
+        <label class="tech2-mi-email-option">
+          <input type="checkbox" id="tech2-mi-email-cal-include">
+          Include signed Calibration Certificate PDF
+        </label>
+        <label for="tech2-mi-email-cal-report">Calibration Certificate</label>
+        <select id="tech2-mi-email-cal-report" style="width:100%;max-width:100%;padding:9px;border-radius:8px"></select>
+        <p class="tech2-note" id="tech2-mi-email-cal-note"></p>
+      </div>
+    {% endif %}
+    {% if is_submitted %}
+      <button type="button" class="btn btn-primary" id="tech2-mi-email-send">Send / Resend MI PDF</button>
+    {% endif %}
+  </div>
+  <div id="tech2-mi-email-status" role="status" aria-live="polite"></div>
+</section>
+<style>
+.tech2-mi-email {margin-top:18px;padding:16px;border:1px solid var(--border-color,#ddd);border-radius:12px}
+.tech2-mi-email-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:12px 0}
+.tech2-mi-email-side {min-width:0}
+.tech2-mi-email-side>label {display:block;font-weight:600;margin-bottom:8px}
+.tech2-mi-email-side>input {box-sizing:border-box;width:100%;padding:10px;min-height:42px;border:1px solid #aaa;border-radius:8px}
+.tech2-mi-email-options {max-height:180px;overflow-y:auto;border:1px solid #ddd;border-radius:8px;margin-top:6px;padding:8px}
+.tech2-mi-email-recipient {display:flex;align-items:flex-start;gap:8px;padding:6px 3px;overflow-wrap:anywhere}
+.tech2-mi-email-recipient small {display:block;opacity:.7}
+.tech2-mi-email-option {display:flex;align-items:center;gap:9px;margin:12px 0}
+#tech2-mi-email-status {margin:10px 0;font-weight:600}
+@media(max-width:680px){.tech2-mi-email-grid{grid-template-columns:1fr}}
+</style>
+
+<script>
+window.TECH2_SUBMIT_WORK_OUTCOME =
+    {{ (mi.custom_work_outcome or "") | tojson }};
+</script>
+
+{% if mi.docstatus == 1 %}
+<div class="tech2-card" id="tech2-mission-finish-panel"
+     data-mission="{{ mi.custom_parent_mission or '' }}">
+    <h4>Finish Mission</h4>
+    <p class="tech2-muted">
+        Review all interventions and planned equipment before
+        ending this visit.
+    </p>
+    <button type="button" class="btn btn-outline-primary"
+            id="tech2-review-mission"
+            onclick="tech2ReviewMission()">
+        Review Mission
+    </button>
+    <div id="tech2-mission-finish-result"
+         style="display:none; margin-top:16px;"
+         role="status" aria-live="polite">
+    </div>
+</div>
+{% endif %}

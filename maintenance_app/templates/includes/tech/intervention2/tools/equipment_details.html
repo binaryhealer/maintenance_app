@@ -1,0 +1,90 @@
+<div class="tech2-card tech2-tool-compact">
+
+    <div class="tool3-head">
+        <h4>Equipment details</h4>
+        <div class="tool3-sub">
+            Quick reference for the equipment on this intervention.
+        </div>
+    </div>
+
+    {% set eq = pwa_equipment_details %}
+
+    <div class="tool3-hero">
+
+        <div>
+            <div class="tech2-label">Equipment</div>
+            <div class="tool3-hero-value">
+                {{ eq.equipment or "-" }}
+            </div>
+        </div>
+
+        {% if eq.site_id %}
+            <div class="tool3-site">
+                Site ID: {{ eq.site_id }}
+            </div>
+        {% endif %}
+
+    </div>
+
+    <div class="tool3-grid">
+
+        {% if eq.make %}
+            <div class="tool3-item">
+                <div class="tech2-label">Make</div>
+                <div class="tool3-value">{{ eq.make }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.model %}
+            <div class="tool3-item">
+                <div class="tech2-label">Model</div>
+                <div class="tool3-value">{{ eq.model }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.serial %}
+            <div class="tool3-item">
+                <div class="tech2-label">Serial number</div>
+                <div class="tool3-value">{{ eq.serial }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.installed_date %}
+            <div class="tool3-item">
+                <div class="tech2-label">Installed</div>
+                <div class="tool3-value">{{ eq.installed_date }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.last_service_date %}
+            <div class="tool3-item">
+                <div class="tech2-label">Last maintenance</div>
+                <div class="tool3-value">{{ eq.last_service_date }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.next_maintenance_date %}
+            <div class="tool3-item">
+                <div class="tech2-label">Next PM</div>
+                <div class="tool3-value">{{ eq.next_maintenance_date }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.asset_status %}
+            <div class="tool3-item">
+                <div class="tech2-label">Equipment status</div>
+                <div class="tool3-value">{{ eq.asset_status }}</div>
+            </div>
+        {% endif %}
+
+        {% if eq.operational_status %}
+            <div class="tool3-item">
+                <div class="tech2-label">Operational status</div>
+                <div class="tool3-value">{{ eq.operational_status }}</div>
+            </div>
+        {% endif %}
+
+    </div>
+
+
+</div>

@@ -12,6 +12,10 @@
   "custom_client_branch",
   "custom_raised_by",
   "custom_opening_date",
+  "custom_priority",
+  "custom_swap_type",
+  "custom_swap_branch",
+  "custom_swap_reason",
   "custom_handling_mode",
   "custom_planning_required",
   "column_break_jygr",
@@ -21,7 +25,8 @@
   "custom_subject",
   "custom_parent_equipment",
   "custom_target_component_name",
-  "custom_priority",
+  "custom_swap_equipment",
+  "custom_swap_site_id",
   "section_break_dmjb",
   "custom_description",
   "column_break_dakm",
@@ -73,6 +78,8 @@
   "custom_applicant_phone",
   "column_break_oesj",
   "custom_applicant_email",
+  "custom_provider_contacts",
+  "custom_external_contacts",
   "custom_ho_contacts",
   "custom_head_office_contacts",
   "custom_branch_operational_contacts",
@@ -232,7 +239,7 @@
    "fieldname": "custom_ticket_type",
    "fieldtype": "Select",
    "label": "Ticket Type",
-   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap / Rep\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation\nGeneral Works\nOther"
+   "options": "Service\nRepair\nPreventive Maintenance\nInstallation\nSurvey\nAsset Relocation\nConfig Change\nCalibration\nSwap\nLoan\nCommissioning\nTraining\nAudit\nIncident Investigation\nDecommissioning\nInspection\nSpecialised Testing\nGeneral Installation\nGeneral Works\nOther"
   },
   {
    "default": "Billable",
@@ -886,12 +893,52 @@
    "fieldname": "custom_general_work_type",
    "fieldtype": "Data",
    "label": "General Works Type"
+  },
+  {
+   "fieldname": "custom_provider_contacts",
+   "fieldtype": "Section Break",
+   "label": "Provider Contacts"
+  },
+  {
+   "fieldname": "custom_external_contacts",
+   "fieldtype": "Table",
+   "label": "ISP / External Contacts",
+   "options": "Service Ticket External Contact"
+  },
+  {
+   "fieldname": "custom_swap_branch",
+   "fieldtype": "Link",
+   "label": "Swap Branch",
+   "options": "Client Branch"
+  },
+  {
+   "fieldname": "custom_swap_equipment",
+   "fieldtype": "Link",
+   "label": "Swap Equipment",
+   "options": "Installed Equipment"
+  },
+  {
+   "fieldname": "custom_swap_site_id",
+   "fieldtype": "Data",
+   "label": "Swap Equipment Site Position / Slot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_type",
+   "fieldtype": "Select",
+   "label": "Swap Type",
+   "options": "\nPermanent Swap\nTemporary Swap"
+  },
+  {
+   "fieldname": "custom_swap_reason",
+   "fieldtype": "Small Text",
+   "label": "Swap Reason"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-09 13:28:28.496378",
+ "modified": "2026-11-09 17:33:30.218492",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Service Ticket",

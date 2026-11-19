@@ -25,17 +25,21 @@
   "custom_equipment_template",
   "custom_client_type",
   "custom_company",
+  "custom_calibration_template",
   "section_break_sffk",
   "custom_next_maintenance_date",
   "custom_ownership",
   "custom_asset_status",
-  "custom_create_warranty_inline",
   "custom_operational_status",
   "column_break_vyja",
   "custom_warranty",
   "custom_maint_frequency",
   "custom_warranty_period_years",
   "custom_coverage_type",
+  "section_break_baju",
+  "custom_create_warranty_inline",
+  "column_break_dnzf",
+  "custom_disabled",
   "section_break_ajrk",
   "lft",
   "rgt",
@@ -106,7 +110,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Equipment Status",
-   "options": "Pending Installation\nInstalled\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost"
+   "options": "Pending Installation\nInstalled\nIn Workshop\nIn Transit\nLoaned\nRetired\nScrapped\nLost\nDecommissioned"
   },
   {
    "fieldname": "custom_maint_frequency",
@@ -393,8 +397,8 @@
   {
    "fieldname": "custom_operational_status",
    "fieldtype": "Select",
-   "label": "Operational Status",
-   "options": "Operational\nDegraded\nOut of Service\nAwaiting Component"
+   "label": "Equipment Condition",
+   "options": "Operational\nGood\nDegraded\nFaulty\nOut of Service\nAwaiting Component\nUnknown"
   },
   {
    "fieldname": "custom_installed_date",
@@ -471,6 +475,26 @@
    "fieldname": "custom_installation_year",
    "fieldtype": "Int",
    "label": "Installation Year"
+  },
+  {
+   "fieldname": "section_break_baju",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dnzf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "custom_calibration_template",
+   "fieldtype": "Link",
+   "label": "Calibration Template",
+   "options": "Calibration Template"
   }
  ],
  "grid_page_length": 50,
@@ -493,7 +517,7 @@
    "link_fieldname": "custom_related_asset"
   }
  ],
- "modified": "2026-08-19 07:20:13.032638",
+ "modified": "2026-11-19 08:24:50.302980",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Installed Equipment",

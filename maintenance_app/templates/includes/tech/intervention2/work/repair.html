@@ -1,0 +1,65 @@
+<div class="tech2-card repair3">
+
+    <div class="tool3-head">
+        <h4>Repair</h4>
+        <div class="tool3-sub">
+            Confirm the fault identified before finishing the work.
+        </div>
+    </div>
+
+    {% if mi.docstatus == 1 %}
+
+        <div class="repair3-readonly">
+            <div class="tech2-label">Fault Type</div>
+            <div class="repair3-value">
+                {{ mi.custom_fault_type or "-" }}
+            </div>
+        </div>
+
+    {% else %}
+
+        <div class="repair3-field">
+
+            <label class="tech2-label"
+                   for="tech2-repair-fault-type">
+                Fault Type
+            </label>
+
+            <select id="tech2-repair-fault-type"
+                    class="form-control">
+                <option value="">
+                    Loading fault types...
+                </option>
+            </select>
+
+            <div class="repair3-help">
+                Required for Repair.
+            </div>
+
+        </div>
+
+        <button type="button"
+                id="tech2-repair-continue"
+                class="btn btn-primary tech2-primary-action"
+                onclick="tech2SaveRepairFaultType()">
+            Continue to Finish Work
+        </button>
+
+        <div id="tech2-repair-message"
+             class="repair3-message">
+        </div>
+
+    {% endif %}
+
+</div>
+
+<script>
+window.TECH2_REPAIR_MI_NAME =
+    {{ mi.name | tojson }};
+
+window.TECH2_REPAIR_CURRENT_FAULT_TYPE =
+    {{ (mi.custom_fault_type or "") | tojson }};
+
+window.TECH2_REPAIR_SUBMITTED =
+    {{ 1 if mi.docstatus == 1 else 0 }};
+</script>

@@ -1,0 +1,78 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-11-05 09:51:43.122750",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_contact",
+  "custom_contact_name",
+  "custom_email",
+  "custom_role_company",
+  "cutom_role_company",
+  "custom_notify"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_contact",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "custom_contact_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Contact Name"
+  },
+  {
+   "fieldname": "custom_email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Email"
+  },
+  {
+   "fieldname": "cutom_role_company",
+   "fieldtype": "Data",
+   "in_list_view": 0,
+   "in_standard_filter": 1,
+   "label": "Role / Company",
+   "hidden": 1,
+   "description": "Legacy misspelled field; retained for migration only."
+  },
+  {
+   "default": "1",
+   "fieldname": "custom_notify",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Notify"
+  },
+  {
+   "fieldname": "custom_role_company",
+   "fieldtype": "Data",
+   "label": "Role / Company",
+   "in_list_view": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-05 09:56:56.972215",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Service Ticket External Contact",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

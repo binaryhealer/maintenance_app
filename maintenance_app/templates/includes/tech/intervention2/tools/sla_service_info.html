@@ -1,0 +1,109 @@
+<div class="tech2-card tech2-tool-compact sla3">
+
+    <div class="tool3-head">
+        <h4>SLA / Service info</h4>
+        <div class="tool3-sub">
+            Service response and resolution commitment.
+        </div>
+    </div>
+
+    {% set sla = pwa_sla_info %}
+
+    {% if not sla.service_ticket %}
+
+        <div class="sla3-na">
+            <div class="sla3-na-title">No Service Ticket</div>
+            <div class="sla3-na-text">
+                No Service Ticket reference was found for this intervention.
+            </div>
+        </div>
+
+    {% elif not sla.sla_rule %}
+
+        <div class="sla3-status-row">
+            <div>
+                <div class="tech2-label">SLA Status</div>
+                <div class="sla3-status-value">
+                    {{ sla.sla_status or "Not Applicable" }}
+                </div>
+            </div>
+
+            <div class="sla3-ticket">
+                {{ sla.service_ticket }}
+            </div>
+        </div>
+
+        <div class="sla3-na">
+            <div class="sla3-na-title">Not Applicable</div>
+            <div class="sla3-na-text">
+                No response or resolution SLA is assigned to this ticket.
+            </div>
+        </div>
+
+        {% if sla.priority %}
+            <div class="sla3-footer">
+                Priority: {{ sla.priority }}
+            </div>
+        {% endif %}
+
+    {% else %}
+
+        <div class="sla3-status-row">
+            <div>
+                <div class="tech2-label">SLA Status</div>
+                <div class="sla3-status-value">
+                    {{ sla.sla_status or "On Track" }}
+                </div>
+            </div>
+
+            <div class="sla3-ticket">
+                {{ sla.service_ticket }}
+            </div>
+        </div>
+
+        <div class="sla3-grid">
+
+            <div class="sla3-block">
+                <div class="sla3-block-title">Response</div>
+
+                <div class="sla3-row">
+                    <span>Target</span>
+                    <strong>{{ sla.response_target or "-" }}</strong>
+                </div>
+
+                <div class="sla3-row">
+                    <span>Due</span>
+                    <strong>{{ sla.response_due or "-" }}</strong>
+                </div>
+            </div>
+
+            <div class="sla3-block">
+                <div class="sla3-block-title">Resolution</div>
+
+                <div class="sla3-row">
+                    <span>Target</span>
+                    <strong>{{ sla.resolution_target or "-" }}</strong>
+                </div>
+
+                <div class="sla3-row">
+                    <span>Due</span>
+                    <strong>{{ sla.resolution_due or "-" }}</strong>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="sla3-rule">
+            <span class="tech2-label">SLA Rule</span>
+            <strong>{{ sla.sla_rule }}</strong>
+        </div>
+
+        {% if sla.priority %}
+            <div class="sla3-footer">
+                Priority: {{ sla.priority }}
+            </div>
+        {% endif %}
+
+    {% endif %}
+
+</div>

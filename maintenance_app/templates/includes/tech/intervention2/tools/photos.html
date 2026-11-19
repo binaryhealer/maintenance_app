@@ -1,0 +1,77 @@
+<div class="tech2-card tech2-tool-compact photo3">
+
+    <div class="tool3-head">
+        <h4>Photos & Documents</h4>
+        <div class="tool3-sub">
+            Upload photos, testing reports, calibration certificates and technical documents.
+        </div>
+    </div>
+
+    {% if mi.docstatus == 0 %}
+
+        <div class="photo3-actions">
+
+            <label class="btn photo3-primary"
+                   for="tech2-camera-upload">
+                Take photo
+            </label>
+
+            <label class="btn photo3-secondary"
+                   for="tech2-file-upload">
+                Upload Photos / Documents
+            </label>
+
+        </div>
+
+        <input type="file"
+               id="tech2-camera-upload"
+               accept="image/*"
+               capture="environment"
+               style="display:none"
+               onchange="tech2UploadSelectedFiles(this)">
+
+        <input type="file"
+               id="tech2-file-upload"
+               accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+               multiple
+               style="display:none"
+               onchange="tech2UploadSelectedFiles(this)">
+
+        <div class="photo3-help">
+            Mark internal evidence as <strong>Private for Client</strong>.
+            Private files will not be attached to the customer email.
+        </div>
+
+    {% else %}
+
+        <div class="photo3-lock">
+            Submitted intervention. Attachments are read-only.
+        </div>
+
+    {% endif %}
+
+    <div id="tech2-photo-upload-status"
+         class="tech2-photo-upload-status"
+         style="display:none;">
+    </div>
+
+    <div class="photo3-section-head">
+        <span>Attachments</span>
+    </div>
+
+    <div id="tech2-photo-gallery"
+         class="tech2-photo-gallery">
+        <div class="tech2-muted">
+            Loading attachments...
+        </div>
+    </div>
+
+</div>
+
+<script>
+window.TECH2_PHOTO_MI_NAME =
+    {{ mi.name | tojson }};
+
+window.TECH2_PHOTO_MI_SUBMITTED =
+    {{ 1 if mi.docstatus == 1 else 0 }};
+</script>

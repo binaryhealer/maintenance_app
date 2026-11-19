@@ -22,6 +22,10 @@
   "custom_replacement_reason",
   "section_break_nqmv",
   "custom_previous_branch",
+  "custom_previous_site_id",
+  "custom_new_site_id",
+  "custom_swap_partner",
+  "custom_swap_type",
   "section_break_vzqv",
   "custom_action_taken",
   "custom_reference_billing",
@@ -75,7 +79,7 @@
    "fieldname": "custom_event",
    "fieldtype": "Select",
    "label": "Event Type",
-   "options": "Commissioned\nInstalled\nServiced\nRepaired\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nComponent Installed\nComponent Removed\nComponent Moved\nComponent Replaced\nComponent Repaired\nComponent Retired\nComponent Scrapped\nRetired\nDisposed\nScrapped\nComponent Installed"
+   "options": "\nCommissioned\nInstalled\nServiced\nRepaired\nRelocated\nLoan Issued\nLoan Returned\nSent For Repair\nReturned From Repair\nComponent Installed\nComponent Removed\nComponent Moved\nComponent Replaced\nComponent Repaired\nComponent Retired\nComponent Scrapped\nRetired\nDisposed\nScrapped\nComponent Installed"
   },
   {
    "fieldname": "custom_asset_lifecycle_log",
@@ -337,13 +341,38 @@
    "fieldname": "custom_replacement_reason",
    "fieldtype": "Data",
    "label": "Replacement Reason"
+  },
+  {
+   "fieldname": "custom_previous_site_id",
+   "fieldtype": "Data",
+   "label": "Previous Site Position / Slot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_new_site_id",
+   "fieldtype": "Data",
+   "label": "New Site Position / Slot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_partner",
+   "fieldtype": "Link",
+   "label": "Swap Partner Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_type",
+   "fieldtype": "Data",
+   "label": "Swap Type",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-27 11:35:37.686925",
+ "modified": "2026-11-09 17:11:56.579048",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Asset Lifecycle Log",

@@ -15,6 +15,11 @@
   "custom_service_type",
   "custom_request_type",
   "custom_ticket_type",
+  "custom_swap_reason",
+  "custom_swap_type",
+  "custom_swap_site_id",
+  "custom_swap_equipment",
+  "custom_swap_branch",
   "section_break_emfh",
   "custom_notes",
   "custom_planning",
@@ -326,12 +331,45 @@
    "fieldname": "custom_parent_equipment",
    "fieldtype": "Data",
    "label": "Parent Equipment"
+  },
+  {
+   "fieldname": "custom_swap_branch",
+   "fieldtype": "Link",
+   "label": "Swap Branch",
+   "options": "Client Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_equipment",
+   "fieldtype": "Link",
+   "label": "Swap Equipment",
+   "options": "Installed Equipment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_site_id",
+   "fieldtype": "Data",
+   "label": "Swap Equipment Site Position / Slot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_type",
+   "fieldtype": "Select",
+   "label": "Swap Type",
+   "options": "\nPermanent Swap\nTemporary Swap",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_swap_reason",
+   "fieldtype": "Small Text",
+   "label": "Swap Reason",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-02 13:18:50.541165",
+ "modified": "2026-11-09 17:07:17.889688",
  "modified_by": "Administrator",
  "module": "Maintenance App",
  "name": "Tech Planning",

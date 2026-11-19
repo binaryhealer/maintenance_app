@@ -1,0 +1,154 @@
+.tech2-nav {
+    position: sticky;
+    top: 14px;
+
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+
+    padding: 10px;
+}
+
+.tech2-nav-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 700;
+
+    padding: 8px 8px 10px;
+
+    color: #6b7280;
+}
+
+.tools-heading {
+    margin-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 15px;
+}
+
+.tech2-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.tech2-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 10px;
+
+    border-radius: 9px;
+
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.tech2-nav-item:hover {
+    background: #f3f4f6;
+}
+
+.tech2-nav-item.active {
+    background: #eef2ff;
+    font-weight: 700;
+}
+
+.tech2-nav-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.tech2-step-state {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    min-width: 22px;
+    width: 22px;
+    height: 22px;
+
+    border-radius: 50%;
+
+    background: #f3f4f6;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.tech2-menu-button,
+.tech2-nav-close,
+.tech2-nav-backdrop {
+    display: none;
+}
+
+
+@media (max-width: 991px) {
+
+    .tech2-layout {
+        display: block;
+    }
+
+    .tech2-menu-button {
+        display: block;
+
+        width: 100%;
+        margin-bottom: 12px;
+
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        border-radius: 10px;
+
+        padding: 10px 12px;
+
+        font-weight: 700;
+    }
+
+    .tech2-nav {
+        position: fixed;
+
+        left: 0;
+        top: 0;
+
+        width: min(82vw, 300px);
+        height: 100vh;
+
+        z-index: 1001;
+
+        border-radius: 0 14px 14px 0;
+
+        transform: translateX(-105%);
+        transition: transform 0.2s ease;
+
+        overflow-y: auto;
+    }
+
+    .tech2-nav.open {
+        transform: translateX(0);
+    }
+
+    .tech2-nav-close {
+        display: block;
+
+        border: 0;
+        background: transparent;
+
+        font-size: 24px;
+    }
+
+    .tech2-nav-backdrop {
+        position: fixed;
+        inset: 0;
+
+        z-index: 1000;
+
+        background: rgba(0, 0, 0, 0.35);
+    }
+
+    .tech2-nav-backdrop.open {
+        display: block;
+    }
+}

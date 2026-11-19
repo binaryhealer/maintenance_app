@@ -1837,12 +1837,104 @@ def set_file_private_for_client(file_name, is_private=0):
     }
 
 
+# GMAO_COMBINED_MI_CAL_EMAIL_V1
+
+def _mi_calibration_certificate_options(mi):
+    """Submitted reports containing this MI, not arbitrary PDFs from its Service Ticket."""
+    if mi.docstatus != 1 or mi.get('custom_intervention_type') != 'Calibration':
+        return []
+    members = frappe.get_all(
+        'Calibration Report Intervention',
+        filters={
+            'custom_mission_intervention': mi.name,
+            'parenttype': 'Calibration Report',
+            'parentfield': 'custom_interventions',
+        },
+        fields=['parent'], limit_page_length=100,
+    )
+    results = []
+    for row in members:
+        name = row.parent
+        report_data = frappe.db.get_value('Calibration Report', name,
+            ['docstatus','custom_service_ticket','custom_tech_mission','custom_signature_file'], as_dict=True)
+        if not report_data or int(report_data.docstatus or 0) != 1 or not report_data.custom_signature_file:
+            continue
+        if (report_data.custom_service_ticket != mi.get('custom_service_ticket')
+                or report_data.custom_tech_mission != mi.get('custom_parent_mission')):
+            continue
+        files = frappe.get_all('File', filters={
+            'attached_to_doctype':'Service Ticket',
+            'attached_to_name':report_data.custom_service_ticket,
+            'is_private':1, 'is_folder':0,
+        }, fields=['name','file_name'], limit_page_length=0)
+        stem = 'Calibration-Report-' + name
+        # Frappe may save a private PDF as <stem><6-hex-suffix>.pdf,
+        # with no separator, or occasionally as <stem>-<suffix>.pdf.
+        # Limit the suffix so another report's filename is not selected.
+        def certificate_filename_matches(filename):
+            if not filename.startswith(stem) or not filename.lower().endswith('.pdf'):
+                return False
+            suffix = filename[len(stem):-4]
+            if not suffix:
+                return True
+            if suffix.startswith('-'):
+                suffix = suffix[1:]
+            return len(suffix) == 6 and all(c in '0123456789abcdef' for c in suffix.lower())
+
+        matches = [f for f in files if certificate_filename_matches(f.file_name)]
+        if len(matches) != 1:
+            # Do not send a stale or ambiguous certificate; require one published PDF.
+            continue
+        results.append({'name':name, 'file_name':matches[0].file_name,
+                        'file_id':matches[0].name})
+    return results
+
+
+@frappe.whitelist()
+def get_mi_calibration_certificates(mi_name):
+    mi = frappe.get_doc('Mission Intervention', mi_name)
+    mi.check_permission('read')
+    return {'reports': [{ 'name': r['name'], 'file_name': r['file_name'] }
+                        for r in _mi_calibration_certificate_options(mi)]}
+
+
+def _get_mi_calibration_certificate_attachment(mi, report_name):
+    report_name = (report_name or '').strip()
+    matches = [r for r in _mi_calibration_certificate_options(mi) if r['name'] == report_name]
+    if len(matches) != 1:
+        frappe.throw('The selected signed Calibration Certificate is unavailable for this intervention. '
+                     'Verify it is submitted and attached to the Service Ticket.')
+    file_doc = frappe.get_doc('File', matches[0]['file_id'])
+    if (file_doc.attached_to_doctype != 'Service Ticket'
+            or file_doc.attached_to_name != mi.get('custom_service_ticket')
+            or not file_doc.is_private):
+        frappe.throw('Calibration Certificate attachment scope changed')
+    content = file_doc.get_content()
+    if isinstance(content,str): content = content.encode()
+    if not content.startswith(b'%PDF'):
+        frappe.throw('The stored Calibration Certificate is not a valid PDF')
+    return {'fname':matches[0]['file_name'], 'fcontent':content}
+
+
+def _record_calibration_certificate_recipients(report_name, to_list, cc_list):
+    """Track queued addresses (including CC); not proof of final delivery."""
+    meta = frappe.get_meta('Calibration Report')
+    if not meta.has_field('custom_recipients'):
+        frappe.throw('Missing Calibration Report custom_recipients field; run email setup first')
+    old = frappe.db.get_value('Calibration Report',report_name,'custom_recipients') or ''
+    previous = _parse_email_values(old)
+    merged = _unique_emails(previous + to_list + cc_list)
+    frappe.db.set_value('Calibration Report',report_name,
+                        'custom_recipients', ', '.join(merged),update_modified=False)
+
+
 @frappe.whitelist()
 def send_mi_report(
     mi_name,
     recipients,
     cc=None,
     send_photos=0,
+    calibration_report_name=None,
 ):
     if not mi_name:
         frappe.throw("Mission Intervention is required.")
@@ -1909,12 +2001,15 @@ def send_mi_report(
 
     # Generate the PDF after saving custom_customer_remarks so the same
     # report can display the current TO-recipient names.
-    report_attachment = frappe.attach_print(
-        "Mission Intervention",
-        mi.name,
-        print_format=None,
-        file_name=f"{mi.name}.pdf",
+    # Use the site-configured PDF generator, matching the working ST PDF attachment.
+    pdf_generator = frappe.db.get_single_value("Print Settings", "pdf_generator")
+    if not pdf_generator:
+        frappe.throw("Configure PDF Generator in Print Settings.")
+    pdf_content = frappe.get_print(
+        "Mission Intervention", mi.name, print_format=None,
+        as_pdf=True, pdf_generator=pdf_generator,
     )
+    report_attachment = {"fname": f"{mi.name}.pdf", "fcontent": pdf_content}
 
     attachments = [report_attachment]
     include_client_files = str(send_photos).lower() in ("1", "true", "yes")
@@ -1931,6 +2026,11 @@ def send_mi_report(
 
     if include_client_files:
         attachments.extend(_get_client_email_attachments(mi.name))
+
+    included_calibration_report = None
+    if calibration_report_name:
+        included_calibration_report = str(calibration_report_name).strip()
+        attachments.append(_get_mi_calibration_certificate_attachment(mi, included_calibration_report))
 
     subject = (
         f"Intervention Report {mi.name}"
@@ -1999,6 +2099,10 @@ def send_mi_report(
 
     frappe.sendmail(**sendmail_args)
 
+    # Record only after the email has been accepted into Frappe's queue.
+    if included_calibration_report:
+        _record_calibration_certificate_recipients(included_calibration_report, to_list, cc_list)
+
     if mi.meta.has_field("custom_email_status"):
         frappe.db.set_value(
             "Mission Intervention",
@@ -2025,5 +2129,6 @@ def send_mi_report(
         "recipients": to_list,
         "cc": cc_list,
         "send_photos": include_client_files,
-        "client_attachment_count": max(len(attachments) - 1, 0),
+        "client_attachment_count": len(attachments) - 1 - (1 if included_calibration_report else 0),
+        "calibration_report": included_calibration_report,
     }

@@ -1,0 +1,166 @@
+{
+ "actions": [],
+ "autoname": "format:CAL-REPORT-{#####}",
+ "creation": "2026-11-16 12:27:34.445205",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_service_ticket",
+  "custom_tech_mission",
+  "custom_origin_mi",
+  "custom_measure_section",
+  "custom_measure_jar_capacity_l",
+  "custom_measure_jar_identifier",
+  "custom_interventions",
+  "custom_client_name",
+  "custom_technician",
+  "custom_technician_name",
+  "custom_technician_signature_file",
+  "custom_signing_version",
+  "custom_signed_at",
+  "custom_signature_file",
+  "custom_results_hash",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_service_ticket",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service Ticket",
+   "options": "Service Ticket",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_tech_mission",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tech Mission",
+   "options": "Tech Mission",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "custom_origin_mi",
+   "fieldtype": "Link",
+   "label": "Originating Intervention",
+   "options": "Mission Intervention",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "description": "One row per completed main-equipment MI.",
+   "fieldname": "custom_interventions",
+   "fieldtype": "Table",
+   "label": "Included Calibration Interventions",
+   "options": "Calibration Report Intervention"
+  },
+  {
+   "fieldname": "custom_client_name",
+   "fieldtype": "Data",
+   "label": "Client Representative",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_technician",
+   "label": "Technician",
+   "fieldtype": "Link",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_technician_name",
+   "label": "Technician Name",
+   "fieldtype": "Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_technician_signature_file",
+   "label": "Technician Signature (Private File URL)",
+   "fieldtype": "Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_signing_version",
+   "label": "Signature Schema Version",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_signed_at",
+   "fieldtype": "Datetime",
+   "label": "Calibration Signed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_signature_file",
+   "fieldtype": "Data",
+   "label": "Calibration Signature (Private File URL)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_results_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Signed Results SHA256",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "custom_measure_section",
+   "fieldtype": "Section Break",
+   "label": "Calibration Measure"
+  },
+  {
+   "description": "Certified capacity of the test jar used for this signed batch, in litres. Enter 20 for 20 L.",
+   "fieldname": "custom_measure_jar_capacity_l",
+   "fieldtype": "Float",
+   "label": "Calibration Measure Volume (L)",
+   "precision": "3"
+  },
+  {
+   "description": "Optional identification of the calibrated test measure.",
+   "fieldname": "custom_measure_jar_identifier",
+   "fieldtype": "Data",
+   "label": "Calibration Measure / Jar ID"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Calibration Report",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-17 10:03:04.800670",
+ "modified_by": "Administrator",
+ "module": "Maintenance App",
+ "name": "Calibration Report",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

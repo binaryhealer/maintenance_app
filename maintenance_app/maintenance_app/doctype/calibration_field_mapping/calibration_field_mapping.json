@@ -1,0 +1,62 @@
+{
+  "doctype": "DocType",
+  "name": "Calibration Field Mapping",
+  "module": "Maintenance App",
+  "istable": 1,
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "custom": 0,
+  "sort_field": "idx",
+  "sort_order": "ASC",
+  "permissions": [],
+  "field_order": [
+    "custom_source_field",
+    "custom_display_label",
+    "custom_value_type",
+    "custom_unit",
+    "custom_required",
+    "custom_help"
+  ],
+  "fields": [
+    {
+      "fieldname": "custom_source_field",
+      "label": "Generic Field",
+      "fieldtype": "Select",
+      "options": "\ncustom_target_label\ncustom_channel_id\ncustom_initial_counter\ncustom_final_counter\ncustom_reference_value\ncustom_before_a\ncustom_before_b\ncustom_after_a\ncustom_after_b\ncustom_reference_before\ncustom_reference_after\ncustom_generic_notes",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_display_label",
+      "label": "Display Label",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_value_type",
+      "label": "Input Type",
+      "fieldtype": "Select",
+      "options": "Text\nNumber",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_unit",
+      "label": "Unit",
+      "fieldtype": "Data",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "custom_required",
+      "label": "Required for Finalization",
+      "fieldtype": "Check",
+      "default": "0"
+    },
+    {
+      "fieldname": "custom_help",
+      "label": "Technician Instructions",
+      "fieldtype": "Small Text"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+<div class="tech2-card tech2-tool-compact component3">
+
+    <div class="tool3-head">
+        <h4>Component details</h4>
+        <div class="tool3-sub">
+            Quick reference for the component targeted by this intervention.
+        </div>
+    </div>
+
+    {% set comp = pwa_component_details %}
+
+    {% if not comp or not comp.exists %}
+
+        <div class="component3-empty">
+            <strong>No component selected</strong>
+            <span>
+                This intervention is not linked to an Equipment Component record.
+            </span>
+        </div>
+
+    {% else %}
+
+        <div class="tool3-hero">
+
+            <div>
+                <div class="tech2-label">Component</div>
+                <div class="tool3-hero-value">
+                    {{ comp.display_name or comp.name }}
+                </div>
+            </div>
+
+            {% if comp.status %}
+                <div class="component3-status">
+                    {{ comp.status }}
+                </div>
+            {% endif %}
+
+        </div>
+
+        {% if comp.parent_equipment_display %}
+        <div class="component3-parent">
+            <div class="tech2-label">Installed on</div>
+            <strong>{{ comp.parent_equipment_display }}</strong>
+        </div>
+        {% endif %}
+
+        <div class="tool3-grid">
+
+            {% if comp.component_group %}
+            <div class="tool3-item">
+                <div class="tech2-label">Component group</div>
+                <div class="tool3-value">{{ comp.component_group }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.equipment_type %}
+            <div class="tool3-item">
+                <div class="tech2-label">Equipment type</div>
+                <div class="tool3-value">{{ comp.equipment_type }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.make %}
+            <div class="tool3-item">
+                <div class="tech2-label">Make</div>
+                <div class="tool3-value">{{ comp.make }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.model %}
+            <div class="tool3-item">
+                <div class="tech2-label">Model</div>
+                <div class="tool3-value">{{ comp.model }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.serial %}
+            <div class="tool3-item">
+                <div class="tech2-label">Serial number</div>
+                <div class="tool3-value">{{ comp.serial }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.part_number %}
+            <div class="tool3-item">
+                <div class="tech2-label">Part number</div>
+                <div class="tool3-value">{{ comp.part_number }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.item %}
+            <div class="tool3-item">
+                <div class="tech2-label">ERPNext item</div>
+                <div class="tool3-value">{{ comp.item }}</div>
+            </div>
+            {% endif %}
+
+            {% if comp.installation_date %}
+            <div class="tool3-item">
+                <div class="tech2-label">Installation date</div>
+                <div class="tool3-value">{{ comp.installation_date }}</div>
+            </div>
+            {% endif %}
+
+
+
+        </div>
+
+        {% if comp.requires_calibration
+              or comp.last_calibration_date
+              or comp.next_calibration_date %}
+
+        <div class="component3-calibration">
+
+            <div class="component3-section-title">
+                Calibration
+            </div>
+
+            <div class="tool3-grid">
+
+                <div class="tool3-item">
+                    <div class="tech2-label">Required</div>
+                    <div class="tool3-value">
+                        {{ "Yes" if comp.requires_calibration else "No" }}
+                    </div>
+                </div>
+
+                {% if comp.last_calibration_date %}
+                <div class="tool3-item">
+                    <div class="tech2-label">Last calibration</div>
+                    <div class="tool3-value">
+                        {{ comp.last_calibration_date }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if comp.next_calibration_date %}
+                <div class="tool3-item">
+                    <div class="tech2-label">Next calibration</div>
+                    <div class="tool3-value">
+                        {{ comp.next_calibration_date }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if comp.calibration_interval_months %}
+                <div class="tool3-item">
+                    <div class="tech2-label">Interval</div>
+                    <div class="tool3-value">
+                        {{ comp.calibration_interval_months }} months
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    {% endif %}
+
+</div>

@@ -1,0 +1,431 @@
+<div class="tech2-card">
+
+    <h4>Client Confirmation</h4>
+
+    {% if not mi.custom_work_outcome %}
+
+        <div class="tech2-note">
+            Complete Finish Work before Client Sign-off.
+        </div>
+
+    {% elif not is_checked_out %}
+
+        <div class="tech2-note">
+            Check Out before Client Sign-off.
+        </div>
+
+    {% elif is_submitted %}
+
+        <div class="tech2-note">
+            Client Confirmation completed.
+        </div>
+
+
+    {% elif client_confirmed %}
+
+        <div class="tech2-check-status tech2-check-status-done">
+            <strong>✓ Client Sign-Off Confirmed</strong>
+
+            {% if mi.custom_client_signed_on %}
+            <div class="tech2-muted">
+                {{ mi.custom_client_signed_on }}
+            </div>
+            {% endif %}
+        </div>
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Quality Rating
+            </div>
+
+            <div class="tech2-value">
+                {% set q = mi.custom_quality_score or 0 %}
+
+                {% if q >= 0.9 %}
+                    ★★★★★ Excellent
+                {% elif q >= 0.7 %}
+                    ★★★★ Good
+                {% elif q >= 0.5 %}
+                    ★★★ Average
+                {% elif q >= 0.3 %}
+                    ★★ Poor
+                {% elif q > 0 %}
+                    ★ Bad
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+
+        </div>
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                HSE
+            </div>
+
+            <div class="tech2-value">
+
+                {% if mi.custom_hse_rating_not_applicable %}
+
+                    Not Applicable
+
+                    {% if mi.custom_hse_rating_na_reason %}
+                    <div class="tech2-muted">
+                        {{ mi.custom_hse_rating_na_reason }}
+                    </div>
+                    {% endif %}
+
+                {% elif hse_rating_required %}
+
+                    {% set h = mi.custom_hse_score or 0 %}
+
+                    {% if h >= 0.9 %}
+                        ★★★★★ Excellent
+                    {% elif h >= 0.7 %}
+                        ★★★★ Good
+                    {% elif h >= 0.5 %}
+                        ★★★ Average
+                    {% elif h >= 0.3 %}
+                        ★★ Poor
+                    {% elif h > 0 %}
+                        ★ Bad
+                    {% else %}
+                        -
+                    {% endif %}
+
+                {% else %}
+
+                    Not Required
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        {% if mi.custom_customer_remarks %}
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Customer Remarks
+            </div>
+
+            <div class="tech2-readonly-box">
+                {{ mi.custom_customer_remarks }}
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Client Signatory
+            </div>
+
+            <div class="tech2-value">
+                {{ mi.custom_signatory_name or "-" }}
+            </div>
+
+        </div>
+
+
+        {% if mi.custom_client_signature %}
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Client Signature
+            </div>
+
+            <div class="tech2-saved-signature">
+                <img src="{{ mi.custom_client_signature }}"
+                     alt="Client Signature">
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+        {% if mi.custom_tech_signature %}
+
+        <div class="tech2-section-block">
+
+            <div class="tech2-label">
+                Technician Signature
+            </div>
+
+            <div class="tech2-saved-signature">
+                <img src="{{ mi.custom_tech_signature }}"
+                     alt="Technician Signature">
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+        <a href="/tech/intervention2?name={{ mi.name }}&step=submit"
+           class="btn btn-dark tech2-primary-action">
+            Continue to Submit
+        </a>
+
+
+    {% else %}
+
+        <div class="tech2-client-summary">
+
+            <div>
+                <div class="tech2-label">
+                    Equipment
+                </div>
+
+                <div class="tech2-value">
+                    {{ equipment.asset_name or "-" }}
+                </div>
+            </div>
+
+            <div>
+                <div class="tech2-label">
+                    Work Outcome
+                </div>
+
+                <div class="tech2-value">
+                    {{ mi.custom_work_outcome }}
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <div class="tech2-label">
+                Work Performed / Progress
+            </div>
+
+            <div class="tech2-readonly-box">
+                {{ mi.custom_work_progress or "-" }}
+            </div>
+
+        </div>
+
+
+        <div class="tech2-grid">
+
+            <div class="tech2-form-group">
+
+                <label class="tech2-label">
+                    Quality Rating
+                </label>
+
+                <select id="tech2-quality-score"
+                        class="form-control">
+
+                    <option value="">
+                        Select rating
+                    </option>
+
+                    <option value="1">
+                        ★★★★★ Excellent
+                    </option>
+
+                    <option value="0.8">
+                        ★★★★ Good
+                    </option>
+
+                    <option value="0.6">
+                        ★★★ Average
+                    </option>
+
+                    <option value="0.4">
+                        ★★ Poor
+                    </option>
+
+                    <option value="0.2">
+                        ★ Bad
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="tech2-form-group">
+
+                <label class="tech2-label">
+                    HSE Rating
+                </label>
+
+                <select id="tech2-hse-score"
+                        class="form-control">
+
+                    <option value="">
+                        Select rating
+                    </option>
+
+                    <option value="1">
+                        ★★★★★ Excellent
+                    </option>
+
+                    <option value="0.8">
+                        ★★★★ Good
+                    </option>
+
+                    <option value="0.6">
+                        ★★★ Average
+                    </option>
+
+                    <option value="0.4">
+                        ★★ Poor
+                    </option>
+
+                    <option value="0.2">
+                        ★ Bad
+                    </option>
+
+                </select>
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-check-row">
+
+                <input type="checkbox"
+                       id="tech2-hse-na">
+
+                <span>
+                    HSE Rating Not Applicable
+                </span>
+
+            </label>
+
+        </div>
+
+        <div class="tech2-form-group"
+             id="tech2-hse-na-reason-wrap"
+             style="display:none;">
+
+            <label class="tech2-label">
+                Why is HSE not applicable? *
+            </label>
+
+            <textarea id="tech2-hse-na-reason"
+                      class="form-control"
+                      rows="3"></textarea>
+
+        </div>
+
+
+            </div>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Client Signatory Name
+            </label>
+
+            <input id="tech2-signatory-name"
+                   type="text"
+                   class="form-control"
+                   value="{{ mi.custom_signatory_name or '' }}">
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Client Signature
+            </label>
+
+            <canvas id="tech2-client-signature"
+                    class="tech2-signature-pad">
+            </canvas>
+
+            <div class="tech2-signature-actions">
+
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        onclick="tech2ClearSignature('client')">
+                    Clear
+                </button>
+
+                <button type="button"
+                        id="tech2-confirm-client-signature"
+                        class="btn btn-sm btn-outline-primary"
+                        onclick="tech2ConfirmSignature('client')">
+                    Confirm Client Signature
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="tech2-form-group">
+
+            <label class="tech2-label">
+                Technician Signature
+            </label>
+
+            <canvas id="tech2-tech-signature"
+                    class="tech2-signature-pad">
+            </canvas>
+
+            <div class="tech2-signature-actions">
+
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        onclick="tech2ClearSignature('tech')">
+                    Clear
+                </button>
+
+                <button type="button"
+                        id="tech2-confirm-tech-signature"
+                        class="btn btn-sm btn-outline-primary"
+                        onclick="tech2ConfirmSignature('tech')">
+                    Confirm Technician Signature
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                id="tech2-save-confirmation"
+                class="btn btn-primary tech2-primary-action"
+                onclick="tech2SaveClientConfirmation('{{ mi.name }}')">
+            Save Client Confirmation
+        </button>
+
+    {% endif %}
+
+</div>
+
+
+<script>
+window.TECH2_WORK_OUTCOME =
+    {{ (mi.custom_work_outcome or "") | tojson }};
+
+window.TECH2_HSE_REQUIRED =
+    {{ 1 if hse_rating_required else 0 }};
+
+window.TECH2_EXISTING_CLIENT_SIGNATURE =
+    {{ (mi.custom_client_signature or "") | tojson }};
+
+window.TECH2_EXISTING_TECH_SIGNATURE =
+    {{ (mi.custom_tech_signature or "") | tojson }};
+</script>
