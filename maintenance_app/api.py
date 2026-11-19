@@ -3915,14 +3915,6 @@ def create_service_ticket_from_equipment(
     + str(ticket.get("custom_target_component_name"))
     )'''
 
-    if component_row:
-        ticket.custom_target_component = component_row.get("custom_component")
-        ticket.custom_target_component_name = target_label
-        ticket.custom_component_row_id = component_row.name
-        ticket.custom_component_group = component_row.get("custom_component_group")
-        ticket.custom_component_brand = component_row.get("custom_brand")
-        ticket.custom_component_model = component_row.get("custom_model")
-        ticket.custom_component_serial = component_row.get("custom_serial_number")
 
 
     # GMAO_ST_MULTI_IE_V1: normalize primary and additional equipment on the ST.
@@ -3967,46 +3959,52 @@ def create_service_ticket_from_equipment(
 
     ticket.insert(ignore_permissions=True)
 
+    # Keep the permanent Equipment Component authoritative after insert.
     if component_row:
+        permanent_component_name = (
+            component_master.name
+            if component_master
+            else component_row.get("custom_equipment_component")
+            or component_row.get("custom_component")
+        )
+
         frappe.db.set_value(
             "Service Ticket",
             ticket.name,
             {
-                "custom_target_component": (
-                    component_master.name if component_master
-                    else component_row.get("custom_equipment_component")
-                    or component_row.get("custom_component")
-                ),
-                "custom_equipment_component": (
-                    component_master.name if component_master
-                    else component_row.get("custom_equipment_component")
-                ),
+                "custom_target_component": permanent_component_name,
+                "custom_equipment_component": permanent_component_name,
                 "custom_target_component_name": target_label,
                 "custom_component_row_id": component_row.name,
-                "custom_component_group": component_row.get("custom_component_group"),
-                "custom_component_brand": component_row.get("custom_brand"),
-                "custom_component_model": component_row.get("custom_model"),
-                "custom_component_serial": component_row.get("custom_serial_number"),
+                "custom_component_group": (
+                    component_master.get("custom_component_group")
+                    if component_master else None
+                ) or component_row.get("custom_component_group"),
+                "custom_component_brand": (
+                    component_master.get("custom_make")
+                    if component_master else None
+                ) or component_row.get("custom_brand"),
+                "custom_component_model": (
+                    component_master.get("custom_model")
+                    if component_master else None
+                ) or component_row.get("custom_model"),
+                "custom_component_serial": (
+                    component_master.get("custom_serial_number")
+                    if component_master else None
+                ) or component_row.get("custom_serial_number"),
+                "custom_actual_component_item": (
+                    component_master.get("custom_item")
+                    if component_master else None
+                ) or component_row.get("custom_component"),
+                "custom_component_item": (
+                    component_master.get("custom_item")
+                    if component_master else None
+                ) or component_row.get("custom_component")
+                or component_row.get("custom_equipment_type"),
             },
-            update_modified=False
+            update_modified=False,
         )
 
-
-
-    if component_row:
-        frappe.db.set_value(
-            "Service Ticket",
-            ticket.name,
-            {
-                "custom_target_component_name": target_label,
-                "custom_component_row_id": component_row.name,
-                "custom_component_group": component_row.get("custom_component_group"),
-                "custom_component_brand": component_row.get("custom_brand"),
-                "custom_component_model": component_row.get("custom_model"),
-                "custom_component_serial": component_row.get("custom_serial_number"),
-            },
-            update_modified=False
-        )
 
     return {
         "ticket": ticket.name,
@@ -4509,44 +4507,111 @@ def get_service_ticket_applicants(doctype, txt, searchfield, start, page_len, fi
 # ============================================================
 
 def get_client_portal_context():
+    """
+    Resolve the logged-in GMAO Client Portal user.
+
+    The user must:
+      1. resolve to a Contact, and
+      2. be listed under Customer -> Portal Users for that Customer.
+
+    Existing Contact scope / branch restrictions remain in force for
+    operational portal data.
+    """
     user = frappe.session.user
 
-    contact_name = frappe.db.get_value(
-        "Contact Email",
-        {"email_id": user},
-        "parent"
-    )
+    if not user or user == "Guest":
+        frappe.throw(
+            "Please log in to access the Client Portal.",
+            frappe.PermissionError,
+        )
+
+    contact_name = frappe.db.get_value("Contact", {"user": user}, "name")
 
     if not contact_name:
-        frappe.throw("No Contact linked to this user.")
+        contact_name = frappe.db.get_value(
+            "Contact Email",
+            {"email_id": user},
+            "parent",
+        )
 
-    customer = frappe.db.get_value(
+    if not contact_name:
+        frappe.throw(
+            "Your user account is not linked to a customer Contact.",
+            frappe.PermissionError,
+        )
+
+    linked_customers = frappe.get_all(
         "Dynamic Link",
-        {
+        filters={
             "parent": contact_name,
             "parenttype": "Contact",
-            "link_doctype": "Customer"
+            "link_doctype": "Customer",
         },
-        "link_name"
+        pluck="link_name",
+        limit_page_length=100,
+    )
+    linked_customers = list(dict.fromkeys(
+        customer for customer in linked_customers if customer
+    ))
+
+    if not linked_customers:
+        frappe.throw(
+            "Your Contact is not linked to a Customer.",
+            frappe.PermissionError,
+        )
+
+    portal_customers = frappe.get_all(
+        "Portal User",
+        filters={
+            "user": user,
+            "parenttype": "Customer",
+            "parentfield": "portal_users",
+        },
+        pluck="parent",
+        limit_page_length=100,
+    )
+    portal_customers = set(
+        customer for customer in portal_customers if customer
     )
 
-    scope = frappe.db.get_value(
-        "Contact",
-        contact_name,
-        "custom_contact_scope"
-    )
+    allowed_customers = [
+        customer
+        for customer in linked_customers
+        if customer in portal_customers
+    ]
 
-    branch = frappe.db.get_value(
+    if not allowed_customers:
+        frappe.throw(
+            "You are not authorised for this Customer Portal. "
+            "Please ask the administrator to add your Website User under "
+            "Customer > Portal Users.",
+            frappe.PermissionError,
+        )
+
+    if len(allowed_customers) > 1:
+        frappe.throw(
+            "This user is authorised for more than one Customer. "
+            "Customer selection is not enabled in the GMAO Client Portal yet.",
+            frappe.PermissionError,
+        )
+
+    customer = allowed_customers[0]
+
+    contact = frappe.db.get_value(
         "Contact",
         contact_name,
-        "custom_client_branch"
-    )
+        ["custom_contact_scope", "custom_client_branch"],
+        as_dict=True,
+    ) or {}
 
     return {
+        "user": user,
+        "contact": contact_name,
         "customer": customer,
-        "scope": scope,
-        "branch": branch
+        "scope": contact.get("custom_contact_scope"),
+        "branch": contact.get("custom_client_branch"),
     }
+
 
 '''@frappe.whitelist()
 def client_portal_get_branches(customer):
@@ -9623,9 +9688,9 @@ def client_portal_create_service_ticket(
     if not description or not str(description).strip():
         frappe.throw("Description is required.")
 
-    # This proves the equipment belongs to the logged-in portal Customer and,
-    # for Branch Level contacts, to the permitted branch.
-    _client_portal_assert_equipment_access(equipment_name)
+    # Enforces Customer -> Portal Users plus existing Customer / Branch access.
+    # It also gives us the logged-in Contact for the ST Applicant.
+    ctx = _client_portal_assert_equipment_access(equipment_name)
 
     component_name = (component_name or "").strip() or None
     if component_name:
@@ -9639,21 +9704,22 @@ def client_portal_create_service_ticket(
                 frappe.PermissionError,
             )
 
-        # Independent component ownership check. This resolves the parent
-        # equipment again and applies the same Customer / Branch isolation.
         _client_portal_component_access(component_name)
 
     allowed_request_types = {"Breakdown", "Maintenance", "General"}
-    request_type = request_type if request_type in allowed_request_types else "Breakdown"
+    request_type = (
+        request_type
+        if request_type in allowed_request_types
+        else "Breakdown"
+    )
 
-    # Reuse the established internal ticket-creation logic only AFTER portal
-    # ownership checks above have passed.
     return create_service_ticket_from_equipment(
         equipment_name=equipment_name,
         component_row_id=component_name,
         request_type=request_type,
         subject=str(subject).strip(),
         description=str(description).strip(),
+        applicant=ctx.get("contact"),
     )
 
 # ============================================================

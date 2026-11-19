@@ -8,56 +8,18 @@ def get_context(context):
     current_user = frappe.session.user
     user_fullname = frappe.db.get_value("User", current_user, "full_name") or "User"
 
-    contact_name = frappe.db.get_value(
-        "Contact Email",
-        {"email_id": current_user},
-        "parent"
-    )
+    # Use the same authoritative access gate as every Client Portal API.
+    # This requires the Website User to be listed under Customer -> Portal Users
+    # and preserves the existing Contact scope / branch restrictions.
+    from maintenance_app.api import get_client_portal_context
 
-    customer_name = None
-    contact_scope = None
-    contact_branch = None
+    portal_ctx = get_client_portal_context()
 
-    if contact_name:
-        customer_name = frappe.db.get_value(
-            "Dynamic Link",
-            {
-                "parent": contact_name,
-                "parenttype": "Contact",
-                "link_doctype": "Customer"
-            },
-            "link_name"
-        )
+    customer_name = portal_ctx.get("customer")
+    contact_scope = portal_ctx.get("scope")
+    contact_branch = portal_ctx.get("branch")
 
-        contact_scope = frappe.db.get_value(
-            "Contact",
-            contact_name,
-            "custom_contact_scope"
-        )
-
-        contact_branch = frappe.db.get_value(
-            "Contact",
-            contact_name,
-            "custom_client_branch"
-        )
-
-    internal_roles = [
-        "System Manager",
-        "Administrator",
-        "Maintenance Manager",
-        "Maintenance Supervisor"
-    ]
-
-    user_roles = frappe.get_roles(current_user)
-
-    if not customer_name:
-        if not any(r in user_roles for r in internal_roles):
-            frappe.throw(
-                "Your user is not linked to a customer account. Please contact support.",
-                frappe.PermissionError
-            )
-
-    if customer_name and contact_scope == "Branch Level" and not contact_branch:
+    if contact_scope == "Branch Level" and not contact_branch:
         frappe.throw(
             "Branch Level contact has no Client Branch assigned.",
             frappe.PermissionError
