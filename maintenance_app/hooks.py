@@ -275,3 +275,51 @@ app_name = "maintenance_app"
 doctype_js = {
     "HD Ticket": "public/js/hd_ticket.js"
 }
+
+
+# GMAO NOTIFICATIONS RELEASE 20261119
+# Preserve the existing fixture migration while installing notification config.
+
+def _gmao_notifications_after_migrate():
+    from maintenance_app.import_maintenance_fixtures import (
+        import_maintenance_fixtures,
+    )
+    from maintenance_app.notifications.setup import (
+        install_gmao_notifications,
+    )
+
+    import_maintenance_fixtures()
+    install_gmao_notifications()
+
+
+after_migrate = (
+    "maintenance_app.hooks._gmao_notifications_after_migrate"
+)
+
+after_install = (
+    "maintenance_app.notifications.setup.install_gmao_notifications"
+)
+
+doc_events = {
+    "Service Ticket": {
+        "validate": [
+            "maintenance_app.notifications.tech_mission.validate_ticket_external_contacts",
+            "maintenance_app.notifications.service_ticket.refresh_ticket_notification_emails",
+        ],
+        "on_update": (
+            "maintenance_app.notifications.service_ticket."
+            "on_ticket_updated_check_awaiting_client"
+        ),
+    },
+    "Tech Mission": {
+        "before_insert": (
+            "maintenance_app.notifications.tech_mission.snapshot_before_insert"
+        ),
+        "after_insert": (
+            "maintenance_app.notifications.tech_mission.on_mission_created"
+        ),
+        "on_update": (
+            "maintenance_app.notifications.tech_mission.on_mission_updated"
+        ),
+    },
+}

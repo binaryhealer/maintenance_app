@@ -75,6 +75,8 @@
   "custom_applicant_email",
   "custom_ho_contacts",
   "custom_head_office_contacts",
+  "custom_external_contacts",
+  "custom_notification_emails",
   "custom_branch_operational_contacts",
   "custom_branch_contacts",
   "custom_status_commercial",
@@ -886,6 +888,20 @@
    "fieldname": "custom_general_work_type",
    "fieldtype": "Data",
    "label": "General Works Type"
+  },
+  {
+   "fieldname": "custom_external_contacts",
+   "fieldtype": "Table",
+   "label": "ISP / External Contacts",
+   "options": "Service Ticket External Contact"
+  },
+  {
+   "fieldname": "custom_notification_emails",
+   "fieldtype": "Small Text",
+   "label": "Notification Emails",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
   }
  ],
  "grid_page_length": 50,

@@ -322,7 +322,8 @@
    "fieldname": "custom_head_office_contacts",
    "fieldtype": "Table",
    "label": "Head Office Contacts",
-   "options": "Client Branch Contact"
+   "options": "Client Branch Contact",
+   "hidden": 1
   },
   {
    "fieldname": "custom_branch_operational_contacts",
@@ -333,7 +334,8 @@
    "fieldname": "custom_branch_contacts",
    "fieldtype": "Table",
    "label": "Branch Contact",
-   "options": "Client Branch Contact"
+   "options": "Client Branch Contact",
+   "hidden": 1
   },
   {
    "fieldname": "custom_component_group",
@@ -455,7 +457,8 @@
    "fieldname": "custom_notification_emails",
    "fieldtype": "Small Text",
    "label": "Notification Emails",
-   "read_only": 1
+   "read_only": 1,
+   "options": "Email"
   },
   {
    "fieldname": "custom_site_id",
