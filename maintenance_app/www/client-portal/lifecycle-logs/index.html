@@ -195,6 +195,12 @@ function loadLifecycleLogs(){
         masterLogs = [...allLogs];
         populateBranchFilter();
         renderTable(allLogs);
+
+        // GMAO_DIRECT_LIFECYCLE_LOG_OPEN_V1
+        const requestedLog = new URLSearchParams(window.location.search).get('name');
+        if(requestedLog && allLogs.some(log => log.name === requestedLog)) {
+            showLogDetail(requestedLog);
+        }
     })
     .catch(err => {
         console.error('Lifecycle sync failure:', err);

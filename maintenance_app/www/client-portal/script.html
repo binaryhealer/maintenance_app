@@ -49,26 +49,135 @@
         }
     };
 
+    window.cpTicketEquipmentLabel = function(eq) {
+        const base =
+            eq.custom_asset_name
+            || eq.custom_display_name
+            || eq.custom_asset_category
+            || eq.name
+            || 'Equipment';
+
+        const serial =
+            eq.custom_serial_number
+            || eq.serial_number
+            || eq.custom_serial_no
+            || '';
+
+        const clientCode =
+            eq.custom_client_asset_code
+            || eq.custom_asset_id
+            || eq.custom_site_id
+            || '';
+
+        const identity = serial || clientCode || eq.name || '';
+
+        let label = base;
+        if(identity && identity !== base) {
+            label += ' · ' + (serial ? 'S/N ' + identity : identity);
+        }
+
+        if(eq.custom_branch) {
+            label += ' · ' + eq.custom_branch;
+        }
+
+        return label;
+    };
+
+    window.refreshTicketEquipmentOptions = function(preselectEquipment) {
+        const branchSelect = document.getElementById('modal-branch-select');
+        const eqSelect = document.getElementById('modal-equipment-select');
+        const compSelect = document.getElementById('modal-component-select');
+        if(!eqSelect) return;
+
+        const branch = branchSelect ? branchSelect.value : '';
+
+        eqSelect.innerHTML = '<option value="">-- Choose Equipment --</option>';
+
+        (window.PortalApp.cachedEquipment || [])
+            .filter(function(eq) {
+                return !branch || (eq.custom_branch || '') === branch;
+            })
+            .forEach(function(eq) {
+                eqSelect.innerHTML +=
+                    '<option value="' + window.cpEsc(eq.name) + '">' +
+                    window.cpEsc(window.cpTicketEquipmentLabel(eq)) +
+                    '</option>';
+            });
+
+        if(compSelect) {
+            compSelect.innerHTML = '<option value="">-- Equipment only / No component --</option>';
+        }
+
+        if(preselectEquipment) {
+            eqSelect.value = preselectEquipment;
+        }
+    };
+
+    window.loadClientPortalTicketTypes = function() {
+        const select = document.getElementById('modal-ticket-type');
+        if(!select) return;
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_ticket_type_options',
+            callback: function(r) {
+                const options = r.message || [];
+                select.innerHTML = '<option value="">-- Choose Ticket Type --</option>';
+                options.forEach(function(v) {
+                    select.innerHTML += '<option value="' + window.cpEsc(v) + '">' + window.cpEsc(v) + '</option>';
+                });
+            }
+        });
+    };
+
     window.openTicketModal = function(equipmentName, componentName) {
         const modal = document.getElementById('ticket-modal');
+        const branchSelect = document.getElementById('modal-branch-select');
         const eqSelect = document.getElementById('modal-equipment-select');
         const compSelect = document.getElementById('modal-component-select');
         if(!modal || !eqSelect || !compSelect) return;
+        window.loadClientPortalTicketTypes();
 
-        eqSelect.innerHTML = '<option value="">-- Choose Equipment --</option>';
-        (window.PortalApp.cachedEquipment || []).forEach(eq => {
-            const label = eq.custom_asset_name || eq.custom_display_name || eq.name;
-            eqSelect.innerHTML += `<option value="${window.cpEsc(eq.name)}">${window.cpEsc(label)}${eq.custom_branch ? ' · '+window.cpEsc(eq.custom_branch) : ''}</option>`;
-        });
+        if(branchSelect) {
+            const branches = Array.from(
+                new Set(
+                    (window.PortalApp.cachedEquipment || [])
+                        .map(function(eq) { return eq.custom_branch || ''; })
+                        .filter(Boolean)
+                )
+            ).sort();
+
+            branchSelect.innerHTML = '<option value="">-- All Branches --</option>';
+            branches.forEach(function(branch) {
+                branchSelect.innerHTML +=
+                    '<option value="' + window.cpEsc(branch) + '">' +
+                    window.cpEsc(branch) +
+                    '</option>';
+            });
+
+            if(equipmentName) {
+                const selectedEq = (window.PortalApp.cachedEquipment || [])
+                    .find(function(eq) { return eq.name === equipmentName; });
+
+                if(selectedEq && selectedEq.custom_branch) {
+                    branchSelect.value = selectedEq.custom_branch;
+                }
+            }
+        }
+
+        window.refreshTicketEquipmentOptions(equipmentName || '');
 
         modal.style.display = 'flex';
-        if(equipmentName) eqSelect.value = equipmentName;
+
+        if(equipmentName) {
+            eqSelect.value = equipmentName;
+        }
+
         window.refreshTicketModalContext(componentName || '');
     };
 
     window.refreshTicketModalContext = function(preselectComponent) {
         const eqSelect = document.getElementById('modal-equipment-select');
         const compSelect = document.getElementById('modal-component-select');
+        const branchSelect = document.getElementById('modal-branch-select');
         const customerEl = document.getElementById('modal-customer-display');
         const branchEl = document.getElementById('modal-branch-display');
         if(!eqSelect || !compSelect) return;
@@ -76,7 +185,7 @@
         const equipmentName = eqSelect.value;
         compSelect.innerHTML = '<option value="">-- Equipment only / No component --</option>';
         if(customerEl) customerEl.textContent = window.PortalApp.customerName || '—';
-        if(branchEl) branchEl.textContent = '—';
+        if(branchEl) branchEl.textContent = (branchSelect && branchSelect.value) ? branchSelect.value : '—';
         if(!equipmentName) return;
 
         const basic = (window.PortalApp.cachedEquipment || []).find(x => x.name === equipmentName);
@@ -451,7 +560,7 @@
         if(!tbody) return;
         tbody.innerHTML = '';
         if(assetsList.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#64748b; padding:30px;">No asset inventory items match these filter configurations.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#64748b; padding:30px;">No asset inventory items match these filter configurations.</td></tr>';
             return;
         }
 
@@ -470,6 +579,7 @@
                     <td>${eq.custom_asset_category || '-'}</td>
                     <td>${eq.custom_model || '-'}</td>
                     <td><span class="badge badge-info">${eq.custom_asset_status || 'Operational'}</span></td>
+                    <td>${eq.custom_operational_status || 'Unknown'}</td>
                     <td><span class="badge ${healthClass}">${eq.custom_equipment_health || 'Unknown'}</span></td>
                     <td><span style="font-weight: 600; color: ${targetDueDate === 'Unscheduled' ? '#94a3b8' : '#1e293b'};">${targetDueDate}</span></td>
                     <td style="text-align:center;" onclick="event.stopPropagation();">
@@ -657,7 +767,135 @@
         }
     };
 
+
+    window.cpDashboardFillSelect = function(id, items, defaultLabel, selected) {
+        const el = document.getElementById(id);
+        if(!el) return;
+
+        const current = selected != null ? selected : el.value;
+        const escaped = function(v) {
+            return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        };
+
+        el.innerHTML =
+            '<option value="">' + escaped(defaultLabel) + '</option>' +
+            (items || []).map(function(v) {
+                return '<option value="' + escaped(v) + '">' + escaped(v) + '</option>';
+            }).join('');
+
+        el.value = current || '';
+    };
+
+    window.cpDashboardRenderBars = function(id, values) {
+        const el = document.getElementById(id);
+        if(!el) return;
+
+        const rows = Object.entries(values || {});
+        if(!rows.length) {
+            el.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:12px 0;">No data for this period.</div>';
+            return;
+        }
+
+        const max = Math.max.apply(null, rows.map(function(row) { return Number(row[1]) || 0; }).concat([1]));
+
+        el.innerHTML = rows.map(function(row) {
+            const label = String(row[0] || 'Not Set');
+            const value = Number(row[1]) || 0;
+            const pct = Math.max(4, Math.round((value / max) * 100));
+
+            return '' +
+                '<div style="margin-bottom:12px;">' +
+                    '<div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:5px;">' +
+                        '<span style="color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + label.replace(/"/g, '&quot;') + '">' + label + '</span>' +
+                        '<strong style="color:#0f172a;">' + value + '</strong>' +
+                    '</div>' +
+                    '<div style="height:7px;background:#eef2f7;border-radius:999px;overflow:hidden;">' +
+                        '<div style="height:100%;width:' + pct + '%;background:#64748b;border-radius:999px;"></div>' +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    };
+
+    window.cpLoadDashboardKpis = function() {
+        const periodEl = document.getElementById('cp-dashboard-period');
+        const statusEl = document.getElementById('cp-dashboard-status');
+        const typeEl = document.getElementById('cp-dashboard-type');
+        const priorityEl = document.getElementById('cp-dashboard-priority');
+        const branchEl = document.getElementById('cp-dashboard-branch');
+        const clientTypeEl = document.getElementById('cp-dashboard-client-type');
+        const err = document.getElementById('cp-dashboard-kpi-error');
+
+        if(err) {
+            err.style.display = 'none';
+            err.textContent = '';
+        }
+
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_dashboard_data',
+            args: {
+                period: periodEl ? periodEl.value : '30',
+                status: statusEl ? statusEl.value : '',
+                ticket_type: typeEl ? typeEl.value : '',
+                priority: priorityEl ? priorityEl.value : '',
+                branch: branchEl ? branchEl.value : '',
+                client_type: clientTypeEl ? clientTypeEl.value : ''
+            },
+            callback: function(r) {
+                const data = r.message || {};
+                const k = data.kpis || {};
+                const p = data.period || {};
+                const options = data.filter_options || {};
+                const selected = data.filters || {};
+
+                const set = function(id, value) {
+                    const el = document.getElementById(id);
+                    if(el) el.textContent = value == null ? '0' : value;
+                };
+
+                set('cp-kpi-open-tickets', k.active_tickets != null ? k.active_tickets : k.open_tickets);
+                set('cp-kpi-overdue-tickets', k.overdue_tickets);
+                set('cp-kpi-awaiting-client', k.awaiting_client);
+                set('cp-kpi-interventions', k.interventions);
+                set('cp-kpi-planned-jobs', k.planned_jobs);
+                set('cp-kpi-equipment-attention', k.equipment_attention);
+                set('cp-kpi-tickets-period', k.tickets_in_period);
+                set('cp-kpi-equipment-total', k.equipment_total);
+
+                const periodLabel = document.getElementById('cp-kpi-period-label');
+                if(periodLabel) periodLabel.textContent = p.label || 'Selected period';
+
+                window.cpDashboardFillSelect('cp-dashboard-status', options.status, 'All statuses', selected.status);
+                window.cpDashboardFillSelect('cp-dashboard-type', options.ticket_type, 'All types', selected.ticket_type);
+                window.cpDashboardFillSelect('cp-dashboard-priority', options.priority, 'All priorities', selected.priority);
+                window.cpDashboardFillSelect('cp-dashboard-branch', options.branch, 'All branches', selected.branch);
+                window.cpDashboardFillSelect('cp-dashboard-client-type', options.client_type, 'All client types', selected.client_type);
+
+                const branchWrap = document.getElementById('cp-dashboard-branch-wrap');
+                if(branchWrap && (!options.branch || !options.branch.length) && selected.branch) {
+                    branchWrap.style.display = 'none';
+                }
+
+                window.cpDashboardRenderBars('cp-chart-ticket-status', data.ticket_status);
+                window.cpDashboardRenderBars('cp-chart-ticket-priority', data.ticket_priority);
+                window.cpDashboardRenderBars('cp-chart-ticket-type', data.ticket_type);
+            },
+            error: function() {
+                if(err) {
+                    err.textContent = 'Dashboard data could not be loaded.';
+                    err.style.display = 'block';
+                }
+            }
+        });
+    };
+
+
+
 window.loadPortalData = function() {
+        window.cpLoadDashboardKpis();
         let loadedCount = 0;
         const totalRequests = 4;
         
@@ -914,6 +1152,7 @@ window.toggleReportsSubmenu = function(event) {
                     <td>${window.cpEsc(eq.custom_asset_category || '—')}</td>
                     <td>${window.cpEsc(eq.custom_model || '—')}</td>
                     <td><span class="badge badge-info">${window.cpEsc(eq.custom_asset_status || '—')}</span></td>
+                    <td>${window.cpEsc(eq.custom_operational_status || 'Unknown')}</td>
                     <td><span class="badge ${healthClass}">${window.cpEsc(health)}</span></td>
                     <td>${window.cpFmtDate(eq.custom_next_maintenance_date)}</td>
                     <td onclick="event.stopPropagation()"><a class="cp-row-link" href="#" onclick="window.openEquipmentWorkspace('${window.cpEsc(eq.name)}');return false;">View →</a></td>
@@ -922,35 +1161,99 @@ window.toggleReportsSubmenu = function(event) {
     };
 
     window.filterEquipment = function() {
-        const branchEl = document.getElementById('eq-filter-branch');
-        const catEl = document.getElementById('eq-filter-category');
-        const startEl = document.getElementById('eq-filter-start-date');
-        const endEl = document.getElementById('eq-filter-end-date');
-        const searchEl = document.getElementById('eq-filter-search');
-        const selectedBranch = branchEl ? branchEl.value : '';
-        const selectedCategory = catEl ? catEl.value : '';
-        const startVal = startEl ? startEl.value : '';
-        const endVal = endEl ? endEl.value : '';
-        const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
-        const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
-        const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+        if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+            window.cpPopulateEquipmentAdvancedFilters();
+        }
 
-        const filtered = window.PortalApp.cachedEquipment.filter(function(eq) {
-            if(selectedBranch && eq.custom_branch !== selectedBranch) return false;
-            if(selectedCategory && eq.custom_asset_category !== selectedCategory) return false;
+        const value = function(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        };
+
+        const selectedBranch = value('eq-filter-branch');
+        const selectedCategory = value('eq-filter-category');
+        const assetStatus = value('eq-filter-asset-status');
+        const operationalStatus = value('eq-filter-operational-status');
+        const health = value('eq-filter-health');
+        const make = value('eq-filter-make');
+        const model = value('eq-filter-model');
+        const startVal = value('eq-filter-start-date');
+        const endVal = value('eq-filter-end-date');
+
+        const searchEl = document.getElementById('eq-filter-search');
+        const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+        const startDate = startVal
+            ? new Date(startVal).setHours(0,0,0,0)
+            : null;
+
+        const endDate = endVal
+            ? new Date(endVal).setHours(23,59,59,999)
+            : null;
+
+        const attentionOperational = [
+            'Degraded',
+            'Faulty',
+            'Out of Service',
+            'Awaiting Component',
+            'Unknown'
+        ];
+
+        const filtered = (window.PortalApp.cachedEquipment || []).filter(function(eq) {
+            if(selectedBranch && (eq.custom_branch || '') !== selectedBranch) return false;
+            if(selectedCategory && (eq.custom_asset_category || '') !== selectedCategory) return false;
+            if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+            if(operationalStatus && (eq.custom_operational_status || '') !== operationalStatus) return false;
+            if(make && (eq.custom_make || '') !== make) return false;
+            if(model && (eq.custom_model || '') !== model) return false;
+
+            if(health === '__attention__') {
+                const eqHealth = String(eq.custom_equipment_health || '').toLowerCase();
+
+                const needsAttention =
+                    ['warning', 'critical'].includes(eqHealth) ||
+                    attentionOperational.includes(eq.custom_operational_status || '');
+
+                if(!needsAttention) return false;
+
+            } else if(health && (eq.custom_equipment_health || '') !== health) {
+                return false;
+            }
+
             if(q) {
-                const haystack = [eq.name,eq.custom_asset_name,eq.custom_display_name,eq.custom_model,eq.custom_asset_category,eq.custom_branch,eq.custom_asset_id,eq.custom_client_asset_code]
-                    .filter(Boolean).join(' ').toLowerCase();
+                const haystack = [
+                    eq.name,
+                    eq.equipment_display,
+                    eq.custom_asset_name,
+                    eq.custom_display_name,
+                    eq.custom_asset_id,
+                    eq.custom_client_asset_code,
+                    eq.custom_serial_number,
+                    eq.custom_asset_category,
+                    eq.custom_branch,
+                    eq.custom_make,
+                    eq.custom_model,
+                    eq.custom_asset_status,
+                    eq.custom_operational_status,
+                    eq.custom_equipment_health
+                ].filter(Boolean).join(' ').toLowerCase();
+
                 if(!haystack.includes(q)) return false;
             }
+
             if(startDate || endDate) {
                 if(!eq.custom_next_maintenance_date) return false;
-                const t = new Date(eq.custom_next_maintenance_date).getTime();
-                if(startDate && t < startDate) return false;
-                if(endDate && t > endDate) return false;
+
+                const maintenanceTime =
+                    new Date(eq.custom_next_maintenance_date).getTime();
+
+                if(startDate && maintenanceTime < startDate) return false;
+                if(endDate && maintenanceTime > endDate) return false;
             }
+
             return true;
         });
+
         window.renderEquipmentTable(filtered);
     };
 
@@ -1085,14 +1388,14 @@ window.toggleReportsSubmenu = function(event) {
         if(!rows.length) return window.cpEmpty(`No ${type === 'config' ? 'configuration changes' : type + ' history'} found.`);
         let head='', body='';
         if(type==='service') {
-            head='<th>Date</th><th>Type</th><th>Technician</th><th>Outcome</th><th>Notes</th><th>Ticket</th><th>Report</th>';
-            body=rows.map(x=>`<tr><td>${window.cpFmtDateTime(x.custom_end_time||x.creation)}</td><td>${window.cpEsc(x.custom_intervention_type||'Service')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpEsc(x.custom_work_outcome||'—')}</td><td>${window.cpEsc(x.custom_notes||'—')}</td><td>${window.cpPortalDocLink('ticket',x.custom_service_ticket)}</td><td>${window.cpPortalDocLink('mi',x.custom_intervention_ref)}</td></tr>`).join('');
+            head='<th>Date</th><th>Type</th><th>Technician</th><th>Outcome</th><th>Notes</th><th>Service Log</th><th>Report</th>';
+            body=rows.map(x=>`<tr><td>${window.cpFmtDateTime(x.custom_end_time||x.creation)}</td><td>${window.cpEsc(x.custom_intervention_type||'Service')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpEsc(x.custom_work_outcome||'—')}</td><td>${window.cpEsc(x.custom_notes||'—')}</td><td>${window.cpPortalLogReportLink('service',x.name)}</td><td>${window.cpPortalDocLink('mi',x.custom_intervention_ref)}</td></tr>`).join('');
         } else if(type==='lifecycle') {
-            head='<th>Date</th><th>Event</th><th>Technician</th><th>Action / Notes</th><th>Ticket</th>';
-            body=rows.map(x=>`<tr><td>${window.cpFmtDate(x.custom_date||x.creation)}</td><td>${window.cpEsc(x.custom_event||'Lifecycle')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpEsc(x.custom_action_taken||'—')}</td><td>${window.cpPortalDocLink('ticket',x.custom_service_ticket)}</td></tr>`).join('');
+            head='<th>Date</th><th>Event</th><th>Technician</th><th>Action / Notes</th><th>Lifecycle Log</th>';
+            body=rows.map(x=>`<tr><td>${window.cpFmtDate(x.custom_date||x.creation)}</td><td>${window.cpEsc(x.custom_event||'Lifecycle')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpEsc(x.custom_action_taken||'—')}</td><td>${window.cpPortalLogReportLink('lifecycle',x.name)}</td></tr>`).join('');
         } else {
-            head='<th>Date</th><th>Parameter</th><th>Previous</th><th>New</th><th>Technician</th><th>Ticket</th>';
-            body=rows.map(x=>`<tr><td>${window.cpFmtDateTime(x.custom_config_datetime||x.creation)}</td><td>${window.cpEsc(x.custom_parameter||'—')}</td><td>${window.cpEsc(x.custom_current_value||'—')}</td><td>${window.cpEsc(x.custom_new_value||'—')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpPortalDocLink('ticket',x.custom_service_ticket)}</td></tr>`).join('');
+            head='<th>Date</th><th>Parameter</th><th>Previous</th><th>New</th><th>Technician</th><th>Config Log</th>';
+            body=rows.map(x=>`<tr><td>${window.cpFmtDateTime(x.custom_config_datetime||x.custom_datetime||x.creation)}</td><td>${window.cpEsc(x.custom_parameter||'—')}</td><td>${window.cpEsc(x.custom_current_value||'—')}</td><td>${window.cpEsc(x.custom_new_value||'—')}</td><td>${window.cpEsc(x.technician_display||x.custom_technician||'—')}</td><td>${window.cpPortalConfigLogLink(x.name)}</td></tr>`).join('');
         }
         return `<div class="cp-log-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
     };
@@ -1195,4 +1498,1656 @@ window.toggleReportsSubmenu = function(event) {
         return '';
     };
 
+
+    window.cpTicketAdvancedFiltersV1 = true;
+
+    window.cpPopulateTicketAdvancedFilters = function() {
+        const tickets = window.PortalApp.cachedTickets || [];
+
+        const fill = function(id, values, label) {
+            const el = document.getElementById(id);
+            if(!el) return;
+
+            const current = el.value || '';
+            const unique = Array.from(new Set(values.filter(Boolean))).sort();
+
+            el.innerHTML = '<option value="">' + label + '</option>';
+
+            unique.forEach(function(v) {
+                el.innerHTML +=
+                    '<option value="' + window.cpEsc(v) + '">' +
+                    window.cpEsc(v) +
+                    '</option>';
+            });
+
+            el.value = current;
+        };
+
+        fill(
+            'tk-filter-type',
+            tickets.map(function(t) {
+                return t.custom_ticket_type || t.custom_request_type || '';
+            }),
+            'All Ticket Types'
+        );
+
+        fill(
+            'tk-filter-priority',
+            tickets.map(function(t) {
+                return t.custom_priority || '';
+            }),
+            'All Priorities'
+        );
+
+        fill(
+            'tk-filter-hold',
+            tickets.map(function(t) {
+                return t.custom_hold_reason || '';
+            }),
+            'All Hold Reasons'
+        );
+    };
+
+    window.filterTickets = function() {
+        window.cpPopulateTicketAdvancedFilters();
+
+        const branchEl = document.getElementById('tk-filter-branch');
+        const statusEl = document.getElementById('tk-filter-status');
+        const typeEl = document.getElementById('tk-filter-type');
+        const priorityEl = document.getElementById('tk-filter-priority');
+        const holdEl = document.getElementById('tk-filter-hold');
+        const fromEl = document.getElementById('tk-filter-date-from');
+        const toEl = document.getElementById('tk-filter-date-to');
+
+        const branch = branchEl ? branchEl.value : '';
+        const status = statusEl ? statusEl.value : '';
+        const type = typeEl ? typeEl.value : '';
+        const priority = priorityEl ? priorityEl.value : '';
+        const hold = holdEl ? holdEl.value : '';
+        const dateFrom = fromEl ? fromEl.value : '';
+        const dateTo = toEl ? toEl.value : '';
+
+        const terminal = ['Resolved', 'Closed', 'Cancelled'];
+
+        const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+            const ticketStatus = t.custom_ticket_status || '';
+            const ticketType = t.custom_ticket_type || t.custom_request_type || '';
+            const openedRaw = t.custom_opening_date || t.creation || '';
+            const openedDate = openedRaw ? String(openedRaw).slice(0, 10) : '';
+
+            if(branch && (t.custom_client_branch || '') !== branch) return false;
+
+            if(status === '__active__') {
+                if(terminal.includes(ticketStatus)) return false;
+            } else if(status && ticketStatus !== status) {
+                return false;
+            }
+
+            if(type && ticketType !== type) return false;
+            if(priority && (t.custom_priority || '') !== priority) return false;
+            if(hold && (t.custom_hold_reason || '') !== hold) return false;
+            if(dateFrom && (!openedDate || openedDate < dateFrom)) return false;
+            if(dateTo && (!openedDate || openedDate > dateTo)) return false;
+
+            if(window.PortalApp.deepTargetAssetFilter) {
+                if((t.custom_target_equipment || '') !== window.PortalApp.deepTargetAssetFilter) {
+                    return false;
+                }
+            }
+
+            if(window.PortalApp.deepTargetCompFilter) {
+                const targetComp =
+                    t.custom_target_component_name ||
+                    t.custom_equipment_component ||
+                    t.custom_target_component ||
+                    '';
+
+                if(targetComp !== window.PortalApp.deepTargetCompFilter) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        window.renderTicketsTable(filtered);
+    };
+
+    window.cpActivateTicketsPanel = function() {
+        try {
+            if(typeof window.cpGo === 'function') {
+                window.cpGo('tickets');
+            }
+        } catch(e) {
+            console.warn('cpGo tickets failed:', e);
+        }
+
+        document.querySelectorAll('.view-panel').forEach(function(panel) {
+            panel.classList.remove('active');
+        });
+
+        const ticketsPanel = document.getElementById('panel-tickets');
+        if(ticketsPanel) {
+            ticketsPanel.classList.add('active');
+        }
+
+        document.querySelectorAll('.menu-item').forEach(function(item) {
+            item.classList.remove('active');
+        });
+
+        const ticketsMenu = document.getElementById('menu-tickets');
+        if(ticketsMenu) {
+            ticketsMenu.classList.add('active');
+        }
+
+        if(ticketsPanel) {
+            ticketsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    window.cpOpenTicketFilter = function(kind) {
+        window.cpActivateTicketsPanel();
+        window.cpPopulateTicketAdvancedFilters();
+
+        const statusEl = document.getElementById('tk-filter-status');
+        const typeEl = document.getElementById('tk-filter-type');
+        const priorityEl = document.getElementById('tk-filter-priority');
+        const holdEl = document.getElementById('tk-filter-hold');
+        const fromEl = document.getElementById('tk-filter-date-from');
+        const toEl = document.getElementById('tk-filter-date-to');
+
+        if(statusEl) statusEl.value = '';
+        if(typeEl) typeEl.value = '';
+        if(priorityEl) priorityEl.value = '';
+        if(holdEl) holdEl.value = '';
+        if(fromEl) fromEl.value = '';
+        if(toEl) toEl.value = '';
+
+        window.PortalApp.deepTargetAssetFilter = null;
+        window.PortalApp.deepTargetCompFilter = null;
+
+        if(kind === 'active') {
+            if(statusEl) statusEl.value = '__active__';
+            window.filterTickets();
+            return;
+        }
+
+        if(kind === 'awaiting_client') {
+            if(statusEl) statusEl.value = 'On Hold';
+            if(holdEl) holdEl.value = 'Waiting for Client';
+            window.filterTickets();
+            return;
+        }
+
+        if(kind === 'overdue') {
+            const now = new Date();
+
+            const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+                const status = t.custom_ticket_status || '';
+                if(['Resolved', 'Closed', 'Cancelled'].includes(status)) return false;
+                if(!t.custom_resolution_due) return false;
+                return new Date(t.custom_resolution_due) < now;
+            });
+
+            window.renderTicketsTable(filtered);
+            return;
+        }
+
+        window.filterTickets();
+    };
+
+
+    window.cpApplyTicketFilterFromUrlV2 = true;
+
+    window.cpApplyTicketFilterFromUrl = function() {
+        const params = new URLSearchParams(window.location.search);
+        const kind = params.get('ticket_filter');
+        if(!kind) return true;
+
+        if(!window.PortalApp || !Array.isArray(window.PortalApp.cachedTickets)) {
+            return false;
+        }
+
+        if(typeof window.cpGo === 'function') window.cpGo('tickets');
+        if(typeof window.cpPopulateTicketAdvancedFilters === 'function') {
+            window.cpPopulateTicketAdvancedFilters();
+        }
+
+        const statusEl = document.getElementById('tk-filter-status');
+        const holdEl = document.getElementById('tk-filter-hold');
+        const typeEl = document.getElementById('tk-filter-type');
+        const priorityEl = document.getElementById('tk-filter-priority');
+        const fromEl = document.getElementById('tk-filter-date-from');
+        const toEl = document.getElementById('tk-filter-date-to');
+
+        if(statusEl) statusEl.value = '';
+        if(holdEl) holdEl.value = '';
+        if(typeEl) typeEl.value = '';
+        if(priorityEl) priorityEl.value = '';
+        if(fromEl) fromEl.value = '';
+        if(toEl) toEl.value = '';
+
+        window.PortalApp.deepTargetAssetFilter = null;
+        window.PortalApp.deepTargetCompFilter = null;
+
+        if(kind === 'active') {
+            if(statusEl) statusEl.value = '__active__';
+            window.filterTickets();
+            return true;
+        }
+
+        if(kind === 'awaiting_client') {
+            if(statusEl) statusEl.value = 'On Hold';
+            if(holdEl) holdEl.value = 'Waiting for Client';
+            window.filterTickets();
+            return true;
+        }
+
+        if(kind === 'overdue') {
+            const now = new Date();
+            const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+                const status = t.custom_ticket_status || '';
+                if(['Resolved', 'Closed', 'Cancelled'].includes(status)) return false;
+                if(!t.custom_resolution_due) return false;
+                return new Date(t.custom_resolution_due) < now;
+            });
+            window.renderTicketsTable(filtered);
+            return true;
+        }
+
+        window.filterTickets();
+        return true;
+    };
+
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if(!params.get('ticket_filter')) return;
+
+        let attempts = 0;
+        const timer = setInterval(function() {
+            attempts += 1;
+            if(window.cpApplyTicketFilterFromUrl()) {
+                clearInterval(timer);
+                return;
+            }
+            if(attempts >= 50) clearInterval(timer);
+        }, 100);
+    })();
+
+
+    window.cpEquipmentAdvancedFiltersV1 = true;
+
+    window.cpPopulateEquipmentAdvancedFilters = function() {
+        const rows = window.PortalApp.cachedEquipment || [];
+
+        const fill = function(id, values, label, special) {
+            const el = document.getElementById(id);
+            if(!el) return;
+
+            const current = el.value || '';
+            const specials = special
+                ? Array.from(el.options)
+                    .filter(o => String(o.value || '').startsWith('__'))
+                    .map(o => ({value:o.value, text:o.textContent}))
+                : [];
+
+            const unique = Array.from(new Set(values.filter(Boolean))).sort();
+
+            el.innerHTML = '<option value="">' + label + '</option>';
+
+            specials.forEach(o => {
+                el.innerHTML += '<option value="' + window.cpEsc(o.value) + '">' + window.cpEsc(o.text) + '</option>';
+            });
+
+            unique.forEach(v => {
+                el.innerHTML += '<option value="' + window.cpEsc(v) + '">' + window.cpEsc(v) + '</option>';
+            });
+
+            el.value = current;
+        };
+
+        fill('eq-filter-asset-status', rows.map(x => x.custom_asset_status || ''), 'All Asset Statuses');
+        fill('eq-filter-make', rows.map(x => x.custom_make || ''), 'All Brands');
+        fill('eq-filter-model', rows.map(x => x.custom_model || ''), 'All Models');
+    };
+
+    window.clearEquipmentFilters = function() {
+        [
+            'eq-filter-branch',
+            'eq-filter-category',
+            'eq-filter-asset-status',
+            'eq-filter-operational-status',
+            'eq-filter-health',
+            'eq-filter-make',
+            'eq-filter-model',
+            'eq-filter-start-date',
+            'eq-filter-end-date'
+        ].forEach(function(id) {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+
+        const search = document.getElementById('eq-filter-search');
+        if(search) search.value = '';
+
+        window.filterEquipment();
+    };
+
+    window.cpApplyEquipmentFilterFromUrl = function() {
+        const kind = new URLSearchParams(window.location.search).get('equipment_filter');
+        if(!kind) return;
+
+        if(typeof window.cpGo === 'function') {
+            window.cpGo('equipment');
+        }
+
+        if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+            window.cpPopulateEquipmentAdvancedFilters();
+        }
+
+        [
+            'eq-filter-branch',
+            'eq-filter-category',
+            'eq-filter-asset-status',
+            'eq-filter-operational-status',
+            'eq-filter-make',
+            'eq-filter-model',
+            'eq-filter-start-date',
+            'eq-filter-end-date'
+        ].forEach(function(id) {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+
+        const search = document.getElementById('eq-filter-search');
+        if(search) search.value = '';
+
+        const health = document.getElementById('eq-filter-health');
+        if(health) {
+            health.value = kind === 'attention' ? '__attention__' : '';
+        }
+
+        window.filterEquipment();
+    };
+
+    window.cpEquipmentMatchesAdvancedFilters = function(eq) {
+        const get = id => {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        };
+
+        const assetStatus = get('eq-filter-asset-status');
+        const operationalStatus = get('eq-filter-operational-status');
+        const health = get('eq-filter-health');
+        const make = get('eq-filter-make');
+        const model = get('eq-filter-model');
+
+        if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+        if(operationalStatus && (eq.custom_operational_status || '') !== operationalStatus) return false;
+        if(make && (eq.custom_make || '') !== make) return false;
+        if(model && (eq.custom_model || '') !== model) return false;
+
+        if(health === '__attention__') {
+            const h = (eq.custom_equipment_health || '').toLowerCase();
+            const attention =
+                ['warning','critical'].includes(h) ||
+                ['Degraded','Faulty','Out of Service','Awaiting Component','Unknown'].includes(eq.custom_operational_status || '');
+
+            if(!attention) return false;
+        } else if(health && (eq.custom_equipment_health || '') !== health) {
+            return false;
+        }
+
+        return true;
+    };
+
+    
+
+
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if(!params.get('equipment_filter')) return;
+
+        let attempts = 0;
+        const timer = setInterval(function() {
+            attempts += 1;
+
+            if(
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedEquipment) &&
+                document.getElementById('eq-filter-health') &&
+                typeof window.filterEquipment === 'function'
+            ) {
+                clearInterval(timer);
+                window.cpApplyEquipmentFilterFromUrl();
+                return;
+            }
+
+            if(attempts >= 50) clearInterval(timer);
+        }, 100);
+    })();
+
+
+    window.cpEquipmentAttentionHealthOnlyV1 = true;
+
+    window.filterEquipment = function() {
+        const value = function(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        };
+
+        const branch = value('eq-filter-branch');
+        const category = value('eq-filter-category');
+        const assetStatus = value('eq-filter-asset-status');
+        const condition = value('eq-filter-operational-status');
+        const health = value('eq-filter-health');
+        const attention = value('eq-filter-attention');
+        const brand = value('eq-filter-make');
+        const model = value('eq-filter-model');
+        const startVal = value('eq-filter-start-date');
+        const endVal = value('eq-filter-end-date');
+        const searchEl = document.getElementById('eq-filter-search');
+        const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+        const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
+        const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+
+        const filtered = (window.PortalApp.cachedEquipment || []).filter(function(eq) {
+            if(branch && (eq.custom_branch || '') !== branch) return false;
+            if(category && (eq.custom_asset_category || '') !== category) return false;
+            if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+            if(condition && (eq.custom_operational_status || '') !== condition) return false;
+            if(health && (eq.custom_equipment_health || '') !== health) return false;
+            if(brand && (eq.custom_make || '') !== brand) return false;
+            if(model && (eq.custom_model || '') !== model) return false;
+
+            if(attention === 'needs_attention') {
+                if((eq.custom_equipment_health || '') === 'Good') return false;
+            }
+
+            if(q) {
+                const haystack = [
+                    eq.name, eq.equipment_display, eq.custom_asset_name,
+                    eq.custom_display_name, eq.custom_asset_id,
+                    eq.custom_client_asset_code, eq.custom_serial_number,
+                    eq.custom_asset_category, eq.custom_branch,
+                    eq.custom_make, eq.custom_model,
+                    eq.custom_asset_status, eq.custom_operational_status,
+                    eq.custom_equipment_health
+                ].filter(Boolean).join(' ').toLowerCase();
+                if(!haystack.includes(q)) return false;
+            }
+
+            if(startDate || endDate) {
+                if(!eq.custom_next_maintenance_date) return false;
+                const t = new Date(eq.custom_next_maintenance_date).getTime();
+                if(startDate && t < startDate) return false;
+                if(endDate && t > endDate) return false;
+            }
+
+            return true;
+        });
+
+        window.renderEquipmentTable(filtered);
+    };
+
+    window.cpApplyEquipmentFilterFromUrl = function() {
+        const kind = new URLSearchParams(window.location.search).get('equipment_filter');
+        if(!kind) return;
+
+        if(typeof window.cpGo === 'function') window.cpGo('equipment');
+
+        const ids = [
+            'eq-filter-branch','eq-filter-category','eq-filter-asset-status',
+            'eq-filter-operational-status','eq-filter-health','eq-filter-attention',
+            'eq-filter-make','eq-filter-model','eq-filter-start-date','eq-filter-end-date'
+        ];
+        ids.forEach(function(id) {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        const search = document.getElementById('eq-filter-search');
+        if(search) search.value = '';
+
+        if(kind === 'attention') {
+            const attention = document.getElementById('eq-filter-attention');
+            if(attention) attention.value = 'needs_attention';
+        }
+
+        window.filterEquipment();
+    };
+
+
+    window.cpEquipmentNeedsAttentionViewV1 = true;
+
+    window.cpSetEquipmentViewFromUrl = function() {
+        const params = new URLSearchParams(window.location.search);
+        const view = params.get('equipment_view') || '';
+        window.PortalApp.equipmentView = view;
+
+        if(view === 'needs_attention' && typeof window.cpGo === 'function') {
+            window.cpGo('equipment');
+        }
+
+        const banner = document.getElementById('equipment-attention-view-banner');
+        if(banner) {
+            banner.style.display = view === 'needs_attention' ? 'block' : 'none';
+        }
+    };
+
+    window.clearEquipmentNeedsAttentionView = function() {
+        window.PortalApp.equipmentView = '';
+        const banner = document.getElementById('equipment-attention-view-banner');
+        if(banner) banner.style.display = 'none';
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('equipment_view');
+        window.history.replaceState({}, '', url.pathname + url.search);
+
+        if(typeof window.filterEquipment === 'function') {
+            window.filterEquipment();
+        }
+    };
+
+    (function() {
+        const baseFilterEquipment = window.filterEquipment;
+
+        window.filterEquipment = function() {
+            if(typeof baseFilterEquipment === 'function') {
+                baseFilterEquipment();
+            }
+
+            if(window.PortalApp.equipmentView !== 'needs_attention') return;
+
+            const value = function(id) {
+                const el = document.getElementById(id);
+                return el ? el.value : '';
+            };
+
+            const branch = value('eq-filter-branch');
+            const category = value('eq-filter-category');
+            const assetStatus = value('eq-filter-asset-status');
+            const condition = value('eq-filter-operational-status');
+            const health = value('eq-filter-health');
+            const brand = value('eq-filter-make');
+            const model = value('eq-filter-model');
+            const startVal = value('eq-filter-start-date');
+            const endVal = value('eq-filter-end-date');
+
+            const searchEl = document.getElementById('eq-filter-search');
+            const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+            const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
+            const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+
+            const filtered = (window.PortalApp.cachedEquipment || []).filter(function(eq) {
+                if((eq.custom_equipment_health || '') === 'Good') return false;
+                if(branch && (eq.custom_branch || '') !== branch) return false;
+                if(category && (eq.custom_asset_category || '') !== category) return false;
+                if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+                if(condition && (eq.custom_operational_status || '') !== condition) return false;
+                if(health && (eq.custom_equipment_health || '') !== health) return false;
+                if(brand && (eq.custom_make || '') !== brand) return false;
+                if(model && (eq.custom_model || '') !== model) return false;
+
+                if(q) {
+                    const haystack = [
+                        eq.name, eq.equipment_display, eq.custom_asset_name,
+                        eq.custom_display_name, eq.custom_asset_id,
+                        eq.custom_client_asset_code, eq.custom_serial_number,
+                        eq.custom_asset_category, eq.custom_branch,
+                        eq.custom_make, eq.custom_model, eq.custom_asset_status,
+                        eq.custom_operational_status, eq.custom_equipment_health
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    if(!haystack.includes(q)) return false;
+                }
+
+                if(startDate || endDate) {
+                    if(!eq.custom_next_maintenance_date) return false;
+                    const t = new Date(eq.custom_next_maintenance_date).getTime();
+                    if(startDate && t < startDate) return false;
+                    if(endDate && t > endDate) return false;
+                }
+
+                return true;
+            });
+
+            window.renderEquipmentTable(filtered);
+        };
+    })();
+
+    frappe.ready(function() {
+        window.cpSetEquipmentViewFromUrl();
+        setTimeout(function() {
+            window.cpSetEquipmentViewFromUrl();
+            if(typeof window.filterEquipment === 'function') {
+                window.filterEquipment();
+            }
+        }, 500);
+    });
+
+
+    window.cpEquipmentDropdownPopulationFixV1 = true;
+
+    (function() {
+        const finalEquipmentFilter = window.filterEquipment;
+
+        window.filterEquipment = function() {
+            if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+                window.cpPopulateEquipmentAdvancedFilters();
+            }
+
+            if(typeof finalEquipmentFilter === 'function') {
+                return finalEquipmentFilter.apply(this, arguments);
+            }
+        };
+    })();
+
+    frappe.ready(function() {
+        setTimeout(function() {
+            if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+                window.cpPopulateEquipmentAdvancedFilters();
+            }
+        }, 500);
+    });
+
+
+    window.cpEquipmentBrandBatchFixV1 = true;
+
+    window.cpLoadEquipmentBrands = function() {
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_equipment_brands',
+            callback: function(r) {
+                const rows = Array.isArray(r.message) ? r.message : [];
+                const byName = {};
+
+                rows.forEach(function(row) {
+                    byName[row.name] = row.custom_make || '';
+                });
+
+                (window.PortalApp.cachedEquipment || []).forEach(function(eq) {
+                    if(Object.prototype.hasOwnProperty.call(byName, eq.name)) {
+                        eq.custom_make = byName[eq.name];
+                    }
+                });
+
+                if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+                    window.cpPopulateEquipmentAdvancedFilters();
+                }
+
+                const brand = document.getElementById('eq-filter-make');
+                if(brand) {
+                    const values = Array.from(new Set(
+                        (window.PortalApp.cachedEquipment || [])
+                            .map(function(eq) { return eq.custom_make || ''; })
+                            .filter(Boolean)
+                    )).sort();
+
+                    const current = brand.value || '';
+                    brand.innerHTML = '<option value="">All Brands</option>';
+
+                    values.forEach(function(value) {
+                        brand.innerHTML += '<option value="' + window.cpEsc(value) + '">' + window.cpEsc(value) + '</option>';
+                    });
+
+                    brand.value = current;
+                }
+            },
+            error: function(err) {
+                console.error('Could not load equipment brands:', err);
+            }
+        });
+    };
+
+    frappe.ready(function() {
+        setTimeout(function() {
+            window.cpLoadEquipmentBrands();
+        }, 300);
+    });
+
+
+    // GMAO_EQUIPMENT_BRANCH_FIRST_V1
+    (function() {
+        const originalRenderEquipmentTable = window.renderEquipmentTable;
+        if (typeof originalRenderEquipmentTable !== "function") {
+            console.error("GMAO: renderEquipmentTable not found");
+            return;
+        }
+
+        window.renderEquipmentTable = function(equipmentList) {
+            originalRenderEquipmentTable(equipmentList);
+            const tbody = document.getElementById("table-equipment-body");
+            if (!tbody) return;
+
+            Array.from(tbody.rows || []).forEach(function(row) {
+                if (!row.cells || row.cells.length < 2) return;
+                if (row.cells.length === 1) return;
+                const equipmentCell = row.cells[0];
+                const branchCell = row.cells[1];
+                row.insertBefore(branchCell, equipmentCell);
+            });
+        };
+    })();
+
+
+// GMAO_CLIENT_TYPE_FILTER_UI_V1
+(function() {
+    function esc(value) {
+        if (window.cpEsc) return window.cpEsc(value == null ? "" : value);
+        const d = document.createElement("div");
+        d.textContent = value == null ? "" : String(value);
+        return d.innerHTML;
+    }
+
+    function getTypes() {
+        const set = new Set();
+        const eq = (window.PortalApp && window.PortalApp.cachedEquipment) || [];
+        const tk = (window.PortalApp && window.PortalApp.cachedTickets) || [];
+
+        eq.forEach(r => { if (r && r.custom_client_type) set.add(r.custom_client_type); });
+        tk.forEach(r => { if (r && r.custom_client_type) set.add(r.custom_client_type); });
+
+        return Array.from(set).sort((a,b) => String(a).localeCompare(String(b)));
+    }
+
+    function fillSelect(select) {
+        if (!select) return;
+        const current = select.value || "";
+        const types = getTypes();
+
+        select.innerHTML =
+            '<option value="">All Client Types</option>' +
+            types.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join("");
+
+        if (types.includes(current)) select.value = current;
+    }
+
+    function ensureEquipmentFilter() {
+        if (document.getElementById("eq-filter-client-type")) {
+            fillSelect(document.getElementById("eq-filter-client-type"));
+            return;
+        }
+
+        const branch = document.getElementById("eq-filter-branch");
+        if (!branch || !branch.parentElement) return;
+
+        const label = document.createElement("label");
+        label.className = "cp-filter-field";
+        label.innerHTML =
+            '<span>Client Type</span>' +
+            '<select id="eq-filter-client-type"><option value="">All Client Types</option></select>';
+
+        branch.parentElement.insertAdjacentElement("afterend", label);
+
+        const select = label.querySelector("select");
+        fillSelect(select);
+        select.addEventListener("change", function() {
+            if (typeof window.filterEquipment === "function") window.filterEquipment();
+        });
+    }
+
+    function ensureDashboardFilter() {
+        if (document.getElementById("cp-dashboard-client-type")) {
+            fillSelect(document.getElementById("cp-dashboard-client-type"));
+            return;
+        }
+
+        const period = document.querySelector(".cp-dash-period");
+        if (!period) return;
+
+        const label = document.createElement("label");
+        label.innerHTML =
+            '<span>Client Type</span>' +
+            '<select id="cp-dashboard-client-type"><option value="">All Client Types</option></select>';
+
+        period.appendChild(label);
+
+        const select = label.querySelector("select");
+        fillSelect(select);
+        select.addEventListener("change", refreshDashboardForClientType);
+    }
+
+    function selectedEqType() {
+        const el = document.getElementById("eq-filter-client-type");
+        return el ? el.value : "";
+    }
+
+    function selectedDashType() {
+        const el = document.getElementById("cp-dashboard-client-type");
+        return el ? el.value : "";
+    }
+
+    function refreshDashboardForClientType() {
+        if (!window.PortalApp) return;
+
+        if (!window.PortalApp._gmaoAllEquipment) {
+            window.PortalApp._gmaoAllEquipment =
+                (window.PortalApp.cachedEquipment || []).slice();
+        }
+
+        if (!window.PortalApp._gmaoAllTickets) {
+            window.PortalApp._gmaoAllTickets =
+                (window.PortalApp.cachedTickets || []).slice();
+        }
+
+        const type = selectedDashType();
+        const allEq = window.PortalApp._gmaoAllEquipment;
+        const allTk = window.PortalApp._gmaoAllTickets;
+
+        const filteredEq = type
+            ? allEq.filter(r => (r.custom_client_type || "") === type)
+            : allEq;
+
+        const filteredTk = type
+            ? allTk.filter(r => (r.custom_client_type || "") === type)
+            : allTk;
+
+        const savedEq = window.PortalApp.cachedEquipment;
+        const savedTk = window.PortalApp.cachedTickets;
+
+        window.PortalApp.cachedEquipment = filteredEq;
+        window.PortalApp.cachedTickets = filteredTk;
+
+        const periodSelect =
+            document.querySelector(".cp-dash-period select:not(#cp-dashboard-client-type)");
+
+        if (periodSelect) {
+            periodSelect.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+
+        setTimeout(function() {
+            window.PortalApp.cachedEquipment = savedEq;
+            window.PortalApp.cachedTickets = savedTk;
+        }, 0);
+    }
+
+    if (typeof window.renderEquipmentTable === "function") {
+        const originalRenderEquipmentTable = window.renderEquipmentTable;
+
+        window.renderEquipmentTable = function(rows) {
+            const type = selectedEqType();
+            const source = Array.isArray(rows) ? rows : [];
+
+            const filtered = type
+                ? source.filter(r => (r.custom_client_type || "") === type)
+                : source;
+
+            return originalRenderEquipmentTable(filtered);
+        };
+    }
+
+    function init() {
+        if (window.PortalApp) {
+            if (Array.isArray(window.PortalApp.cachedEquipment)) {
+                window.PortalApp._gmaoAllEquipment =
+                    window.PortalApp.cachedEquipment.slice();
+            }
+            if (Array.isArray(window.PortalApp.cachedTickets)) {
+                window.PortalApp._gmaoAllTickets =
+                    window.PortalApp.cachedTickets.slice();
+            }
+        }
+
+        ensureEquipmentFilter();
+        ensureDashboardFilter();
+    }
+
+    let tries = 0;
+    const timer = setInterval(function() {
+        tries += 1;
+        ensureEquipmentFilter();
+        ensureDashboardFilter();
+        if (tries >= 60) clearInterval(timer);
+    }, 250);
+
+    document.addEventListener("DOMContentLoaded", init);
+    setTimeout(init, 800);
+})();
+
+// GMAO_CLIENT_TYPE_FILTER_ACTIVE_V2
+    (function() {
+        function fillClientTypeSelect(selectId) {
+            const el = document.getElementById(selectId);
+            if(!el || !window.PortalApp) return;
+
+            const current = el.value || '';
+            const values = new Set();
+
+            (window.PortalApp.cachedEquipment || []).forEach(function(eq) {
+                if(eq && eq.custom_client_type) values.add(eq.custom_client_type);
+            });
+
+            (window.PortalApp.cachedTickets || []).forEach(function(t) {
+                if(t && t.custom_client_type) values.add(t.custom_client_type);
+            });
+
+            const sorted = Array.from(values).sort(function(a,b) {
+                return String(a).localeCompare(String(b));
+            });
+
+            el.innerHTML =
+                '<option value="">All ' +
+                (selectId === 'eq-filter-client-type' ? 'Client Types' : 'client types') +
+                '</option>';
+
+            sorted.forEach(function(value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                el.appendChild(option);
+            });
+
+            if(sorted.includes(current)) el.value = current;
+        }
+
+        window.cpPopulateClientTypeFilters = function() {
+            fillClientTypeSelect('eq-filter-client-type');
+            fillClientTypeSelect('cp-dashboard-client-type');
+        };
+
+        const oldMatches = window.cpEquipmentMatchesAdvancedFilters;
+        window.cpEquipmentMatchesAdvancedFilters = function(eq) {
+            if(typeof oldMatches === 'function' && !oldMatches(eq)) return false;
+
+            const el = document.getElementById('eq-filter-client-type');
+            const selected = el ? el.value : '';
+
+            if(selected && (eq.custom_client_type || '') !== selected) {
+                return false;
+            }
+
+            return true;
+        };
+
+        const oldClear = window.clearEquipmentFilters;
+        window.clearEquipmentFilters = function() {
+            if(typeof oldClear === 'function') oldClear();
+
+            const clientType = document.getElementById('eq-filter-client-type');
+            if(clientType) clientType.value = '';
+
+            if(typeof window.filterEquipment === 'function') {
+                window.filterEquipment();
+            }
+        };
+
+        const oldDashboard = window.cpLoadDashboardKpis;
+        window.cpLoadDashboardKpis = function() {
+            if(typeof oldDashboard !== 'function') return;
+
+            const selectedEl = document.getElementById('cp-dashboard-client-type');
+            const selected = selectedEl ? selectedEl.value : '';
+
+            if(!window.PortalApp || !selected) {
+                oldDashboard();
+                return;
+            }
+
+            const originalEquipment = window.PortalApp.cachedEquipment || [];
+            const originalTickets = window.PortalApp.cachedTickets || [];
+
+            window.PortalApp.cachedEquipment = originalEquipment.filter(function(eq) {
+                return (eq.custom_client_type || '') === selected;
+            });
+
+            window.PortalApp.cachedTickets = originalTickets.filter(function(t) {
+                return (t.custom_client_type || '') === selected;
+            });
+
+            try {
+                oldDashboard();
+            } finally {
+                window.PortalApp.cachedEquipment = originalEquipment;
+                window.PortalApp.cachedTickets = originalTickets;
+            }
+        };
+
+        let tries = 0;
+        const timer = setInterval(function() {
+            tries += 1;
+            window.cpPopulateClientTypeFilters();
+
+            if(
+                document.getElementById('eq-filter-client-type') &&
+                document.getElementById('cp-dashboard-client-type') &&
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedEquipment) &&
+                window.PortalApp.cachedEquipment.length
+            ) {
+                clearInterval(timer);
+            }
+
+            if(tries >= 60) clearInterval(timer);
+        }, 250);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.cpPopulateClientTypeFilters();
+        });
+
+        setTimeout(function() {
+            window.cpPopulateClientTypeFilters();
+        }, 800);
+    })();
+
+// GMAO_TICKET_CLIENT_TYPE_FILTER_V1
+    (function() {
+        function populateTicketClientTypes() {
+            const el = document.getElementById('tk-filter-client-type');
+            if(!el || !window.PortalApp) return;
+
+            const current = el.value || '';
+            const values = [...new Set(
+                (window.PortalApp.cachedTickets || [])
+                    .map(t => t.custom_client_type)
+                    .filter(Boolean)
+            )].sort();
+
+            el.innerHTML = '<option value="">All Client Types</option>';
+
+            values.forEach(function(value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                el.appendChild(option);
+            });
+
+            if(values.includes(current)) el.value = current;
+        }
+
+        const oldFilterTickets = window.filterTickets;
+
+        window.filterTickets = function() {
+            if(typeof oldFilterTickets !== 'function') return;
+
+            const selectedEl = document.getElementById('tk-filter-client-type');
+            const selected = selectedEl ? selectedEl.value : '';
+
+            if(!selected) {
+                oldFilterTickets();
+                populateTicketClientTypes();
+                return;
+            }
+
+            const originalTickets = window.PortalApp.cachedTickets || [];
+            window.PortalApp.cachedTickets = originalTickets.filter(function(t) {
+                return (t.custom_client_type || '') === selected;
+            });
+
+            try {
+                oldFilterTickets();
+            } finally {
+                window.PortalApp.cachedTickets = originalTickets;
+                populateTicketClientTypes();
+            }
+        };
+
+        const oldReset = window.resetTicketFilters;
+        window.resetTicketFilters = function() {
+            const el = document.getElementById('tk-filter-client-type');
+            if(el) el.value = '';
+            if(typeof oldReset === 'function') oldReset();
+        };
+
+        let tries = 0;
+        const timer = setInterval(function() {
+            tries += 1;
+            populateTicketClientTypes();
+
+            if(
+                document.getElementById('tk-filter-client-type') &&
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedTickets)
+            ) {
+                clearInterval(timer);
+            }
+
+            if(tries >= 60) clearInterval(timer);
+        }, 250);
+    })();
+
+// GMAO_TICKET_COLUMNS_CUSTOMER_REF_V1
+    window.renderTicketsTable = function(ticketsList) {
+        const tbody = document.getElementById('table-tickets-body');
+        if(!tbody) return;
+
+        const rows = Array.isArray(ticketsList) ? ticketsList : [];
+        tbody.innerHTML = '';
+
+        if(rows.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">' +
+                'No service tickets match these filter configurations.' +
+                '</td></tr>';
+            return;
+        }
+
+        const esc = function(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : String(value);
+            return div.innerHTML;
+        };
+
+        rows.forEach(function(t) {
+            const isClosed = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status);
+            const statusClass = isClosed ? 'badge-success' : 'badge-warning';
+
+            const openDate =
+                t.custom_opening_date ||
+                (t.creation ? String(t.creation).split(' ')[0] : '-');
+
+            const closeDate = isClosed
+                ? (t.custom_closed_date ||
+                   t.custom_resolution_date ||
+                   (t.modified ? String(t.modified).split(' ')[0] : '-'))
+                : '-- Active --';
+
+            const targetAsset =
+                t.target_equipment_display ||
+                t.custom_target_equipment ||
+                t.custom_parent_equipment ||
+                '-';
+
+            const targetComp = t.custom_target_component_name
+                ? '<br><small style="color:#64748b;font-weight:600;">🧩 Component: ' +
+                  esc(t.custom_target_component_name) +
+                  '</small>'
+                : '';
+
+            const resolutionBlock = t.custom_resolution_details
+                ? '<br><div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 10px;border-radius:4px;font-size:12px;color:#166534;">' +
+                  '<strong>Resolution Details:</strong> ' +
+                  esc(t.custom_resolution_details) +
+                  '</div>'
+                : '';
+
+            tbody.innerHTML +=
+                '<tr>' +
+                    '<td><a href="/client-portal/ticket?name=' + encodeURIComponent(t.name) + '" ' +
+                        'style="color:#3b82f6;font-weight:700;text-decoration:none;">' +
+                        esc(t.name) +
+                    '</a></td>' +
+                    '<td><strong style="color:#1e293b;">' +
+                        esc(t.custom_ticket_title || '-') +
+                    '</strong></td>' +
+                    '<td><strong>' +
+                        esc(t.custom_client_branch || '-') +
+                    '</strong></td>' +
+                    '<td><span style="font-weight:600;color:#1e293b;">' +
+                        esc(t.custom_subject || '') +
+                    '</span>' +
+                    resolutionBlock +
+                    '</td>' +
+                    '<td><strong style="color:#475569;">' +
+                        esc(targetAsset) +
+                    '</strong>' +
+                    targetComp +
+                    '</td>' +
+                    '<td><span class="badge ' + statusClass + '">' +
+                        esc(t.custom_ticket_status || '-') +
+                    '</span></td>' +
+                    '<td style="color:#64748b;font-family:monospace;">' +
+                        esc(openDate) +
+                    '</td>' +
+                    '<td style="color:#64748b;font-family:monospace;font-weight:600;">' +
+                        esc(closeDate) +
+                    '</td>' +
+                '</tr>';
+        });
+    };
+
+// GMAO_TICKET_ID_REF_SEARCH_V2
+    (function() {
+        const priorFilterTickets = window.filterTickets;
+
+        window.filterTickets = function() {
+            if(typeof priorFilterTickets !== 'function') return;
+
+            const searchEl = document.getElementById('tk-filter-search');
+            const needle = searchEl
+                ? String(searchEl.value || '').trim().toLowerCase()
+                : '';
+
+            if(!needle || !window.PortalApp) {
+                priorFilterTickets();
+                return;
+            }
+
+            const originalTickets = window.PortalApp.cachedTickets || [];
+
+            window.PortalApp.cachedTickets = originalTickets.filter(function(t) {
+                const ticketId = String(t.name || '').toLowerCase();
+                const customerRef = String(t.custom_ticket_title || '').toLowerCase();
+
+                return (
+                    ticketId.includes(needle) ||
+                    customerRef.includes(needle)
+                );
+            });
+
+            try {
+                priorFilterTickets();
+            } finally {
+                window.PortalApp.cachedTickets = originalTickets;
+            }
+        };
+
+        const priorReset = window.resetTicketFilters;
+
+        window.resetTicketFilters = function() {
+            const searchEl = document.getElementById('tk-filter-search');
+            if(searchEl) searchEl.value = '';
+
+            if(typeof priorReset === 'function') {
+                priorReset();
+            } else if(typeof window.filterTickets === 'function') {
+                window.filterTickets();
+            }
+        };
+    })();
+
+// GMAO_EQUIPMENT_LOG_PRIMARY_LINKS_V1
+    window.cpPortalLogLink = function(kind, name) {
+        if(!name) return '—';
+
+        let href = '';
+        let label = name;
+
+        if(kind === 'service') {
+            href = '/client-portal/service-logs?name=' + encodeURIComponent(name);
+        } else if(kind === 'lifecycle') {
+            href = '/client-portal/lifecycle-logs?name=' + encodeURIComponent(name);
+        } else {
+            return window.cpEsc ? window.cpEsc(name) : String(name);
+        }
+
+        const safeLabel = window.cpEsc ? window.cpEsc(label) : String(label);
+        return '<a class="cp-log-link" href="' + href + '">' + safeLabel + '</a>';
+    };
+
+// GMAO_EQUIPMENT_LOG_IFRAME_MODAL_V1
+    window.cpPortalLogPopupLink = function(kind, name) {
+        if(!name) return '—';
+
+        const safeLabel = window.cpEsc ? window.cpEsc(name) : String(name);
+        const encodedKind = encodeURIComponent(String(kind));
+        const encodedName = encodeURIComponent(String(name));
+
+        return '<a class="cp-log-link" href="#"'
+            + ' data-log-kind="' + encodedKind + '"'
+            + ' data-log-name="' + encodedName + '"'
+            + ' onclick="window.cpOpenLogPopupFromElement(this); return false;">'
+            + safeLabel
+            + '</a>';
+    };
+
+    window.cpOpenLogPopupFromElement = function(el) {
+        if(!el) return;
+
+        const kind = decodeURIComponent(el.getAttribute('data-log-kind') || '');
+        const name = decodeURIComponent(el.getAttribute('data-log-name') || '');
+
+        window.cpOpenLogPopup(kind, name);
+    };
+
+    window.cpOpenLogPopup = function(kind, name) {
+        if(!name) return;
+
+        let base = '';
+        if(kind === 'service') {
+            base = '/client-portal/service-logs';
+        } else if(kind === 'lifecycle') {
+            base = '/client-portal/lifecycle-logs';
+        } else {
+            return;
+        }
+
+        let overlay = document.getElementById('cp-log-popup-overlay');
+
+        if(!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'cp-log-popup-overlay';
+            overlay.style.cssText =
+                'display:none;position:fixed;inset:0;z-index:99999;'
+                + 'background:rgba(15,23,42,.58);padding:24px;';
+
+            const shell = document.createElement('div');
+            shell.style.cssText =
+                'position:relative;width:min(1100px,96vw);height:90vh;'
+                + 'margin:2vh auto;background:white;border-radius:12px;'
+                + 'overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.35);';
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = '×';
+            close.setAttribute('aria-label', 'Close');
+            close.style.cssText =
+                'position:absolute;right:12px;top:8px;z-index:3;'
+                + 'width:38px;height:38px;border:0;border-radius:50%;'
+                + 'background:white;font-size:28px;line-height:34px;'
+                + 'cursor:pointer;color:#334155;box-shadow:0 2px 8px rgba(15,23,42,.18);';
+            close.onclick = window.cpCloseLogPopup;
+
+            const frame = document.createElement('iframe');
+            frame.id = 'cp-log-popup-frame';
+            frame.style.cssText =
+                'width:100%;height:100%;border:0;background:white;';
+            frame.setAttribute('title', 'Log detail');
+
+            shell.appendChild(close);
+            shell.appendChild(frame);
+            overlay.appendChild(shell);
+
+            overlay.addEventListener('click', function(e) {
+                if(e.target === overlay) window.cpCloseLogPopup();
+            });
+
+            document.body.appendChild(overlay);
+        }
+
+        const frame = document.getElementById('cp-log-popup-frame');
+        frame.src = base + '?name=' + encodeURIComponent(name);
+        overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.cpCloseLogPopup = function() {
+        const overlay = document.getElementById('cp-log-popup-overlay');
+        const frame = document.getElementById('cp-log-popup-frame');
+
+        if(frame) frame.src = 'about:blank';
+        if(overlay) overlay.style.display = 'none';
+
+        document.body.style.overflow = '';
+    };
+
+// GMAO_LOG_REPORT_LINK_V1
+    window.cpPortalLogReportLink = function(kind, name) {
+        if(!name) return '—';
+
+        let href = '';
+        if(kind === 'service') {
+            href = '/client-portal/service-log-report?name=' + encodeURIComponent(name);
+        } else if(kind === 'lifecycle') {
+            href = '/client-portal/lifecycle-log-report?name=' + encodeURIComponent(name);
+        } else {
+            return window.cpEsc ? window.cpEsc(name) : String(name);
+        }
+
+        const label = window.cpEsc ? window.cpEsc(name) : String(name);
+        return '<a class="cp-log-link" href="' + href + '">' + label + '</a>';
+    };
+
+// GMAO_CONFIG_LOG_REPORT_LINK_V2
+    window.cpPortalConfigLogLink = function(name) {
+        if(!name) return '—';
+        const label = window.cpEsc ? window.cpEsc(name) : String(name);
+        const href = '/client-portal/config-log-report?name=' + encodeURIComponent(name);
+        return '<a class="cp-log-link" href="' + href + '">' + label + '</a>';
+    };
+
+// GMAO_DIRECT_EQUIPMENT_RETURN_V2
+    frappe.ready(function() {
+        const params = new URLSearchParams(window.location.search);
+        const equipmentName = params.get('equipment');
+        const targetTab = params.get('tab') || 'overview';
+
+        if(!equipmentName) return;
+
+        let attempts = 0;
+
+        function openWhenReady() {
+            attempts += 1;
+
+            const ready =
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedEquipment) &&
+                window.PortalApp.cachedEquipment.some(function(eq) {
+                    return eq && eq.name === equipmentName;
+                }) &&
+                typeof window.openEquipmentWorkspace === 'function';
+
+            if(!ready) {
+                if(attempts < 80) {
+                    setTimeout(openWhenReady, 100);
+                }
+                return;
+            }
+
+            window.openEquipmentWorkspace(equipmentName);
+
+            if(targetTab !== 'overview') {
+                setTimeout(function() {
+                    if(typeof window.setEquipmentWorkspaceTab === 'function') {
+                        window.setEquipmentWorkspaceTab(targetTab);
+                    }
+                }, 150);
+            }
+        }
+
+        setTimeout(openWhenReady, 0);
+    });
 </script>
+
+// GMAO_CLIENT_PORTAL_CLIENT_REFINEMENTS_V1
+(function () {
+    const esc = (value) => {
+        if (window.cpEsc) return window.cpEsc(value == null ? "" : value);
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    };
+
+    const fmt = (value) => {
+        if (!value) return "—";
+        if (window.cpFmtDate) return window.cpFmtDate(value);
+        return String(value);
+    };
+
+    function ensureEquipmentFilter() {
+        if (document.getElementById("tk-filter-equipment")) return;
+
+        const branch = document.getElementById("tk-filter-branch");
+        if (!branch || !branch.parentElement || !branch.parentElement.parentElement) return;
+
+        const field = document.createElement("div");
+        field.style.cssText = "display:flex;flex-direction:column;gap:4px;";
+        field.innerHTML =
+            '<label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">EQUIPMENT</label>' +
+            '<select id="tk-filter-equipment" onchange="window.filterTickets()" ' +
+            'style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;min-width:200px;background:white;outline:none;font-size:14px;color:#1e293b;height:38px;">' +
+            '<option value="">All Equipment</option></select>';
+
+        branch.parentElement.insertAdjacentElement("afterend", field);
+    }
+
+    function populateEquipmentFilter() {
+        const select = document.getElementById("tk-filter-equipment");
+        if (!select || !window.PortalApp || !Array.isArray(window.PortalApp.cachedTickets)) return;
+
+        const current = select.value;
+        const seen = new Map();
+
+        window.PortalApp.cachedTickets.forEach((t) => {
+            const key = t.custom_target_equipment || "";
+            if (!key) return;
+            const label = t.target_equipment_display || key;
+            if (!seen.has(key)) seen.set(key, label);
+        });
+
+        const rows = Array.from(seen.entries()).sort((a, b) =>
+            String(a[1]).localeCompare(String(b[1]))
+        );
+
+        select.innerHTML =
+            '<option value="">All Equipment</option>' +
+            rows.map(([value, label]) =>
+                `<option value="${esc(value)}">${esc(label)}</option>`
+            ).join("");
+
+        if (rows.some(([value]) => value === current)) select.value = current;
+    }
+
+    function normaliseTicketHeader() {
+        const body = document.getElementById("table-tickets-body");
+        const table = body && body.closest("table");
+        const row = table && table.querySelector("thead tr");
+        if (!row) return;
+
+        row.innerHTML =
+            "<th>Branch</th>" +
+            "<th>Client Ref</th>" +
+            "<th>Ticket ID</th>" +
+            "<th>Subject Details</th>" +
+            "<th>Equipment / Component</th>" +
+            "<th>Status</th>" +
+            "<th>Opened</th>" +
+            "<th>Resolved / Closed</th>";
+    }
+
+    window.renderTicketsTable = function(data) {
+        normaliseTicketHeader();
+
+        const tbody = document.getElementById("table-tickets-body");
+        if (!tbody) return;
+
+        const rows = Array.isArray(data) ? data : [];
+        if (!rows.length) {
+            tbody.innerHTML =
+                '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">No service tickets found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map((t) => {
+            const status = t.custom_ticket_status || "Open";
+            const statusClass =
+                ["Closed", "Resolved"].includes(status) ? "badge-success" :
+                status === "On Hold" ? "badge-warning" :
+                "badge-info";
+
+            const openDate = t.custom_opening_date || t.creation || "";
+            const closeDate = t.custom_closed_date || t.custom_resolution_date || "";
+            const clientRef = t.custom_ticket_title || "—";
+            const equipment = t.target_equipment_display || t.custom_target_equipment || "—";
+            const component = t.custom_target_component_name || "";
+            const resolutionBlock = t.custom_resolution_details
+                ? `<div style="margin-top:7px;padding:7px 10px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:5px;font-size:12px;"><strong>Resolution Details:</strong> ${esc(t.custom_resolution_details)}</div>`
+                : "";
+
+            return `
+                <tr>
+                    <td><strong>${esc(t.custom_client_branch || "—")}</strong></td>
+                    <td><strong style="color:#334155;">${esc(clientRef)}</strong></td>
+                    <td><a href="/client-portal/ticket?name=${encodeURIComponent(t.name)}" style="color:#2563eb;font-weight:700;text-decoration:none;">${esc(t.name)}</a></td>
+                    <td><span style="font-weight:600;color:#1e293b;">${esc(t.custom_subject || "")}</span>${resolutionBlock}</td>
+                    <td><strong style="color:#475569;">${esc(equipment)}</strong>${component ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">🧩 Component: ${esc(component)}</div>` : ""}</td>
+                    <td><span class="badge ${statusClass}">${esc(status)}</span></td>
+                    <td style="color:#64748b;font-family:monospace;">${fmt(openDate)}</td>
+                    <td style="color:#64748b;font-family:monospace;font-weight:600;">${fmt(closeDate)}</td>
+                </tr>
+            `;
+        }).join("");
+    };
+
+    window.filterTickets = function() {
+        if (!window.PortalApp || !Array.isArray(window.PortalApp.cachedTickets)) return;
+
+        const value = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : "";
+        };
+
+        const branch = value("tk-filter-branch");
+        const equipment = value("tk-filter-equipment");
+        const status = value("tk-filter-status");
+        const type = value("tk-filter-type");
+        const priority = value("tk-filter-priority");
+        const hold = value("tk-filter-hold");
+        const dateFrom = value("tk-filter-date-from");
+        const dateTo = value("tk-filter-date-to");
+
+        const fromTime = dateFrom ? new Date(dateFrom + "T00:00:00").getTime() : null;
+        const toTime = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
+
+        const filtered = window.PortalApp.cachedTickets.filter((t) => {
+            if (window.PortalApp.deepTargetAssetFilter &&
+                t.custom_target_equipment !== window.PortalApp.deepTargetAssetFilter) {
+                return false;
+            }
+
+            if (window.PortalApp.deepTargetCompFilter) {
+                const q = String(window.PortalApp.deepTargetCompFilter).toLowerCase();
+                const subject = String(t.custom_subject || "").toLowerCase();
+                const component = String(t.custom_target_component_name || "").toLowerCase();
+                if (!subject.includes(q) && !component.includes(q)) return false;
+            }
+
+            if (branch && (t.custom_client_branch || "") !== branch) return false;
+            if (equipment && (t.custom_target_equipment || "") !== equipment) return false;
+            if (type && (t.custom_ticket_type || "") !== type) return false;
+            if (priority && (t.custom_priority || "") !== priority) return false;
+            if (hold && (t.custom_hold_reason || "") !== hold) return false;
+
+            if (status === "__active__") {
+                if (["Closed", "Resolved", "Cancelled"].includes(t.custom_ticket_status || "")) return false;
+            } else if (status === "Open") {
+                if (["Closed", "Resolved", "Cancelled"].includes(t.custom_ticket_status || "")) return false;
+            } else if (status === "Closed") {
+                if (!["Closed", "Resolved"].includes(t.custom_ticket_status || "")) return false;
+            } else if (status && (t.custom_ticket_status || "") !== status) {
+                return false;
+            }
+
+            const rawDate = t.custom_opening_date || t.creation || "";
+            const time = rawDate ? new Date(rawDate).getTime() : NaN;
+
+            if (fromTime && (isNaN(time) || time < fromTime)) return false;
+            if (toTime && (isNaN(time) || time > toTime)) return false;
+
+            return true;
+        });
+
+        window.renderTicketsTable(filtered);
+    };
+
+    function normaliseEquipmentTableOrder() {
+        const body =
+            document.getElementById("table-equipment-body") ||
+            document.querySelector("#panel-equipment tbody");
+
+        if (!body) return;
+
+        const table = body.closest("table");
+        const headRow = table && table.querySelector("thead tr");
+
+        if (headRow) {
+            const headers = Array.from(headRow.children);
+            if (
+                headers.length >= 2 &&
+                headers[0].textContent.trim().toLowerCase() === "equipment" &&
+                headers[1].textContent.trim().toLowerCase() === "branch"
+            ) {
+                headRow.insertBefore(headers[1], headers[0]);
+            }
+        }
+
+        Array.from(body.rows || []).forEach((row) => {
+            if (row.cells && row.cells.length >= 2 && !row.dataset.gmaoBranchFirst) {
+                row.insertBefore(row.cells[1], row.cells[0]);
+                row.dataset.gmaoBranchFirst = "1";
+            }
+        });
+    }
+
+    function refreshRefinements() {
+        ensureEquipmentFilter();
+        populateEquipmentFilter();
+        normaliseTicketHeader();
+        normaliseEquipmentTableOrder();
+    }
+
+    const observer = new MutationObserver(refreshRefinements);
+    observer.observe(document.documentElement, {childList:true, subtree:true});
+
+    document.addEventListener("DOMContentLoaded", refreshRefinements);
+    setTimeout(refreshRefinements, 800);
+})();

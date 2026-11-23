@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calibration Report</title>
+<style>
+body{margin:0;background:#f8fafc;color:#0f172a;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:20px}
+.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px}
+.btn{padding:9px 13px;border:1px solid #cbd5e1;border-radius:7px;background:white;cursor:pointer;font-weight:600;color:#334155;text-decoration:none}
+.btn.primary{background:#2563eb;color:white;border-color:#2563eb}
+.card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:22px}
+.err{display:none;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:12px;border-radius:8px;margin-bottom:12px}
+.loading{padding:40px;text-align:center;color:#64748b}
+#print-area img{max-width:100%}
+@media print{body{background:white}.toolbar,.err{display:none!important}.wrap{max-width:none;padding:0}.card{border:0;padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <a id="back-link" class="btn" href="/client-portal">Back</a>
+    <button class="btn primary" onclick="window.print()">Print / Save PDF</button>
+  </div>
+  <div id="err" class="err"></div>
+  <div class="card">
+    <div id="loading" class="loading">Loading calibration report...</div>
+    <div id="print-area"></div>
+  </div>
+</div>
+<script>
+(function(){
+  const intervention = new URLSearchParams(window.location.search).get('intervention');
+  const err = document.getElementById('err');
+
+  function fail(msg){
+    document.getElementById('loading').style.display='none';
+    err.textContent=msg;
+    err.style.display='block';
+  }
+
+  if(!intervention){ fail('Intervention reference is required.'); return; }
+
+  const body = new FormData();
+  body.append('intervention_name', intervention);
+
+  fetch('/api/method/maintenance_app.api.client_portal_get_calibration_report', {
+    method:'POST',
+    credentials:'same-origin',
+    body:body
+  })
+  .then(async r => {
+    const j = await r.json();
+    if(!r.ok || j.exc) throw new Error('Unable to load calibration report.');
+    return j.message || {};
+  })
+  .then(data => {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('print-area').innerHTML=data.html || '';
+    if(data.service_ticket){
+      document.getElementById('back-link').href='/client-portal/ticket?name=' + encodeURIComponent(data.service_ticket);
+    }
+  })
+  .catch(e => {
+    console.error(e);
+    fail(e.message || 'Unable to load calibration report.');
+  });
+})();
+</script>
+</body>
+</html>

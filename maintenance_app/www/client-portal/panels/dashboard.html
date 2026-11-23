@@ -1,124 +1,140 @@
 <div id="panel-dashboard" class="view-panel active">
-    <!-- KPI Summary Header -->
-    <div style="margin-bottom: 24px;">
-        <h2 style="font-size: 18px; font-weight: 600; color: #1e293b; margin: 0 0 12px;">Monthly KPI Summary</h2>
-        <p style="color: #64748b; font-size: 13px; margin: 0;">Current month performance metrics</p>
-    </div>
-
-    <!-- KPI Metric Cards Grid -->
-    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px;">
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('equipment')">
-            <div class="stat-num" id="stat-equipment-count" style="font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 8px;">0</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Registered Assets →</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:16px;">
+        <div>
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;">Client Service Overview</div>
+            <h2 style="margin:4px 0 5px;font-size:24px;color:#0f172a;">Dashboard</h2>
+            <p style="margin:0;color:#64748b;font-size:13px;">Live service and equipment status for your account.</p>
         </div>
 
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('tickets')">
-            <div class="stat-num" id="stat-open-tickets" style="font-size: 28px; font-weight: 700; color: #f59e0b; margin-bottom: 8px;">0</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Active Open Tickets →</div>
-        </div>
-
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.location.href='/client-portal/preventive-maintenance?view=upcoming'">
-            <div class="stat-num" id="stat-next-pm-count" style="font-size: 28px; font-weight: 700; color: #0f766e; margin-bottom: 4px;">0</div>
-            <div id="stat-next-pm-date" style="font-size: 11px; color: #64748b; margin-bottom: 7px; min-height: 15px;">No upcoming date</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #0f766e; font-weight: 600;">Next Preventive Maintenance →</div>
-        </div>
-
-        <div class="stat-card" style="background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.location.href='/client-portal/preventive-maintenance?view=missed'">
-            <div class="stat-num" id="stat-missed-pm-count" style="font-size: 28px; font-weight: 700; color: #dc2626; margin-bottom: 4px;">0</div>
-            <div id="stat-missed-pm-oldest" style="font-size: 11px; color: #64748b; margin-bottom: 7px; min-height: 15px;">No missed PM</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #b91c1c; font-weight: 600;">Missed PM →</div>
-        </div>
-
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="window.cpGo('contracts')">
-            <div class="stat-num" id="stat-active-mc" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">0</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Active Contracts →</div>
-        </div>
-
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-sla-compliance" style="font-size: 28px; font-weight: 700; color: #64748b; margin-bottom: 8px;">N/A</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">SLA Compliance</div>
-        </div>
-
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-mttr" style="font-size: 28px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px;">8.5h</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Avg MTTR</div>
-        </div>
-
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-downtime" style="font-size: 28px; font-weight: 700; color: #ef4444; margin-bottom: 8px;">18.5h</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Total Downtime</div>
-        </div>
-
-        <!-- Number of Interventions -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-interventions" style="font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 8px;">4</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Number of Interventions</div>
-        </div>
-
-        <!-- PM Completion Rate -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-pm-completion" style="font-size: 28px; font-weight: 700; color: #0f766e; margin-bottom: 8px;">95%</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">PM Completion Rate</div>
-        </div>
-
-        <!-- MTBF -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-mtbf" style="font-size: 28px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px;">5h</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">MTBF</div>
-        </div>
-
-        <!-- Breakdown Frequency -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-breakdown-frequency" style="font-size: 28px; font-weight: 700; color: #f59e0b; margin-bottom: 8px;">2%</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Breakdown Frequency</div>
-        </div>
-
-        <!-- Calibration Compliance -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-calibration-compliance" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">100%</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Calibration Compliance</div>
-        </div>
-
-        <!-- Closed Work Orders -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-closed-work-orders" style="font-size: 28px; font-weight: 700; color: #10b981; margin-bottom: 8px;">5</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Closed Work Orders</div>
-        </div>
-
-        <!-- Number of Reworks -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-reworks" style="font-size: 28px; font-weight: 700; color: #ef4444; margin-bottom: 8px;">1</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Number of Reworks</div>
-        </div>
-
-        <!-- Top Failing Equipment -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-top-failing-equipment" style="font-size: 18px; font-weight: 700; color: #dc2626; margin-bottom: 8px; line-height: 1.3; word-break: break-word;">&nbsp;</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Top Failing Equipment</div>
-        </div>
-
-        <!-- Top Failing Site -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-top-failing-site" style="font-size: 18px; font-weight: 700; color: #f59e0b; margin-bottom: 8px; line-height: 1.3; word-break: break-word;">&nbsp;</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Top Failing Site</div>
-        </div>
-
-        <!-- Top Failing Component -->
-        <div class="stat-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; cursor: default;">
-            <div class="stat-num" id="stat-top-failing-component" style="font-size: 18px; font-weight: 700; color: #8b5cf6; margin-bottom: 8px; line-height: 1.3; word-break: break-word;">&nbsp;</div>
-            <div class="stat-lbl" style="font-size: 12px; color: #64748b; font-weight: 500;">Top Failing Component</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button
+                type="button"
+                class="btn-primary"
+                onclick="window.openTicketModal()"
+                style="padding:10px 16px;border-radius:8px;font-weight:700;white-space:nowrap;"
+            >
+                + Create Service Ticket
+            </button>
         </div>
     </div>
 
-    <!-- Quick Links Section -->
-    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
-        <h3 style="font-size: 14px; font-weight: 600; color: #1e293b; margin: 0 0 16px;">Quick Actions</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
-            <button onclick="window.cpGo('equipment')" style="padding: 12px 16px; background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🖥️ View Equipment</button>
-            <button onclick="window.cpGo('tickets')" style="padding: 12px 16px; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🎫 View Tickets</button>
-            <button onclick="window.openTicketModal()" style="padding: 12px 16px; background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">➕ Raise Ticket</button>
-            <button onclick="window.location.href='/client-portal/preventive-maintenance'" style="padding: 12px 16px; background: #ccfbf1; color: #115e59; border: 1px solid #99f6e4; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">🛠️ PM Schedule</button>
-            <button onclick="window.cpGo('contracts')" style="padding: 12px 16px; background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 0.2s;">📜 Contracts</button>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+            <label style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:10px;font-weight:800;color:#64748b;">ACTIVITY PERIOD</span>
+                <select id="cp-dashboard-period" onchange="window.cpLoadDashboardKpis()" style="height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;">
+                    <option value="10">Last 10 days</option>
+                    <option value="20">Last 20 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="all">All Time</option>
+                </select>
+            </label>
+
+            <label style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:10px;font-weight:800;color:#64748b;">STATUS</span>
+                <select id="cp-dashboard-status" onchange="window.cpLoadDashboardKpis()" style="height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;">
+                    <option value="">All statuses</option>
+                </select>
+            </label>
+
+            <label style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:10px;font-weight:800;color:#64748b;">TICKET TYPE</span>
+                <select id="cp-dashboard-type" onchange="window.cpLoadDashboardKpis()" style="height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;">
+                    <option value="">All types</option>
+                </select>
+            </label>
+
+            <label style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:10px;font-weight:800;color:#64748b;">PRIORITY</span>
+                <select id="cp-dashboard-priority" onchange="window.cpLoadDashboardKpis()" style="height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;">
+                    <option value="">All priorities</option>
+                </select>
+            </label>
+
+
+            <label style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:10px;font-weight:800;color:#64748b;">CLIENT TYPE</span>
+                <select id="cp-dashboard-client-type" onchange="window.cpLoadDashboardKpis()" style="height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;">
+                    <option value="">All client types</option>
+                </select>
+            </label>
+
+            <label id="cp-dashboard-branch-wrap" style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:10px;font-weight:800;color:#64748b;">BRANCH</span>
+                <select id="cp-dashboard-branch" onchange="window.cpLoadDashboardKpis()" style="height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;">
+                    <option value="">All branches</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <div id="cp-dashboard-kpi-error" style="display:none;margin-bottom:12px;padding:10px 12px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;border-radius:8px;font-size:12px;"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;">
+        <button type="button" onclick="window.location.href='/client-portal?ticket_filter=active'" class="stat-card" style="text-align:left;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">ACTIVE TICKETS</div>
+            <div id="cp-kpi-open-tickets" style="font-size:30px;font-weight:800;color:#0f172a;margin:12px 0 6px;">—</div>
+            <div style="font-size:10px;color:#94a3b8;">Open, planned, in progress or on hold</div>
+        </button>
+
+        <button type="button" onclick="window.location.href='/client-portal?ticket_filter=overdue'" class="stat-card" style="text-align:left;background:#fff;border:1px solid #fecaca;border-radius:10px;padding:16px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">OVERDUE TICKETS</div>
+            <div id="cp-kpi-overdue-tickets" style="font-size:30px;font-weight:800;color:#b91c1c;margin:12px 0 6px;">—</div>
+            <div style="font-size:10px;color:#94a3b8;">Past resolution due date</div>
+        </button>
+
+        <button type="button" onclick="window.location.href='/client-portal?ticket_filter=awaiting_client'" class="stat-card" style="text-align:left;background:#fff;border:1px solid #fde68a;border-radius:10px;padding:16px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">AWAITING CLIENT</div>
+            <div id="cp-kpi-awaiting-client" style="font-size:30px;font-weight:800;color:#92400e;margin:12px 0 6px;">—</div>
+            <div style="font-size:10px;color:#94a3b8;">Waiting for customer action</div>
+        </button>
+
+        <button type="button" onclick="window.location.href='/client-portal/service-logs'" class="stat-card" style="text-align:left;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">INTERVENTIONS / SERVICE LOGS</div>
+            <div id="cp-kpi-interventions" style="font-size:30px;font-weight:800;color:#0f172a;margin:12px 0 6px;">—</div>
+            <div id="cp-kpi-period-label" style="font-size:10px;color:#94a3b8;">Selected period</div>
+        </button>
+
+        <button type="button" onclick="window.location.href='/client-portal/planned-interventions?status=Scheduled'" class="stat-card" style="text-align:left;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">PLANNED JOBS</div>
+            <div id="cp-kpi-planned-jobs" style="font-size:30px;font-weight:800;color:#0f172a;margin:12px 0 6px;">—</div>
+            <div style="font-size:10px;color:#94a3b8;">Upcoming missions with status Scheduled</div>
+        </button>
+
+        <button type="button" onclick="window.location.href='/client-portal?equipment_view=needs_attention'" class="stat-card" style="text-align:left;background:#fff;border:1px solid #fed7aa;border-radius:10px;padding:16px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">EQUIPMENT ATTENTION</div>
+            <div id="cp-kpi-equipment-attention" style="font-size:30px;font-weight:800;color:#9a3412;margin:12px 0 6px;">—</div>
+            <div style="font-size:10px;color:#94a3b8;">Equipment health is not Good</div>
+        </button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;min-width:0;">
+            <div style="font-size:12px;font-weight:800;color:#334155;margin-bottom:14px;">Tickets by Status</div>
+            <div id="cp-chart-ticket-status"></div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;min-width:0;">
+            <div style="font-size:12px;font-weight:800;color:#334155;margin-bottom:14px;">Tickets by Priority</div>
+            <div id="cp-chart-ticket-priority"></div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;min-width:0;">
+            <div style="font-size:12px;font-weight:800;color:#334155;margin-bottom:14px;">Tickets by Type</div>
+            <div id="cp-chart-ticket-type"></div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">TICKETS IN PERIOD</div>
+            <div id="cp-kpi-tickets-period" style="font-size:24px;font-weight:800;color:#0f172a;margin-top:10px;">—</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;">TOTAL EQUIPMENT</div>
+            <div id="cp-kpi-equipment-total" style="font-size:24px;font-weight:800;color:#0f172a;margin-top:10px;">—</div>
         </div>
     </div>
 </div>

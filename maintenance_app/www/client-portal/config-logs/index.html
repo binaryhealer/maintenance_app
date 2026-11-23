@@ -1,0 +1,26 @@
+{% extends "templates/web.html" %}
+{% block title %}Configuration Logs{% endblock %}
+{% block page_content %}
+<div class="cp-page">
+  <div class="cp-top"><div><h1>Configuration Logs</h1><p>Equipment configuration changes recorded during interventions.</p></div><a class="cp-back" href="/client-portal">Back to Portal</a></div>
+  <div class="cp-filters">
+    <select id="branch"><option value="">All Branches</option></select>
+    <select id="equipment"><option value="">All Equipment</option></select>
+    <select id="parameter"><option value="">All Parameters</option></select>
+    <input id="date-from" type="date"><input id="date-to" type="date">
+  </div>
+  <div class="cp-card"><table><thead><tr><th>Date</th><th>Equipment</th><th>Parameter</th><th>Previous</th><th>New</th><th>Technician</th><th>Config Log</th></tr></thead><tbody id="rows"></tbody></table><div id="empty" class="cp-empty" style="display:none;">No configuration logs found.</div></div>
+</div>
+{% endblock %}
+{% block style %}<style>
+.cp-page{max-width:1400px;margin:0 auto;padding:24px}.cp-top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}.cp-top h1{margin:0;color:#0f172a}.cp-top p{margin:6px 0 0;color:#64748b}.cp-back{padding:9px 14px;border:1px solid #cbd5e1;border-radius:7px;text-decoration:none;font-weight:700}.cp-filters{display:flex;gap:12px;flex-wrap:wrap;background:white;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:18px;position:sticky;top:8px;z-index:20;box-shadow:0 6px 18px rgba(15,23,42,.08)}.cp-filters select,.cp-filters input{padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:170px;background:white}.cp-card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:18px;overflow:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:14px;border-bottom:1px solid #e2e8f0}th{font-size:12px;text-transform:uppercase;color:#475569}a.log{color:#2563eb;font-weight:800;text-decoration:none}.cp-empty{text-align:center;padding:30px;color:#64748b}
+</style>{% endblock %}
+{% block script %}<script>
+let allLogs=[];const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const fmt=v=>{if(!v)return'-';const d=new Date(v);return isNaN(d.getTime())?v:d.toLocaleString()};
+function populate(){[...new Set(allLogs.map(x=>x.custom_branch).filter(Boolean))].sort().forEach(v=>branch.add(new Option(v,v)));[...new Map(allLogs.filter(x=>x.custom_related_asset).map(x=>[x.custom_related_asset,x.equipment_display||x.custom_related_asset])).entries()].forEach(([v,l])=>equipment.add(new Option(l,v)));[...new Set(allLogs.map(x=>x.custom_parameter).filter(Boolean))].sort().forEach(v=>parameter.add(new Option(v,v)));}
+function apply(){const b=branch.value,e=equipment.value,p=parameter.value,df=document.getElementById('date-from').value,dt=document.getElementById('date-to').value;render(allLogs.filter(x=>{if(b&&x.custom_branch!==b)return false;if(e&&x.custom_related_asset!==e)return false;if(p&&x.custom_parameter!==p)return false;const d=x.log_datetime?String(x.log_datetime).slice(0,10):'';if(df&&d<df)return false;if(dt&&d>dt)return false;return true;}));}
+function render(logs){const body=document.getElementById('rows'),empty=document.getElementById('empty');if(!logs.length){body.innerHTML='';empty.style.display='block';return;}empty.style.display='none';body.innerHTML=logs.map(x=>`<tr><td>${esc(fmt(x.log_datetime))}</td><td>${esc(x.equipment_display||x.custom_related_asset||'-')}</td><td>${esc(x.custom_parameter||'-')}</td><td>${esc(x.custom_current_value||'-')}</td><td>${esc(x.custom_new_value||'-')}</td><td>${esc(x.technician_display||x.custom_technician||'-')}</td><td><a class="log" href="/client-portal/config-log-report?name=${encodeURIComponent(x.name)}">${esc(x.name)}</a></td></tr>`).join('');}
+async function load(){const r=await fetch('/api/method/maintenance_app.api.client_portal_get_config_logs',{method:'POST'});const j=await r.json();allLogs=j.message||[];populate();render(allLogs)}
+['branch','equipment','parameter','date-from','date-to'].forEach(id=>document.getElementById(id).addEventListener('change',apply));load();
+</script>{% endblock %}

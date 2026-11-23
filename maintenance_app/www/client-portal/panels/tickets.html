@@ -7,7 +7,18 @@
         </div>
     </div>
 
-    <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+    <div id="ticket-filter-panel" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;background:white;padding:16px;border-radius:8px;border:1px solid #e2e8f0;position:sticky;top:8px;z-index:30;box-shadow:0 6px 18px rgba(15,23,42,.08);">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:280px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">SEARCH</label>
+            <input
+                id="tk-filter-search"
+                type="search"
+                placeholder="Ticket ID or Customer Ticket Ref"
+                oninput="window.filterTickets()"
+                style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;min-width:280px;background:white;outline:none;font-size:14px;color:#1e293b;height:38px;"
+            >
+        </div>
+
         <div style="display: flex; flex-direction: column; gap: 4px;">
             <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">FILTER BY BRANCH</label>
             <select id="tk-filter-branch" onchange="window.filterTickets()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
@@ -15,12 +26,58 @@
             </select>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">CLIENT TYPE</label>
+            <select id="tk-filter-client-type" onchange="window.filterTickets()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
+                <option value="">All Client Types</option>
+            </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
             <label style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">TICKET STATUS</label>
             <select id="tk-filter-status" onchange="window.filterTickets()" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 180px; background: white; outline: none; font-size: 14px; color: #1e293b; height: 38px;">
-                <option value="">All Tickets</option>
-                <option value="Open" selected>Open Tickets Only</option>
-                <option value="Closed">Closed / Resolved Only</option>
+                <option value="">All Statuses</option>
+                <option value="__active__">Active Tickets</option>
+                <option value="Open">Open</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Ready for Planning">Ready for Planning</option>
+                <option value="Planned">Planned</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+                <option value="Cancelled">Cancelled</option>
             </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">TICKET TYPE</label>
+            <select id="tk-filter-type" onchange="window.filterTickets()" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;min-width:180px;background:white;font-size:14px;height:38px;">
+                <option value="">All Ticket Types</option>
+            </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">PRIORITY</label>
+            <select id="tk-filter-priority" onchange="window.filterTickets()" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;min-width:150px;background:white;font-size:14px;height:38px;">
+                <option value="">All Priorities</option>
+            </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">HOLD REASON</label>
+            <select id="tk-filter-hold" onchange="window.filterTickets()" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;min-width:180px;background:white;font-size:14px;height:38px;">
+                <option value="">All Hold Reasons</option>
+            </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">FROM DATE</label>
+            <input id="tk-filter-date-from" type="date" onchange="window.filterTickets()" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;background:white;font-size:14px;height:38px;">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">TO DATE</label>
+            <input id="tk-filter-date-to" type="date" onchange="window.filterTickets()" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;background:white;font-size:14px;height:38px;">
         </div>
     </div>
 
@@ -29,8 +86,9 @@
             <thead>
                 <tr>
                     <th>Ticket ID</th>
-                    <th>Subject Details</th>
+                    <th>Customer Ticket Ref</th>
                     <th>Operating Branch</th>
+                    <th>Subject Details</th>
                     <th>Target System / Component</th>
                     <th>Status</th>
                     <th>Opened</th>

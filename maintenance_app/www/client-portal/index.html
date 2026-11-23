@@ -20,6 +20,7 @@
                 <li id="menu-equipment" class="menu-item" onclick="window.cpGo('equipment')" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">🖥️ Equipment Inventory</li>
                 <li id="menu-service-logs" class="menu-item" onclick="window.location.href='/client-portal/service-logs'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">📋 Service Logs</li>
                 <li id="menu-lifecycle-logs" class="menu-item" onclick="window.location.href='/client-portal/lifecycle-logs'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">📜 Lifecycle Logs</li>
+                <li id="menu-config-logs" class="menu-item" onclick="window.location.href='/client-portal/config-logs'" style="font-size: 13px; padding: 8px 12px; margin-top: 2px;">⚙️ Configuration Logs</li>
             </div>
             
             <li id="menu-tickets" class="menu-item" onclick="window.cpGo('tickets')">🎫 Tickets</li>
@@ -93,6 +94,13 @@
             </div>
 
             <label class="cp-ticket-field">
+                <span>Branch</span>
+                <select id="modal-branch-select" onchange="window.refreshTicketEquipmentOptions(); window.refreshTicketModalContext('')">
+                    <option value="">-- All Branches --</option>
+                </select>
+            </label>
+
+            <label class="cp-ticket-field">
                 <span>Equipment *</span>
                 <select id="modal-equipment-select" required onchange="window.refreshTicketModalContext('')">
                     <option value="">-- Choose Equipment --</option>
@@ -110,8 +118,15 @@
                 <span>Request Type</span>
                 <select id="modal-request-type">
                     <option value="Breakdown">Breakdown</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="General">General</option>
+                    <option value="Maintenance Request">Maintenance</option>
+                    <option value="General Request">General</option>
+                </select>
+            </label>
+
+            <label class="cp-ticket-field">
+                <span>Ticket Type</span>
+                <select id="modal-ticket-type">
+                    <option value="">-- Choose Ticket Type --</option>
                 </select>
             </label>
 
@@ -139,3 +154,50 @@
 {% block script %}
 {% include "www/client-portal/script.html" %}
 {% endblock %}
+
+<!-- GMAO_CLIENT_PORTAL_FINAL_CALIBRATION_BUTTON_V1 -->
+<script>
+(function () {
+    function normaliseCalibrationButtons() {
+        const candidates = Array.from(document.querySelectorAll("a, button"))
+            .filter((el) => {
+                const text = (el.textContent || "").trim().toLowerCase();
+                return text === "view calibration report" ||
+                       text === "view final calibration report";
+            });
+
+        if (!candidates.length) return;
+
+        const keep = candidates[candidates.length - 1];
+
+        candidates.forEach((el) => {
+            if (el !== keep) el.style.display = "none";
+        });
+
+        keep.textContent = "View Final Calibration Report";
+        keep.setAttribute("title", "Open the consolidated calibration report");
+    }
+
+    let scheduled = false;
+
+    function scheduleNormalise() {
+        if (scheduled) return;
+        scheduled = true;
+
+        window.setTimeout(() => {
+            scheduled = false;
+            normaliseCalibrationButtons();
+        }, 50);
+    }
+
+    document.addEventListener("DOMContentLoaded", scheduleNormalise);
+
+    const observer = new MutationObserver(scheduleNormalise);
+    observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+    });
+
+    scheduleNormalise();
+})();
+</script>

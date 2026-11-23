@@ -1,0 +1,158 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Lifecycle Log Report{% endblock %}
+
+{% block page_content %}
+<div class="cp-report-page">
+  <div class="cp-report-toolbar">
+    <a class="cp-btn" id="back-to-equipment" href="/client-portal">Back to Equipment</a>
+    <button class="cp-btn cp-primary" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div id="page-error" class="cp-error" style="display:none;"></div>
+
+  <section class="cp-hero">
+    <div>
+      <div class="cp-eyebrow">ASSET LIFECYCLE LOG</div>
+      <h1 id="log-name">-</h1>
+      <div class="cp-subtitle" id="event">-</div>
+    </div>
+    <span class="cp-badge" id="date-badge">-</span>
+  </section>
+
+  <section class="cp-section">
+    <div class="cp-section-title">EQUIPMENT & EVENT</div>
+    <div class="cp-grid">
+      <div class="cp-field"><div class="cp-label">Base Equipment</div><div class="cp-value" id="equipment">-</div></div>
+      <div class="cp-field"><div class="cp-label">Branch / Site</div><div class="cp-value" id="branch">-</div></div>
+      <div class="cp-field"><div class="cp-label">Lifecycle Event</div><div class="cp-value" id="event-detail">-</div></div>
+      <div class="cp-field"><div class="cp-label">Event Date</div><div class="cp-value" id="event-date">-</div></div>
+      <div class="cp-field"><div class="cp-label">Technician</div><div class="cp-value" id="technician">-</div></div>
+      <div class="cp-field"><div class="cp-label">Event Source</div><div class="cp-value" id="event-source">-</div></div>
+    </div>
+  </section>
+
+  <section class="cp-section">
+    <div class="cp-section-title">ACTION / MOVEMENT DETAILS</div>
+    <div class="cp-field">
+      <div class="cp-label">Action / Notes</div>
+      <div class="cp-value cp-notes" id="action-notes">-</div>
+    </div>
+
+    <div class="cp-grid" style="margin-top:16px">
+      <div class="cp-field"><div class="cp-label">Previous Branch</div><div class="cp-value" id="previous-branch">-</div></div>
+      <div class="cp-field"><div class="cp-label">New Branch / Destination</div><div class="cp-value" id="new-branch">-</div></div>
+      <div class="cp-field"><div class="cp-label">Replacement Equipment</div><div class="cp-value" id="new-equipment">-</div></div>
+      <div class="cp-field"><div class="cp-label">Change Reason</div><div class="cp-value" id="change-reason">-</div></div>
+      <div class="cp-field"><div class="cp-label">Previous Serial</div><div class="cp-value" id="previous-serial">-</div></div>
+      <div class="cp-field"><div class="cp-label">New Serial</div><div class="cp-value" id="new-serial">-</div></div>
+      <div class="cp-field"><div class="cp-label">Previous Make / Model</div><div class="cp-value" id="previous-model">-</div></div>
+      <div class="cp-field"><div class="cp-label">New Make / Model</div><div class="cp-value" id="new-model">-</div></div>
+      <div class="cp-field"><div class="cp-label">Component</div><div class="cp-value" id="component">-</div></div>
+      <div class="cp-field"><div class="cp-label">New Component</div><div class="cp-value" id="new-component">-</div></div>
+    </div>
+  </section>
+
+  <section class="cp-section">
+    <div class="cp-section-title">REFERENCES</div>
+    <div class="cp-grid cp-grid-3">
+      <div class="cp-field"><div class="cp-label">Service Ticket</div><div class="cp-value" id="ticket-link">-</div></div>
+      <div class="cp-field"><div class="cp-label">Intervention</div><div class="cp-value" id="intervention-link">-</div></div>
+      <div class="cp-field"><div class="cp-label">Mission</div><div class="cp-value" id="mission-ref">-</div></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block style %}
+<style>
+:root{--blue:#3b82f6;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc}
+.cp-report-page{max-width:1180px;margin:0 auto;padding:20px}
+.cp-report-toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}
+.cp-btn{display:inline-block;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font-weight:700;text-decoration:none;cursor:pointer}
+.cp-primary{background:var(--blue);color:white;border-color:var(--blue)}
+.cp-hero,.cp-section{background:white;border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:18px}
+.cp-hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+.cp-eyebrow,.cp-section-title,.cp-label{font-size:12px;font-weight:800;letter-spacing:.6px;color:var(--muted);text-transform:uppercase}
+h1{margin:8px 0 4px;font-size:34px;color:var(--ink)}
+.cp-subtitle{font-size:18px;color:#334155}
+.cp-badge{display:inline-block;padding:8px 14px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:800}
+.cp-section-title{font-size:15px;margin-bottom:18px;color:#1e293b}
+.cp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.cp-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cp-value{margin-top:6px;background:var(--bg);border-left:3px solid var(--blue);border-radius:7px;padding:12px 14px;min-height:44px;color:var(--ink);font-weight:600}
+.cp-notes{white-space:pre-wrap;min-height:100px}
+.cp-value a{color:#2563eb;font-weight:800;text-decoration:none}
+.cp-error{padding:14px;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:16px}
+@media(max-width:760px){.cp-grid,.cp-grid-3{grid-template-columns:1fr}.cp-hero{flex-direction:column}}
+@media print{.cp-report-toolbar{display:none}.cp-report-page{max-width:none;padding:0}.cp-hero,.cp-section{break-inside:avoid}}
+</style>
+{% endblock %}
+
+{% block script %}
+<script>
+// GMAO_REPORT_BACK_TO_EQUIPMENT_V1
+function setBackToEquipment(equipmentName, equipmentDisplay) {
+    const back = document.getElementById('back-to-equipment');
+    if(!back || !equipmentName) return;
+    back.href = '/client-portal?equipment='
+        + encodeURIComponent(equipmentName)
+        + '&tab=lifecycle';
+    back.textContent = '← Back to Equipment: '
+        + (equipmentDisplay || equipmentName);
+}
+
+const params=new URLSearchParams(window.location.search);
+const logName=params.get('name');
+
+function safe(v){return v||'-';}
+function fmtDate(v){if(!v)return '-';const d=new Date(v);return isNaN(d.getTime())?v:d.toLocaleDateString();}
+function showError(msg){const el=document.getElementById('page-error');el.textContent=msg;el.style.display='block';}
+function setText(id,v){document.getElementById(id).textContent=safe(v);}
+function link(id,url,label){document.getElementById(id).innerHTML=url?`<a href="${url}">${label}</a>`:'-';}
+function joinParts(a,b){return [a,b].filter(Boolean).join(' ')||'-';}
+
+if(!logName){
+  showError('No lifecycle log specified.');
+}else{
+  const fd=new FormData();
+  fd.append('log_name',logName);
+
+  fetch('/api/method/maintenance_app.api.client_portal_get_lifecycle_log_detail',{method:'POST',body:fd})
+  .then(r=>r.json())
+  .then(data=>{
+    if(!data.message){showError('No lifecycle log data returned.');return;}
+    const log=data.message.log||{};
+    setBackToEquipment(
+      log.custom_related_asset,
+      data.message.equipment_display || log.custom_related_asset
+    );
+
+    setText('log-name',log.name);
+    setText('event',log.custom_event);
+    setText('date-badge',fmtDate(log.custom_date||log.creation));
+    setText('equipment',data.message.equipment_display||log.custom_related_asset);
+    setText('branch',log.custom_branch);
+    setText('event-detail',log.custom_event);
+    setText('event-date',fmtDate(log.custom_date||log.creation));
+    setText('technician',data.message.technician_display||log.custom_technician);
+    setText('event-source',log.custom_event_source);
+    setText('action-notes',log.custom_action_taken);
+    setText('previous-branch',log.custom_previous_branch);
+    setText('new-branch',log.custom_new_branch);
+    setText('new-equipment',data.message.new_equipment_display||log.custom_new_asset);
+    setText('change-reason',log.custom_asset_change_reason);
+    setText('previous-serial',log.custom_previous_serial);
+    setText('new-serial',log.custom_new_serial);
+    setText('previous-model',joinParts(log.custom_previous_make,log.custom_previous_model));
+    setText('new-model',joinParts(log.custom_new_make,log.custom_new_model));
+    setText('component',log.custom_component_item);
+    setText('new-component',log.custom_new_component_item);
+    link('ticket-link',log.custom_service_ticket?'/client-portal/ticket?name='+encodeURIComponent(log.custom_service_ticket):'',log.custom_service_ticket||'-');
+    link('intervention-link',log.custom_intervention_ref?'/client-portal/intervention?name='+encodeURIComponent(log.custom_intervention_ref):'',log.custom_intervention_ref||'-');
+    setText('mission-ref',log.custom_mission_ref);
+  })
+  .catch(err=>{console.error(err);showError('Unable to load lifecycle log report.');});
+}
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Service Log Report{% endblock %}
+
+{% block page_content %}
+<div class="cp-report-page">
+  <div class="cp-report-toolbar">
+    <a class="cp-btn" id="back-to-equipment" href="/client-portal">Back to Equipment</a>
+    <button class="cp-btn cp-primary" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div id="page-error" class="cp-error" style="display:none;"></div>
+
+  <section class="cp-hero">
+    <div>
+      <div class="cp-eyebrow">SERVICE LOG</div>
+      <h1 id="log-name">-</h1>
+      <div class="cp-subtitle" id="service-type">-</div>
+    </div>
+    <span class="cp-badge" id="outcome-badge">-</span>
+  </section>
+
+  <section class="cp-section">
+    <div class="cp-section-title">EQUIPMENT & SERVICE</div>
+    <div class="cp-grid">
+      <div class="cp-field"><div class="cp-label">Equipment</div><div class="cp-value" id="equipment">-</div></div>
+      <div class="cp-field"><div class="cp-label">Branch / Site</div><div class="cp-value" id="branch">-</div></div>
+      <div class="cp-field"><div class="cp-label">Service Date</div><div class="cp-value" id="service-date">-</div></div>
+      <div class="cp-field"><div class="cp-label">Technician</div><div class="cp-value" id="technician">-</div></div>
+      <div class="cp-field"><div class="cp-label">Duration</div><div class="cp-value" id="duration">-</div></div>
+      <div class="cp-field"><div class="cp-label">Component</div><div class="cp-value" id="component">-</div></div>
+      <div class="cp-field"><div class="cp-label">Component Serial</div><div class="cp-value" id="component-serial">-</div></div>
+      <div class="cp-field"><div class="cp-label">Mission</div><div class="cp-value" id="mission-ref">-</div></div>
+    </div>
+  </section>
+
+  <section class="cp-section">
+    <div class="cp-section-title">WORK SUMMARY</div>
+    <div class="cp-field">
+      <div class="cp-label">Notes</div>
+      <div class="cp-value cp-notes" id="notes">-</div>
+    </div>
+  </section>
+
+  <section class="cp-section">
+    <div class="cp-section-title">REFERENCES</div>
+    <div class="cp-grid cp-grid-3">
+      <div class="cp-field"><div class="cp-label">Service Ticket</div><div class="cp-value" id="ticket-link">-</div></div>
+      <div class="cp-field"><div class="cp-label">Intervention</div><div class="cp-value" id="intervention-link">-</div></div>
+      <div class="cp-field"><div class="cp-label">Mission</div><div class="cp-value" id="mission-link">-</div></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block style %}
+<style>
+:root{--blue:#3b82f6;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc}
+.cp-report-page{max-width:1180px;margin:0 auto;padding:20px}
+.cp-report-toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}
+.cp-btn{display:inline-block;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font-weight:700;text-decoration:none;cursor:pointer}
+.cp-primary{background:var(--blue);color:white;border-color:var(--blue)}
+.cp-hero,.cp-section{background:white;border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:18px}
+.cp-hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+.cp-eyebrow,.cp-section-title,.cp-label{font-size:12px;font-weight:800;letter-spacing:.6px;color:var(--muted);text-transform:uppercase}
+h1{margin:8px 0 4px;font-size:34px;color:var(--ink)}
+.cp-subtitle{font-size:18px;color:#334155}
+.cp-badge{display:inline-block;padding:8px 14px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:800}
+.cp-section-title{font-size:15px;margin-bottom:18px;color:#1e293b}
+.cp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.cp-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cp-value{margin-top:6px;background:var(--bg);border-left:3px solid var(--blue);border-radius:7px;padding:12px 14px;min-height:44px;color:var(--ink);font-weight:600}
+.cp-notes{white-space:pre-wrap;min-height:100px}
+.cp-value a{color:#2563eb;font-weight:800;text-decoration:none}
+.cp-error{padding:14px;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:16px}
+@media(max-width:760px){.cp-grid,.cp-grid-3{grid-template-columns:1fr}.cp-hero{flex-direction:column}}
+@media print{.cp-report-toolbar{display:none}.cp-report-page{max-width:none;padding:0}.cp-hero,.cp-section{break-inside:avoid}}
+</style>
+{% endblock %}
+
+{% block script %}
+<script>
+// GMAO_REPORT_BACK_LINK_V2
+function cpSetReportBackLink(equipmentName, equipmentDisplay) {
+    const back = document.getElementById('back-to-equipment');
+    if(!back || !equipmentName) return;
+    back.href = '/client-portal?equipment=' + encodeURIComponent(equipmentName) + '&tab=service';
+    back.textContent = '← Back to Equipment: ' + (equipmentDisplay || equipmentName);
+}
+
+const params = new URLSearchParams(window.location.search);
+const logName = params.get('name');
+
+function safe(v){ return v || '-'; }
+function fmt(v){
+  if(!v) return '-';
+  const d=new Date(v);
+  return isNaN(d.getTime()) ? v : d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+function showError(msg){const el=document.getElementById('page-error');el.textContent=msg;el.style.display='block';}
+function setText(id,v){document.getElementById(id).textContent=safe(v);}
+function link(id,url,label){document.getElementById(id).innerHTML=url?`<a href="${url}">${label}</a>`:'-';}
+
+if(!logName){
+  showError('No service log specified.');
+}else{
+  const fd=new FormData();
+  fd.append('log_name',logName);
+
+  fetch('/api/method/maintenance_app.api.client_portal_get_service_log_detail',{method:'POST',body:fd})
+  .then(r=>r.json())
+  .then(data=>{
+    if(!data.message){showError('No service log data returned.');return;}
+    const log=data.message.log||{};
+    cpSetReportBackLink(
+      log.custom_related_asset,
+      data.message.equipment_display || log.custom_related_asset
+    );
+    setText('log-name',log.name);
+    setText('service-type',log.custom_intervention_type);
+    setText('outcome-badge',log.custom_work_outcome);
+    setText('equipment',data.message.equipment_display||log.custom_related_asset);
+    setText('branch',log.custom_branch);
+    setText('service-date',fmt(log.custom_end_time||log.creation));
+    setText('technician',data.message.technician_display||log.custom_technician);
+    setText('duration',log.custom_duration ? log.custom_duration+' hrs' : '-');
+    setText('component',log.custom_component_item||log.custom_component_group);
+    setText('component-serial',log.custom_component_serial);
+    setText('mission-ref',log.custom_mission_ref);
+    setText('notes',log.custom_notes||'No notes recorded.');
+    link('ticket-link',log.custom_service_ticket?'/client-portal/ticket?name='+encodeURIComponent(log.custom_service_ticket):'',log.custom_service_ticket||'-');
+    link('intervention-link',log.custom_intervention_ref?'/client-portal/intervention?name='+encodeURIComponent(log.custom_intervention_ref):'',log.custom_intervention_ref||'-');
+    setText('mission-link',log.custom_mission_ref);
+  })
+  .catch(err=>{console.error(err);showError('Unable to load service log report.');});
+}
+</script>
+{% endblock %}

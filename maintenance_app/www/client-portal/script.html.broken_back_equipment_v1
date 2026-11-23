@@ -1,0 +1,3123 @@
+<script>
+    // 1. Core Global State Store Registry Definition
+    window.PortalApp = {
+        customerName: "{{ customer_company }}", 
+        userEmail: "{{ user }}",
+        // Safely stringifies and hydates the frontend application state cache
+        cachedEquipment: {% if preloaded_equipment %}{{ preloaded_equipment | json }}{% else %}[]{% endif %},
+        cachedTickets: [],
+        deepTargetAssetFilter: null,
+        deepTargetCompFilter: null
+    };
+
+    frappe.ready(function() {
+        window.addEventListener('click', function() {
+            const drop = document.getElementById('user-dropdown');
+            if(drop) drop.style.display = 'none';
+        });
+
+        if (window.PortalApp.customerName && window.PortalApp.customerName !== "None" && window.PortalApp.customerName !== "") {
+            window.loadPortalData();
+
+            const directParams = new URLSearchParams(window.location.search);
+            const directEquipment = directParams.get('equipment');
+            const directTab = directParams.get('tab') || 'overview';
+
+            if(directEquipment) {
+                setTimeout(function() {
+                    if(typeof window.openEquipmentWorkspace === 'function') {
+                        window.openEquipmentWorkspace(directEquipment, directTab);
+                    }
+                }, 0);
+            }
+        } else {
+            window.showGlobalError('⚠ Profile Error: No verified Customer account link found for this user account.');
+        }
+    });
+
+    window.toggleUserDropdown = function(event) {
+        event.stopPropagation();
+        const drop = document.getElementById('user-dropdown');
+        if(drop) drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+    };
+
+    window.cpGo = function(panelId) {
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+
+        const targetPanel = document.getElementById('panel-' + panelId);
+        if(targetPanel) targetPanel.classList.add('active');
+
+        const targetMenu = document.getElementById('menu-' + panelId);
+        if(targetMenu) targetMenu.classList.add('active');
+    };
+
+    window.showGlobalError = function(msg) {
+        const el = document.getElementById('portal-status-alert');
+        if(el) {
+            el.textContent = msg;
+            el.className = 'status-msg alert-error';
+            el.style.display = 'block';
+        }
+    };
+
+    window.cpTicketEquipmentLabel = function(eq) {
+        const base =
+            eq.custom_asset_name
+            || eq.custom_display_name
+            || eq.custom_asset_category
+            || eq.name
+            || 'Equipment';
+
+        const serial =
+            eq.custom_serial_number
+            || eq.serial_number
+            || eq.custom_serial_no
+            || '';
+
+        const clientCode =
+            eq.custom_client_asset_code
+            || eq.custom_asset_id
+            || eq.custom_site_id
+            || '';
+
+        const identity = serial || clientCode || eq.name || '';
+
+        let label = base;
+        if(identity && identity !== base) {
+            label += ' · ' + (serial ? 'S/N ' + identity : identity);
+        }
+
+        if(eq.custom_branch) {
+            label += ' · ' + eq.custom_branch;
+        }
+
+        return label;
+    };
+
+    window.refreshTicketEquipmentOptions = function(preselectEquipment) {
+        const branchSelect = document.getElementById('modal-branch-select');
+        const eqSelect = document.getElementById('modal-equipment-select');
+        const compSelect = document.getElementById('modal-component-select');
+        if(!eqSelect) return;
+
+        const branch = branchSelect ? branchSelect.value : '';
+
+        eqSelect.innerHTML = '<option value="">-- Choose Equipment --</option>';
+
+        (window.PortalApp.cachedEquipment || [])
+            .filter(function(eq) {
+                return !branch || (eq.custom_branch || '') === branch;
+            })
+            .forEach(function(eq) {
+                eqSelect.innerHTML +=
+                    '<option value="' + window.cpEsc(eq.name) + '">' +
+                    window.cpEsc(window.cpTicketEquipmentLabel(eq)) +
+                    '</option>';
+            });
+
+        if(compSelect) {
+            compSelect.innerHTML = '<option value="">-- Equipment only / No component --</option>';
+        }
+
+        if(preselectEquipment) {
+            eqSelect.value = preselectEquipment;
+        }
+    };
+
+    window.loadClientPortalTicketTypes = function() {
+        const select = document.getElementById('modal-ticket-type');
+        if(!select) return;
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_ticket_type_options',
+            callback: function(r) {
+                const options = r.message || [];
+                select.innerHTML = '<option value="">-- Choose Ticket Type --</option>';
+                options.forEach(function(v) {
+                    select.innerHTML += '<option value="' + window.cpEsc(v) + '">' + window.cpEsc(v) + '</option>';
+                });
+            }
+        });
+    };
+
+    window.openTicketModal = function(equipmentName, componentName) {
+        const modal = document.getElementById('ticket-modal');
+        const branchSelect = document.getElementById('modal-branch-select');
+        const eqSelect = document.getElementById('modal-equipment-select');
+        const compSelect = document.getElementById('modal-component-select');
+        if(!modal || !eqSelect || !compSelect) return;
+        window.loadClientPortalTicketTypes();
+
+        if(branchSelect) {
+            const branches = Array.from(
+                new Set(
+                    (window.PortalApp.cachedEquipment || [])
+                        .map(function(eq) { return eq.custom_branch || ''; })
+                        .filter(Boolean)
+                )
+            ).sort();
+
+            branchSelect.innerHTML = '<option value="">-- All Branches --</option>';
+            branches.forEach(function(branch) {
+                branchSelect.innerHTML +=
+                    '<option value="' + window.cpEsc(branch) + '">' +
+                    window.cpEsc(branch) +
+                    '</option>';
+            });
+
+            if(equipmentName) {
+                const selectedEq = (window.PortalApp.cachedEquipment || [])
+                    .find(function(eq) { return eq.name === equipmentName; });
+
+                if(selectedEq && selectedEq.custom_branch) {
+                    branchSelect.value = selectedEq.custom_branch;
+                }
+            }
+        }
+
+        window.refreshTicketEquipmentOptions(equipmentName || '');
+
+        modal.style.display = 'flex';
+
+        if(equipmentName) {
+            eqSelect.value = equipmentName;
+        }
+
+        window.refreshTicketModalContext(componentName || '');
+    };
+
+    window.refreshTicketModalContext = function(preselectComponent) {
+        const eqSelect = document.getElementById('modal-equipment-select');
+        const compSelect = document.getElementById('modal-component-select');
+        const branchSelect = document.getElementById('modal-branch-select');
+        const customerEl = document.getElementById('modal-customer-display');
+        const branchEl = document.getElementById('modal-branch-display');
+        if(!eqSelect || !compSelect) return;
+
+        const equipmentName = eqSelect.value;
+        compSelect.innerHTML = '<option value="">-- Equipment only / No component --</option>';
+        if(customerEl) customerEl.textContent = window.PortalApp.customerName || '—';
+        if(branchEl) branchEl.textContent = (branchSelect && branchSelect.value) ? branchSelect.value : '—';
+        if(!equipmentName) return;
+
+        const basic = (window.PortalApp.cachedEquipment || []).find(x => x.name === equipmentName);
+        if(basic && branchEl) branchEl.textContent = basic.custom_branch || '—';
+
+        const useData = function(data) {
+            const eq = data.equipment || {};
+            if(customerEl) customerEl.textContent = data.customer_display || window.PortalApp.customerName || '—';
+            if(branchEl) branchEl.textContent = data.branch_display || eq.custom_branch || '—';
+            const comps = (data.logs && data.logs.components) || [];
+            comps.forEach(c => {
+                const id = c.custom_equipment_component || c.equipment_component || c.component_id || c.custom_component_id || c.custom_component || c.name || '';
+                const title = c.custom_display_name || c.custom_equipment_type || c.custom_component_item || id;
+                if(id) compSelect.innerHTML += `<option value="${window.cpEsc(id)}">${window.cpEsc(title)} · ${window.cpEsc(id)}</option>`;
+            });
+            if(preselectComponent) compSelect.value = preselectComponent;
+        };
+
+        window.PortalApp.equipmentWorkspaceCache = window.PortalApp.equipmentWorkspaceCache || {};
+        const cached = window.PortalApp.equipmentWorkspaceCache[equipmentName];
+        if(cached) return useData(cached);
+
+        frappe.call({
+            method:'maintenance_app.api.client_portal_get_equipment_workspace',
+            args:{equipment_name:equipmentName},
+            callback:function(r){
+                if(r.message){
+                    window.PortalApp.equipmentWorkspaceCache[equipmentName]=r.message;
+                    useData(r.message);
+                }
+            }
+        });
+    };
+
+    window.closeTicketModal = function() {
+        const modal = document.getElementById('ticket-modal');
+        if(modal) modal.style.display = 'none';
+        const form = document.getElementById('create-ticket-form');
+        if(form) form.reset();
+    };
+
+    window.submitServiceTicket = function(event) {
+        event.preventDefault();
+        const equipmentName = document.getElementById('modal-equipment-select').value;
+        if(!equipmentName) {
+            frappe.show_alert({message:'Please choose equipment.', indicator:'orange'});
+            return;
+        }
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_create_service_ticket',
+            args: {
+                equipment_name: equipmentName,
+                component_name: document.getElementById('modal-component-select').value || null,
+                request_type: document.getElementById('modal-request-type').value || null,
+                subject: document.getElementById('modal-subject').value,
+                description: document.getElementById('modal-description').value
+            },
+            freeze: true,
+            callback: function(r) {
+                if(r.message && r.message.ticket) {
+                    const ticketName = r.message.ticket;
+                    frappe.show_alert({ message: `✔ Ticket ${ticketName} raised`, indicator: 'green' });
+                    window.closeTicketModal();
+                    window.PortalApp.equipmentWorkspaceCache = {};
+                    window.loadPortalData();
+                    setTimeout(function(){
+                        window.location.href='/client-portal/ticket?name='+encodeURIComponent(ticketName);
+                    }, 500);
+                }
+            }
+        });
+    };
+
+    window.toggleAssetDrawer = function(assetId, event) {
+        if(event.target.tagName === 'SELECT' || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.tagName === 'A') return;
+        
+        const drawer = document.getElementById(`drawer-${assetId}`);
+        const indicator = document.getElementById(`ind-${assetId}`);
+        if(!drawer) return;
+
+        if(drawer.style.display === 'none') {
+            drawer.style.display = 'table-row';
+            if(indicator) indicator.textContent = '▾';
+            window.switchWorkspaceTab(assetId, 'logs'); 
+        } else {
+            drawer.style.display = 'none';
+            if(indicator) indicator.textContent = '▸';
+        }
+    };
+
+    window.filterTicketsByComponent = function(componentName) {
+        document.getElementById('tk-filter-branch').value = "";
+        document.getElementById('tk-filter-status').value = ""; 
+        
+        const filtered = window.PortalApp.cachedTickets.filter(t => {
+            return (t.custom_subject && t.custom_subject.includes(componentName)) || 
+                   (t.name && t.name === componentName);
+        });
+        
+        window.renderTicketsTable(filtered);
+        window.cpGo('tickets');
+    };
+
+    window.routeToTicketLedger = function(assetId, componentName) {
+        window.PortalApp.deepTargetAssetFilter = assetId;
+        window.PortalApp.deepTargetCompFilter = componentName || null;
+
+        document.getElementById('tk-filter-branch').value = "";
+        document.getElementById('tk-filter-status').value = ""; 
+
+        const resetBtn = document.getElementById('btn-clear-tk-search');
+        if(resetBtn) resetBtn.style.display = 'inline-block';
+
+        window.filterTickets();
+        window.cpGo('tickets');
+    };
+
+    window.resetTicketFilters = function() {
+        window.PortalApp.deepTargetAssetFilter = null;
+        window.PortalApp.deepTargetCompFilter = null;
+        
+        document.getElementById('tk-filter-status').value = "Open"; 
+        const resetBtn = document.getElementById('btn-clear-tk-search');
+        if(resetBtn) resetBtn.style.display = 'none';
+
+        window.filterTickets();
+    };
+
+    window.shortcutViewTickets = function(assetId, event) {
+        if(event) event.stopPropagation();
+        window.routeToTicketLedger(assetId);
+    };
+
+    window.shortcutViewServiceLogs = function(assetId, assetName, event) {
+        if(event) event.stopPropagation();
+        const logs = window.PortalApp.cachedTickets.filter(t => t.custom_target_equipment === assetId);
+        
+        let logRows = '';
+        if(logs.length === 0) {
+            logRows = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:20px;">No operational intervention summaries recorded.</td></tr>`;
+        } else {
+            logs.forEach(t => {
+                let statusColor = ['Closed', 'Resolved'].includes(t.custom_ticket_status) ? '#10b981' : '#f59e0b';
+                logRows += `
+                    <tr>
+                        <td style="color:#64748b; padding:12px;">${t.custom_opening_date || t.creation.split(' ')[0]}</td>
+                        <td style="padding:12px;"><span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-weight:600; font-size:12px;">Intervention</span></td>
+                        <td style="font-family:monospace; font-size:13px; color:#e2e8f0; padding:12px;">${window.PortalApp.userEmail}</td>
+                        <td style="font-weight:700; color:${statusColor}; padding:12px;">${t.custom_ticket_status}</td>
+                        <td style="color:#e2e8f0; font-size:13px; padding:12px;">${t.custom_subject || '-'}</td>
+                        <td style="padding:12px;"><a href="#" onclick="window.routeToTicketLedger('${assetId}'); document.getElementById('log-modal').remove(); return false;" style="color:#3b82f6; font-weight:600; text-decoration:none;">${t.name}</a></td>
+                    </tr>
+                `;
+            });
+        }
+
+        const modalHtml = `
+            <div id="log-modal" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.4); z-index:99999; display:flex; justify-content:center; align-items:center;">
+                <div style="background:#0f172a; color:#f8fafc; padding:24px; border-radius:12px; width:90%; max-width:960px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3); border:1px solid #334155;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #1e293b; padding-bottom:12px;">
+                        <div>
+                            <h3 style="color:white; font-size:16px;">Service Operational Logs Matrix</h3>
+                            <small style="color:#94a3b8;">Asset Profile: ${assetName} (${assetId})</small>
+                        </div>
+                        <button onclick="document.getElementById('log-modal').remove()" style="background:transparent; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+                    </div>
+                    <div style="overflow-x:auto; max-height:400px; border-radius:6px; background:#1e293b;">
+                        <table style="width:100%; text-align:left; font-size:13px; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#111827; color:#94a3b8; text-transform:uppercase; font-size:11px; letter-spacing:0.5px;">
+                                    <th style="padding:12px;">Date</th><th style="padding:12px;">Type</th><th style="padding:12px;">Technician</th><th style="padding:12px;">Outcome</th><th style="padding:12px;">Notes Summary</th><th style="padding:12px;">Ticket ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>${logRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    };
+
+    window.switchWorkspaceTab = function(assetId, tabId) {
+        const asset = window.PortalApp.cachedEquipment.find(eq => eq.name === assetId);
+        if(!asset) return;
+
+        document.querySelectorAll(`#drawer-${assetId} .workspace-tab-btn`).forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`tab-btn-${tabId}-${assetId}`);
+        if(activeBtn) activeBtn.classList.add('active');
+
+        const displayArea = document.getElementById(`workspace-view-${assetId}`);
+        if(!displayArea) return;
+        displayArea.innerHTML = '';
+
+        if(tabId === 'logs') {
+            const relatedTickets = window.PortalApp.cachedTickets.filter(t => t.custom_target_equipment === assetId);
+            let logRows = '';
+            if(relatedTickets.length === 0) {
+                logRows = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:24px; font-style:italic;">No structural interventions profiles found.</td></tr>`;
+            } else {
+                relatedTickets.forEach(t => {
+                    let statusColor = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status) ? '#10b981' : '#f59e0b';
+                    logRows += `
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:10px; color:#475569;">${t.custom_opening_date || t.creation.split(' ')[0]}</td>
+                            <td style="padding:10px;"><span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600;">Service</span></td>
+                            <td style="padding:10px; color:#334155; font-family:monospace;">${window.PortalApp.userEmail}</td>
+                            <td style="padding:10px; font-weight:700; color:${statusColor};">${t.custom_ticket_status}</td>
+                            <td style="padding:10px; color:#334155; font-size:13px;">${t.custom_subject || '-'}</td>
+                            <td style="padding:10px;"><a href="#" onclick="window.routeToTicketLedger('${assetId}'); return false;" style="color:#3b82f6; font-weight:700; text-decoration:none;">${t.name} →</a></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            displayArea.innerHTML = `
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f8fafc; color:#64748b; text-transform:uppercase; font-size:11px; font-weight:700;">
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Date</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Type</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Technician</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Outcome</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Notes Summary</th>
+                                <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Ticket Link</th>
+                            </tr>
+                        </thead>
+                        <tbody>${logRows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        if(tabId === 'config') {
+            displayArea.innerHTML = `
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; padding:8px 0; font-size:13px; color:#475569;">
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">⚙️ <strong>Asset Base Ref:</strong> <span style="font-family:monospace; color:#1e293b; font-weight:600;">${asset.name}</span></div>
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">📜 <strong>Assigned SLA Contract:</strong> <span style="color:#1e293b; font-weight:600;">${asset.custom_maintenance_contract || 'Standard Coverage'}</span></div>
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">🛡️ <strong>Active Warranty Code:</strong> <span style="color:#1e293b; font-weight:600;">${asset.custom_warranty || 'None / Expired'}</span></div>
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid #e2e8f0;">⏳ <strong>Inspections Status:</strong> <span class="badge badge-success" style="font-size:11px;">Validated In Use</span></div>
+                </div>
+            `;
+        }
+
+        if(tabId === 'components') {
+            displayArea.innerHTML = `
+                <div>
+                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px; background: #f8fafc; padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase;">1. System Group</label>
+                            <select id="group-select-${assetId}" onchange="window.handleDrawerGroupChange('${assetId}')" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #1e293b; background: white; font-weight: 600; outline: none; cursor: pointer; min-width: 180px; height: 34px;"></select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase;">2. Equipment Component</label>
+                            <select id="comp-select-${assetId}" onchange="window.handleDrawerComponentChange('${assetId}')" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #1e293b; background: white; font-weight: 600; outline: none; cursor: pointer; min-width: 220px; height: 34px;">
+                                <option value="">All Components</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="component-grid" id="grid-${assetId}"></div>
+                </div>
+            `;
+
+            const groupSelect = document.getElementById(`group-select-${assetId}`);
+            const compSelect = document.getElementById(`comp-select-${assetId}`);
+            const gridEl = document.getElementById(`grid-${assetId}`);
+
+            const components = asset.components || [];
+            if(components.length === 0) {
+                if(groupSelect) groupSelect.parentElement.parentElement.style.display = 'none';
+                if(gridEl) gridEl.innerHTML = '<div style="color:#64748b; font-size:13px; font-style:italic; padding: 5px 0;">No registered component tracking structures assigned to this asset block.</div>';
+                return;
+            }
+
+            const uniqueGroups = [...new Set(components.map(c => c.custom_component_group || 'General / Auxiliary System'))].sort();
+            groupSelect.innerHTML = '';
+            uniqueGroups.forEach(g => {
+                groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
+            });
+
+            gridEl.mapDataset = components;
+            gridEl.parentAssetName = assetId;
+            window.handleDrawerGroupChange(assetId);
+        }
+    };
+
+    window.handleDrawerGroupChange = function(assetId) {
+        const groupSelect = document.getElementById(`group-select-${assetId}`);
+        const compSelect = document.getElementById(`comp-select-${assetId}`);
+        const gridEl = document.getElementById(`grid-${assetId}`);
+        if(!groupSelect || !compSelect || !gridEl || !gridEl.mapDataset) return;
+
+        const selectedGroup = groupSelect.value;
+        const filteredComponents = gridEl.mapDataset.filter(c => (c.custom_component_group || 'General / Auxiliary System') === selectedGroup);
+
+        compSelect.innerHTML = '<option value="">All Components</option>';
+        filteredComponents.forEach(c => {
+            let labelRaw = c.custom_display_name || c.custom_component || 'Unnamed Part';
+            let labelClean = labelRaw.includes(' - ') ? labelRaw.split(' - ').pop() : labelRaw;
+            compSelect.innerHTML += `<option value="${labelRaw}">${labelClean}</option>`;
+        });
+
+        window.handleDrawerComponentChange(assetId);
+    };
+
+    window.handleDrawerComponentChange = function(assetId) {
+        const groupSelect = document.getElementById(`group-select-${assetId}`);
+        const compSelect = document.getElementById(`comp-select-${assetId}`);
+        const gridEl = document.getElementById(`grid-${assetId}`);
+        if(!groupSelect || !compSelect || !gridEl || !gridEl.mapDataset) return;
+
+        const currentGroup = groupSelect.value;
+        const currentCompName = compSelect.value;
+
+        gridEl.innerHTML = '';
+
+        const results = gridEl.mapDataset.filter(c => {
+            const matchesGroup = (c.custom_component_group || 'General / Auxiliary System') === currentGroup;
+            const itemLabel = c.custom_display_name || c.custom_component || '';
+            const matchesComp = !currentCompName || itemLabel === currentCompName;
+            return matchesGroup && matchesComp;
+        });
+
+        results.forEach(item => {
+            let rawTitle = item.custom_display_name || item.custom_component || 'Unnamed Component';
+            let cleanTitle = rawTitle.includes(' - ') ? rawTitle.split(' - ').pop() : rawTitle;
+            
+            let statusBadgeClass = 'badge-success';
+            if(item.custom_status === 'Faulty') statusBadgeClass = 'badge-error';
+            if(['Replaced', 'Removed'].includes(item.custom_status)) statusBadgeClass = 'badge-warning';
+
+            const openCompTickets = window.PortalApp.cachedTickets.filter(t => 
+                t.custom_target_equipment === assetId && 
+                !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status) &&
+                (t.custom_subject && t.custom_subject.toLowerCase().includes(rawTitle.toLowerCase()))
+            ).length;
+
+            const compTicketBadge = openCompTickets > 0 ? 
+                `<span class="badge badge-error" style="font-size:10px; padding:2px 6px;">⚠️ ${openCompTickets} Open</span>` : 
+                `<span style="font-size:11px; color:#94a3b8;">✔ Clear</span>`;
+
+            let partMake = item.custom_brand || '-';
+            let partModel = item.custom_model || '-';
+            let partSerial = item.custom_serial_number || 'N/A';
+
+            gridEl.innerHTML += `
+                <div class="component-item-card" style="background: #f8fafc; flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: flex-start; gap: 12px;">
+                        <div><span style="font-size:15px; font-weight:700; color:#1e293b;">${cleanTitle}</span></div>
+                        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                            <span class="badge ${statusBadgeClass}" style="font-size:11px; padding:2px 8px;">${item.custom_status || 'Installed'}</span>
+                            ${compTicketBadge}
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; width: 100%; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 12px;">
+                        <div style="color: #64748b;">Make: <strong style="color:#334155;">${partMake}</strong></div>
+                        <div style="color: #64748b;">Model: <strong style="color:#334155;">${partModel}</strong></div>
+                        <div style="color: #64748b; grid-column: span 2; border-top: 1px solid #f1f5f9; padding-top: 4px; margin-top: 2px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Serial No: <strong style="color:#334155; font-family: monospace;">${partSerial}</strong></span>
+                            <a href="#" onclick="window.routeToTicketLedger('${assetId}', '${cleanTitle}'); return false;" style="color:#3b82f6; font-weight:700; text-decoration:none; font-size:11px;">View Component Tickets →</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    };
+
+    window.renderEquipmentTable = function(assetsList) {
+        const tbody = document.getElementById('table-equipment-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(assetsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#64748b; padding:30px;">No asset inventory items match these filter configurations.</td></tr>';
+            return;
+        }
+
+        assetsList.forEach(eq => {
+            let healthClass = ['Excellent', 'Good'].includes(eq.custom_equipment_health) ? 'badge-success' : 'badge-warning';
+            let targetDueDate = eq.custom_next_maintenance_date || 'Unscheduled';
+            
+            const parentTicketCount = window.PortalApp.cachedTickets.filter(t => t.custom_target_equipment === eq.name && !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status)).length;
+            const parentTicketBadge = parentTicketCount > 0 ? `<span class="badge badge-error" style="margin-left:6px; padding:2px 6px; font-size:10px;">${parentTicketCount} Active</span>` : '';
+
+            tbody.innerHTML += `
+                <tr class="asset-row" onclick="window.toggleAssetDrawer('${eq.name}', event)">
+                    <td id="ind-${eq.name}" style="color:#64748b; font-weight:bold; text-align:center;">▸</td>
+                    <td><strong>${eq.custom_asset_name}</strong>${parentTicketBadge}</td>
+                    <td><strong>${eq.custom_branch || '-'}</strong></td>
+                    <td>${eq.custom_asset_category || '-'}</td>
+                    <td>${eq.custom_model || '-'}</td>
+                    <td><span class="badge badge-info">${eq.custom_asset_status || 'Operational'}</span></td>
+                    <td>${eq.custom_operational_status || 'Unknown'}</td>
+                    <td><span class="badge ${healthClass}">${eq.custom_equipment_health || 'Unknown'}</span></td>
+                    <td><span style="font-weight: 600; color: ${targetDueDate === 'Unscheduled' ? '#94a3b8' : '#1e293b'};">${targetDueDate}</span></td>
+                    <td style="text-align:center;" onclick="event.stopPropagation();">
+                        <button class="shortcut-btn" onclick="window.routeToTicketLedger('${eq.name}')" title="Cross Filter All Active Asset Tickets" style="font-size:12px; padding:4px 8px;">🎫 Filter Tab</button>
+                    </td>
+                </tr>
+                
+                <tr id="drawer-${eq.name}" style="display: none; background: #f8fafc;">
+                    <td colspan="9" style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0;">
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            <div style="display:flex; gap:10px; margin-bottom: 20px; border-bottom:1px solid #e2e8f0; padding-bottom:12px;">
+                                <button id="tab-btn-logs-${eq.name}" class="workspace-tab-btn active" onclick="window.switchWorkspaceTab('${eq.name}', 'logs')">📜 Service History Logs</button>
+                                <button id="tab-btn-components-${eq.name}" class="workspace-tab-btn" onclick="window.switchWorkspaceTab('${eq.name}', 'components')">📦 Components Sub-Matrix</button>
+                                <button id="tab-btn-config-${eq.name}" class="workspace-tab-btn" onclick="window.switchWorkspaceTab('${eq.name}', 'config')">⚙️ Technical Profile</button>
+                            </div>
+                            <div id="workspace-view-${eq.name}"></div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    };
+
+    window.renderTicketsTable = function(ticketsList) {
+        const tbody = document.getElementById('table-tickets-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(ticketsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:30px;">No service tickets match these filter configurations.</td></tr>';
+            return;
+        }
+
+        ticketsList.forEach(t => {
+            let isClosed = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status);
+            let statusClass = isClosed ? 'badge-success' : 'badge-warning';
+            
+            // Format timestamps cleanly
+            let openDate = t.custom_opening_date || (t.creation ? t.creation.split(' ')[0] : '-');
+            let closeDate = isClosed ? (t.modified ? t.modified.split(' ')[0] : '-') : '-- Active --';
+            
+            // Build out composite target item label info
+            let targetAsset = t.custom_target_equipment || t.custom_parent_equipment || '-';
+            let targetComp = t.custom_target_component_name ? `<br><small style="color:#64748b; font-weight:600;">🧩 Component: ${t.custom_target_component_name}</small>` : '';
+            
+            // Generate resolution preview block row dropdown text
+            let resolutionBlock = t.custom_resolution_details ? 
+                `<br><div style="margin-top:6px; background:#f0fdf4; border:1px solid #bbf7d0; padding:6px 10px; border-radius:4px; font-size:12px; color:#166534;"><strong>Resolution Details:</strong> ${t.custom_resolution_details}</div>` : '';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>
+                        <a href="/client-portal/ticket?name=${encodeURIComponent(t.name)}"
+                           style="color:#3b82f6;font-weight:700;text-decoration:none;">
+                            ${t.name}
+                        </a>
+                    </td>
+                    <td>
+                        <span style="font-weight:600; color:#1e293b;">${t.custom_subject || ''}</span>
+                        ${resolutionBlock}
+                    </td>
+                    <td><strong>${t.custom_client_branch || '-'}</strong></td>
+                    <td>
+                        <strong style="color:#475569;">${targetAsset}</strong>
+                        ${targetComp}
+                    </td>
+                    <td><span class="badge ${statusClass}">${t.custom_ticket_status}</span></td>
+                    <td style="color:#64748b; font-family:monospace;">${openDate}</td>
+                    <td style="color:#64748b; font-family:monospace; font-weight:600;">${closeDate}</td>
+                </tr>
+            `;
+        });
+    };
+
+    window.clearEquipmentDateFilters = function() {
+        document.getElementById('eq-filter-start-date').value = '';
+        document.getElementById('eq-filter-end-date').value = '';
+        window.filterEquipment();
+    };
+
+    window.filterEquipment = function() {
+        const selectedBranch = document.getElementById('eq-filter-branch').value;
+        const selectedCategory = document.getElementById('eq-filter-category').value;
+        const startVal = document.getElementById('eq-filter-start-date').value;
+        const endVal = document.getElementById('eq-filter-end-date').value;
+
+        const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
+        const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+
+        const filteredData = window.PortalApp.cachedEquipment.filter(eq => {
+            const matchesBranch = !selectedBranch || eq.custom_branch === selectedBranch;
+            const matchesCategory = !selectedCategory || eq.custom_asset_category === selectedCategory;
+            
+            let matchesDateRange = true;
+            const nextMaintStr = eq.custom_next_maintenance_date;
+            
+            if (startDate || endDate) {
+                if (!nextMaintStr) {
+                    matchesDateRange = false; 
+                } else {
+                    const maintTime = new Date(nextMaintStr).getTime();
+                    if (startDate && maintTime < startDate) matchesDateRange = false;
+                    if (endDate && maintTime > endDate) matchesDateRange = false;
+                }
+            }
+            return matchesBranch && matchesCategory && matchesDateRange;
+        });
+        window.renderEquipmentTable(filteredData);
+    };
+
+    window.filterTickets = function() {
+        const selectedBranch = document.getElementById('tk-filter-branch').value;
+        const selectedStatusGroup = document.getElementById('tk-filter-status').value;
+
+        const filteredData = window.PortalApp.cachedTickets.filter(t => {
+            if (window.PortalApp.deepTargetAssetFilter) {
+                if (t.custom_target_equipment !== window.PortalApp.deepTargetAssetFilter) return false;
+                if (window.PortalApp.deepTargetCompFilter) {
+                    const subjectMatch = t.custom_subject && t.custom_subject.toLowerCase().includes(window.PortalApp.deepTargetCompFilter.toLowerCase());
+                    if (!subjectMatch) return false;
+                }
+                return true; 
+            }
+
+            const matchesBranch = !selectedBranch || t.custom_client_branch === selectedBranch;
+            let matchesStatus = true;
+            const isClosed = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status);
+            if(selectedStatusGroup === 'Open') {
+                matchesStatus = !isClosed;
+            } else if(selectedStatusGroup === 'Closed') {
+                matchesStatus = isClosed;
+            }
+            return matchesBranch && matchesStatus;
+        });
+        window.renderTicketsTable(filteredData);
+    };
+
+    
+
+
+    window.updatePreventiveMaintenanceDashboard = function(equipmentList) {
+        const equipment = Array.isArray(equipmentList) ? equipmentList : [];
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const dated = equipment
+            .filter(eq => eq.custom_next_maintenance_date)
+            .map(eq => {
+                const raw = String(eq.custom_next_maintenance_date).slice(0, 10);
+                const parts = raw.split('-').map(Number);
+                const date = parts.length === 3
+                    ? new Date(parts[0], parts[1] - 1, parts[2])
+                    : new Date(eq.custom_next_maintenance_date);
+                return { eq, date };
+            })
+            .filter(row => !isNaN(row.date.getTime()));
+
+        const upcoming = dated
+            .filter(row => row.date >= today)
+            .sort((a, b) => a.date - b.date);
+
+        const missed = dated
+            .filter(row => row.date < today)
+            .sort((a, b) => a.date - b.date);
+
+        const nextCountEl = document.getElementById('stat-next-pm-count');
+        const nextDateEl = document.getElementById('stat-next-pm-date');
+        const missedCountEl = document.getElementById('stat-missed-pm-count');
+        const missedOldestEl = document.getElementById('stat-missed-pm-oldest');
+
+        if(nextCountEl) nextCountEl.textContent = upcoming.length;
+        if(nextDateEl) {
+            nextDateEl.textContent = upcoming.length
+                ? 'Next due: ' + upcoming[0].date.toLocaleDateString()
+                : 'No upcoming date';
+        }
+
+        if(missedCountEl) missedCountEl.textContent = missed.length;
+        if(missedOldestEl) {
+            if(missed.length) {
+                const days = Math.floor((today - missed[0].date) / 86400000);
+                missedOldestEl.textContent = 'Oldest overdue: ' + days + ' day' + (days === 1 ? '' : 's');
+            } else {
+                missedOldestEl.textContent = 'No missed PM';
+            }
+        }
+    };
+
+
+    window.cpDashboardFillSelect = function(id, items, defaultLabel, selected) {
+        const el = document.getElementById(id);
+        if(!el) return;
+
+        const current = selected != null ? selected : el.value;
+        const escaped = function(v) {
+            return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        };
+
+        el.innerHTML =
+            '<option value="">' + escaped(defaultLabel) + '</option>' +
+            (items || []).map(function(v) {
+                return '<option value="' + escaped(v) + '">' + escaped(v) + '</option>';
+            }).join('');
+
+        el.value = current || '';
+    };
+
+    window.cpDashboardRenderBars = function(id, values) {
+        const el = document.getElementById(id);
+        if(!el) return;
+
+        const rows = Object.entries(values || {});
+        if(!rows.length) {
+            el.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:12px 0;">No data for this period.</div>';
+            return;
+        }
+
+        const max = Math.max.apply(null, rows.map(function(row) { return Number(row[1]) || 0; }).concat([1]));
+
+        el.innerHTML = rows.map(function(row) {
+            const label = String(row[0] || 'Not Set');
+            const value = Number(row[1]) || 0;
+            const pct = Math.max(4, Math.round((value / max) * 100));
+
+            return '' +
+                '<div style="margin-bottom:12px;">' +
+                    '<div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:5px;">' +
+                        '<span style="color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + label.replace(/"/g, '&quot;') + '">' + label + '</span>' +
+                        '<strong style="color:#0f172a;">' + value + '</strong>' +
+                    '</div>' +
+                    '<div style="height:7px;background:#eef2f7;border-radius:999px;overflow:hidden;">' +
+                        '<div style="height:100%;width:' + pct + '%;background:#64748b;border-radius:999px;"></div>' +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    };
+
+    window.cpLoadDashboardKpis = function() {
+        const periodEl = document.getElementById('cp-dashboard-period');
+        const statusEl = document.getElementById('cp-dashboard-status');
+        const typeEl = document.getElementById('cp-dashboard-type');
+        const priorityEl = document.getElementById('cp-dashboard-priority');
+        const branchEl = document.getElementById('cp-dashboard-branch');
+        const clientTypeEl = document.getElementById('cp-dashboard-client-type');
+        const err = document.getElementById('cp-dashboard-kpi-error');
+
+        if(err) {
+            err.style.display = 'none';
+            err.textContent = '';
+        }
+
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_dashboard_data',
+            args: {
+                period: periodEl ? periodEl.value : '30',
+                status: statusEl ? statusEl.value : '',
+                ticket_type: typeEl ? typeEl.value : '',
+                priority: priorityEl ? priorityEl.value : '',
+                branch: branchEl ? branchEl.value : '',
+                client_type: clientTypeEl ? clientTypeEl.value : ''
+            },
+            callback: function(r) {
+                const data = r.message || {};
+                const k = data.kpis || {};
+                const p = data.period || {};
+                const options = data.filter_options || {};
+                const selected = data.filters || {};
+
+                const set = function(id, value) {
+                    const el = document.getElementById(id);
+                    if(el) el.textContent = value == null ? '0' : value;
+                };
+
+                set('cp-kpi-open-tickets', k.active_tickets != null ? k.active_tickets : k.open_tickets);
+                set('cp-kpi-overdue-tickets', k.overdue_tickets);
+                set('cp-kpi-awaiting-client', k.awaiting_client);
+                set('cp-kpi-interventions', k.interventions);
+                set('cp-kpi-planned-jobs', k.planned_jobs);
+                set('cp-kpi-equipment-attention', k.equipment_attention);
+                set('cp-kpi-tickets-period', k.tickets_in_period);
+                set('cp-kpi-equipment-total', k.equipment_total);
+
+                const periodLabel = document.getElementById('cp-kpi-period-label');
+                if(periodLabel) periodLabel.textContent = p.label || 'Selected period';
+
+                window.cpDashboardFillSelect('cp-dashboard-status', options.status, 'All statuses', selected.status);
+                window.cpDashboardFillSelect('cp-dashboard-type', options.ticket_type, 'All types', selected.ticket_type);
+                window.cpDashboardFillSelect('cp-dashboard-priority', options.priority, 'All priorities', selected.priority);
+                window.cpDashboardFillSelect('cp-dashboard-branch', options.branch, 'All branches', selected.branch);
+                window.cpDashboardFillSelect('cp-dashboard-client-type', options.client_type, 'All client types', selected.client_type);
+
+                const branchWrap = document.getElementById('cp-dashboard-branch-wrap');
+                if(branchWrap && (!options.branch || !options.branch.length) && selected.branch) {
+                    branchWrap.style.display = 'none';
+                }
+
+                window.cpDashboardRenderBars('cp-chart-ticket-status', data.ticket_status);
+                window.cpDashboardRenderBars('cp-chart-ticket-priority', data.ticket_priority);
+                window.cpDashboardRenderBars('cp-chart-ticket-type', data.ticket_type);
+            },
+            error: function() {
+                if(err) {
+                    err.textContent = 'Dashboard data could not be loaded.';
+                    err.style.display = 'block';
+                }
+            }
+        });
+    };
+
+
+
+window.loadPortalData = function() {
+        window.cpLoadDashboardKpis();
+        let loadedCount = 0;
+        const totalRequests = 4;
+        
+        // Orchestration barrier checking tool
+        const checkDone = () => {
+            loadedCount++;
+            if(loadedCount === totalRequests) {
+                const alertBox = document.getElementById('portal-status-alert');
+                if(alertBox) alertBox.style.display = 'none';
+                
+                // 🌟 CRITICAL FIX: Ensure tables render ONLY after ALL data arrays are hot in memory!
+                window.renderEquipmentTable(window.PortalApp.cachedEquipment);
+                window.filterTickets();
+            }
+        };
+
+        // 1. Branches API
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_branches',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                const tbody = document.getElementById('table-branches-body');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                const branches = r.message || [];
+                if(branches.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#64748b; padding:30px;">No operating branches found.</td></tr>';
+                }
+                branches.forEach(b => {
+                    tbody.innerHTML += `<tr><td><strong>${b.custom_branch || b.name}</strong></td><td>${b.custom_address || '-'}</td><td><span class="badge badge-info">${b.custom_site_type || 'N/A'}</span></td></tr>`;
+                });
+                checkDone();
+            }
+        });
+
+        // 2. Tickets API (Moved up so it populates ahead of table drawings)
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_tickets',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                window.PortalApp.cachedTickets = r.message || [];
+                
+                const openCount = window.PortalApp.cachedTickets.filter(t => !['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status)).length;
+                const openTicketsEl = document.getElementById('stat-open-tickets');
+                if(openTicketsEl) openTicketsEl.textContent = openCount;
+                
+                const branchFilterSelect = document.getElementById('tk-filter-branch');
+                if(branchFilterSelect) {
+                    branchFilterSelect.innerHTML = '<option value="">All Operating Branches</option>';
+                    const uniqueBranches = [...new Set(window.PortalApp.cachedTickets.map(t => t.custom_client_branch).filter(Boolean))];
+                    uniqueBranches.sort().forEach(b => {
+                        branchFilterSelect.innerHTML += `<option value="${b}">${b}</option>`;
+                    });
+                }
+                checkDone();
+            }
+        });
+
+        // 3. Equipment API
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_equipment',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                console.log("--- RAW SERVER DATA RECEIVED ---", r.message);
+                window.PortalApp.cachedEquipment = r.message || [];
+                const countEl = document.getElementById('stat-equipment-count');
+                if(countEl) countEl.textContent = window.PortalApp.cachedEquipment.length;
+
+                window.updatePreventiveMaintenanceDashboard(window.PortalApp.cachedEquipment);
+                
+                const branchFilterSelect = document.getElementById('eq-filter-branch');
+                if(branchFilterSelect) {
+                    branchFilterSelect.innerHTML = '<option value="">All Operating Branches</option>';
+                    const uniqueBranches = [...new Set(window.PortalApp.cachedEquipment.map(eq => eq.custom_branch).filter(Boolean))];
+                    uniqueBranches.sort().forEach(b => {
+                        branchFilterSelect.innerHTML += `<option value="${b}">${b}</option>`;
+                    });
+                }
+
+                const catFilterSelect = document.getElementById('eq-filter-category');
+                if(catFilterSelect) {
+                    catFilterSelect.innerHTML = '<option value="">All Categories</option>';
+                    const uniqueCats = [...new Set(window.PortalApp.cachedEquipment.map(eq => eq.custom_asset_category).filter(Boolean))];
+                    uniqueCats.sort().forEach(c => {
+                        catFilterSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                    });
+                }
+                checkDone();
+            }
+        });
+
+        // 4. Contracts API
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_contracts',
+            args: { customer: window.PortalApp.customerName },
+            callback: function(r) {
+                const contracts = r.message || [];
+                const activeMcEl = document.getElementById('stat-active-mc');
+                if(activeMcEl) activeMcEl.textContent = contracts.length;
+                
+                const tbody = document.getElementById('table-contracts-body');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                if(contracts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:30px;">No active maintenance agreements found.</td></tr>';
+                }
+                contracts.forEach(c => {
+                    tbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td>${c.custom_contract_title || '-'}</td><td>${c.custom_contract_type || ''}</td><td>${c.custom_end_date || '-'}</td><td><span class="badge badge-success">${c.custom_status}</span></td></tr>`;
+                });
+                checkDone();
+            }
+        });
+    };    
+
+window.toggleEquipmentSubmenu = function(event) {
+        if (event) event.stopPropagation();
+        
+        const submenu = document.getElementById('sidebar-eq-submenu');
+        const indicator = document.getElementById('sidebar-eq-indicator');
+        
+        if (!submenu || !indicator) return;
+
+        if (submenu.style.display === 'none') {
+            submenu.style.display = 'block';
+            indicator.textContent = '−'; // Changes to a minus sign when expanded
+        } else {
+            submenu.style.display = 'none';
+            indicator.textContent = '+'; // Changes back to a plus sign when closed
+        }
+    };
+
+window.toggleReportsSubmenu = function(event) {
+    if (event) event.stopPropagation();
+    
+    const submenu = document.getElementById('sidebar-reports-submenu');
+    const indicator = document.getElementById('sidebar-reports-indicator');
+    
+    if (!submenu || !indicator) return;
+
+    if (submenu.style.display === 'none') {
+        submenu.style.display = 'block';
+        indicator.textContent = '−';
+    } else {
+        submenu.style.display = 'none';
+        indicator.textContent = '+';
+    }
+};
+
+// Toggle Sidebar visibility state flag
+    window.toggleMainSidebar = function(event) {
+        if (event) event.stopPropagation();
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('open');
+        }
+    };
+
+    // Close the sidebar drawer if a client taps anywhere outside on the main dashboard wrapper
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        
+        if (sidebar && sidebar.classList.contains('open')) {
+            if (!sidebar.contains(event.target) && event.target !== toggleBtn) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+
+    // Intercept navigation loops to slide the menu shut automatically when clicking items
+    const originalCpGo = window.cpGo;
+    window.cpGo = function(panelId) {
+        if (typeof originalCpGo === 'function') {
+            originalCpGo(panelId);
+        }
+        // Smoothly retract left menu drawer once tab content targets transition
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('open');
+        }
+    };
+
+
+    // ========================================================
+    // UNIFIED EQUIPMENT / COMPONENT CLIENT WORKSPACE
+    // ========================================================
+    window.PortalApp.equipmentWorkspaceCache = {};
+    window.PortalApp.componentWorkspaceCache = {};
+    window.PortalApp.equipmentWorkspaceTab = initialTab || 'overview';
+    window.PortalApp.componentWorkspaceTab = 'overview';
+    window.PortalApp.currentEquipmentWorkspace = null;
+    window.PortalApp.currentComponentWorkspace = null;
+    window.PortalApp.componentGroupFilter = '';
+
+    window.cpEsc = function(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    };
+
+    window.cpFmtDate = function(value) {
+        if(!value) return '—';
+        const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : window.cpEsc(value);
+    };
+
+    window.cpFmtDateTime = function(value) {
+        if(!value) return '—';
+        return window.cpEsc(String(value).replace('T', ' ').slice(0, 16));
+    };
+
+    window.cpInfoCard = function(label, value) {
+        return `<div class="cp-info-card"><div class="cp-info-label">${window.cpEsc(label)}</div><div class="cp-info-value">${value || '—'}</div></div>`;
+    };
+
+    window.cpEmpty = function(text) {
+        return `<div class="cp-empty-state">${window.cpEsc(text)}</div>`;
+    };
+
+    window.cpPortalDocLink = function(kind, name) {
+        if(!name) return '—';
+        if(kind === 'ticket') return `<a class="cp-log-link" href="/client-portal/ticket?name=${encodeURIComponent(name)}">${window.cpEsc(name)}</a>`;
+        if(kind === 'mi') return `<a class="cp-log-link" href="/client-portal/intervention?name=${encodeURIComponent(name)}">${window.cpEsc(name)}</a>`;
+        return window.cpEsc(name);
+    };
+
+    window.cpOpenTicketForEquipment = function(equipmentName, componentName) {
+        window.openTicketModal(equipmentName || '', componentName || '');
+    };
+
+    // Replace the old expandable-row equipment table with a clean list -> workspace flow.
+    window.renderEquipmentTable = function(assetsList) {
+        const tbody = document.getElementById('table-equipment-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        if(!assetsList || assetsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">No equipment matches these filters.</td></tr>';
+            return;
+        }
+
+        assetsList.forEach(function(eq) {
+            const health = eq.custom_equipment_health || 'Unknown';
+            const healthClass = ['Excellent','Good'].includes(health) ? 'badge-success' : (health === 'Critical' ? 'badge-error' : 'badge-warning');
+            const activeTickets = window.PortalApp.cachedTickets.filter(function(t){
+                return t.custom_target_equipment === eq.name && !['Closed','Cancelled','Resolved'].includes(t.custom_ticket_status);
+            }).length;
+            const ticketTag = activeTickets ? `<span class="badge badge-error" style="margin-left:6px;padding:2px 6px;font-size:10px;">${activeTickets} active</span>` : '';
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr class="asset-row" onclick="window.openEquipmentWorkspace('${window.cpEsc(eq.name)}')">
+                    <td><div class="cp-equipment-name">${window.cpEsc(eq.equipment_display || eq.custom_display_name || eq.custom_asset_name || eq.name)} ${ticketTag}</div>${(eq.equipment_reference || eq.custom_client_asset_code || eq.custom_asset_id) ? `<div class="cp-equipment-id">${window.cpEsc(eq.equipment_reference || eq.custom_client_asset_code || eq.custom_asset_id)}</div>` : ''}</td>
+                    <td><strong>${window.cpEsc(eq.custom_branch || '—')}</strong></td>
+                    <td>${window.cpEsc(eq.custom_asset_category || '—')}</td>
+                    <td>${window.cpEsc(eq.custom_model || '—')}</td>
+                    <td><span class="badge badge-info">${window.cpEsc(eq.custom_asset_status || '—')}</span></td>
+                    <td>${window.cpEsc(eq.custom_operational_status || 'Unknown')}</td>
+                    <td><span class="badge ${healthClass}">${window.cpEsc(health)}</span></td>
+                    <td>${window.cpFmtDate(eq.custom_next_maintenance_date)}</td>
+                    <td onclick="event.stopPropagation()"><a class="cp-row-link" href="#" onclick="window.openEquipmentWorkspace('${window.cpEsc(eq.name)}');return false;">View →</a></td>
+                </tr>`);
+        });
+    };
+
+    window.filterEquipment = function() {
+        if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+            window.cpPopulateEquipmentAdvancedFilters();
+        }
+
+        const value = function(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        };
+
+        const selectedBranch = value('eq-filter-branch');
+        const selectedCategory = value('eq-filter-category');
+        const assetStatus = value('eq-filter-asset-status');
+        const operationalStatus = value('eq-filter-operational-status');
+        const health = value('eq-filter-health');
+        const make = value('eq-filter-make');
+        const model = value('eq-filter-model');
+        const startVal = value('eq-filter-start-date');
+        const endVal = value('eq-filter-end-date');
+
+        const searchEl = document.getElementById('eq-filter-search');
+        const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+        const startDate = startVal
+            ? new Date(startVal).setHours(0,0,0,0)
+            : null;
+
+        const endDate = endVal
+            ? new Date(endVal).setHours(23,59,59,999)
+            : null;
+
+        const attentionOperational = [
+            'Degraded',
+            'Faulty',
+            'Out of Service',
+            'Awaiting Component',
+            'Unknown'
+        ];
+
+        const filtered = (window.PortalApp.cachedEquipment || []).filter(function(eq) {
+            if(selectedBranch && (eq.custom_branch || '') !== selectedBranch) return false;
+            if(selectedCategory && (eq.custom_asset_category || '') !== selectedCategory) return false;
+            if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+            if(operationalStatus && (eq.custom_operational_status || '') !== operationalStatus) return false;
+            if(make && (eq.custom_make || '') !== make) return false;
+            if(model && (eq.custom_model || '') !== model) return false;
+
+            if(health === '__attention__') {
+                const eqHealth = String(eq.custom_equipment_health || '').toLowerCase();
+
+                const needsAttention =
+                    ['warning', 'critical'].includes(eqHealth) ||
+                    attentionOperational.includes(eq.custom_operational_status || '');
+
+                if(!needsAttention) return false;
+
+            } else if(health && (eq.custom_equipment_health || '') !== health) {
+                return false;
+            }
+
+            if(q) {
+                const haystack = [
+                    eq.name,
+                    eq.equipment_display,
+                    eq.custom_asset_name,
+                    eq.custom_display_name,
+                    eq.custom_asset_id,
+                    eq.custom_client_asset_code,
+                    eq.custom_serial_number,
+                    eq.custom_asset_category,
+                    eq.custom_branch,
+                    eq.custom_make,
+                    eq.custom_model,
+                    eq.custom_asset_status,
+                    eq.custom_operational_status,
+                    eq.custom_equipment_health
+                ].filter(Boolean).join(' ').toLowerCase();
+
+                if(!haystack.includes(q)) return false;
+            }
+
+            if(startDate || endDate) {
+                if(!eq.custom_next_maintenance_date) return false;
+
+                const maintenanceTime =
+                    new Date(eq.custom_next_maintenance_date).getTime();
+
+                if(startDate && maintenanceTime < startDate) return false;
+                if(endDate && maintenanceTime > endDate) return false;
+            }
+
+            return true;
+        });
+
+        window.renderEquipmentTable(filtered);
+    };
+
+    window.clearEquipmentDateFilters = function() {
+        const a=document.getElementById('eq-filter-start-date'), b=document.getElementById('eq-filter-end-date');
+        if(a) a.value=''; if(b) b.value=''; window.filterEquipment();
+    };
+
+    window.openEquipmentWorkspace = function(equipmentName, initialTab) {
+        window.PortalApp.currentEquipmentWorkspace = equipmentName;
+        window.PortalApp.currentComponentWorkspace = null;
+        window.PortalApp.equipmentWorkspaceTab = 'overview';
+        window.PortalApp.componentGroupFilter = '';
+        const list = document.getElementById('equipment-list-view');
+        const detail = document.getElementById('equipment-detail-view');
+        if(list) list.style.display='none';
+        if(detail) { detail.style.display='block'; detail.innerHTML='<div class="cp-workspace-loading">Loading equipment record…</div>'; }
+        window.cpGo('equipment');
+
+        const cached = window.PortalApp.equipmentWorkspaceCache[equipmentName];
+        if(cached) { window.renderEquipmentWorkspace(cached); return; }
+
+        frappe.call({
+            method:'maintenance_app.api.client_portal_get_equipment_workspace',
+            args:{equipment_name:equipmentName},
+            callback:function(r){
+                if(!r.message) return;
+                window.PortalApp.equipmentWorkspaceCache[equipmentName]=r.message;
+                window.renderEquipmentWorkspace(r.message);
+            },
+            error:function(){ if(detail) detail.innerHTML=window.cpEmpty('Could not load this equipment record.'); }
+        });
+    };
+
+    window.closeEquipmentWorkspace = function() {
+        const list=document.getElementById('equipment-list-view'), detail=document.getElementById('equipment-detail-view');
+        if(detail) detail.style.display='none'; if(list) list.style.display='block';
+        window.PortalApp.currentEquipmentWorkspace=null; window.PortalApp.currentComponentWorkspace=null;
+    };
+
+    window.setEquipmentWorkspaceTab = function(tab) {
+        window.PortalApp.equipmentWorkspaceTab=tab;
+        const data=window.PortalApp.equipmentWorkspaceCache[window.PortalApp.currentEquipmentWorkspace];
+        if(data) window.renderEquipmentWorkspace(data);
+    };
+
+    window.renderEquipmentWorkspace = function(data) {
+        const root=document.getElementById('equipment-detail-view'); if(!root) return;
+        const eq=data.equipment || {}, logs=data.logs || {}, comps=logs.components || [], tickets=data.tickets || [];
+        const title=eq.custom_display_name || eq.custom_asset_name || eq.name;
+        const meta=[eq.custom_make && eq.custom_model ? `${eq.custom_make} ${eq.custom_model}` : (eq.custom_model || eq.custom_make), eq.custom_asset_id ? `S/N ${eq.custom_asset_id}` : '', eq.custom_client_asset_code ? `Tag ${eq.custom_client_asset_code}` : ''].filter(Boolean);
+        const tabs=[
+            ['overview','Overview',null],['components','Components',comps.length],['service','Service History',(logs.service||[]).length],
+            ['lifecycle','Lifecycle',(logs.lifecycle||[]).length],['config','Configuration',(logs.config||[]).length],['tickets','Tickets',tickets.length]
+        ];
+        let html=`<button class="cp-ws-back" onclick="window.closeEquipmentWorkspace()">← Back to Equipment</button>
+            <section class="cp-ws-hero"><div><div class="cp-eyebrow">Installed Equipment</div><div class="cp-ws-title-row"><div class="cp-ws-title">${window.cpEsc(title)}</div><span class="badge badge-info">${window.cpEsc(eq.custom_asset_status || '—')}</span></div>
+            <div class="cp-ws-context">${window.cpEsc([data.customer_display, data.branch_display || eq.custom_branch, eq.custom_asset_category].filter(Boolean).join(' · '))}</div><div class="cp-ws-meta">${meta.map(x=>`<span>${window.cpEsc(x)}</span>`).join('')}</div></div>
+            <div class="cp-ws-actions"><button class="btn-primary" onclick="window.cpOpenTicketForEquipment('${window.cpEsc(eq.name)}')">+ Raise Ticket</button></div></section>`;
+        html+='<div class="cp-tabs">'+tabs.map(function(t){return `<button class="cp-tab-btn ${window.PortalApp.equipmentWorkspaceTab===t[0]?'active':''}" onclick="window.setEquipmentWorkspaceTab('${t[0]}')">${t[1]}${t[2]!==null?` <span class="cp-tab-count">${t[2]}</span>`:''}</button>`;}).join('')+'</div>';
+        html+=`<section class="cp-tab-panel">${window.buildEquipmentWorkspaceTab(data)}</section>`;
+        root.innerHTML=html;
+    };
+
+    window.buildEquipmentWorkspaceTab = function(data) {
+        const eq=data.equipment||{}, logs=data.logs||{}, tab=window.PortalApp.equipmentWorkspaceTab;
+        if(tab==='overview') return `<div class="cp-panel-title">Equipment Overview</div><div class="cp-info-grid">
+            ${window.cpInfoCard('Equipment ID',window.cpEsc(eq.name))}${window.cpInfoCard('Status',window.cpEsc(eq.custom_asset_status||'—'))}${window.cpInfoCard('Operational Status',window.cpEsc(eq.custom_operational_status||'—'))}
+            ${window.cpInfoCard('Health',window.cpEsc(eq.custom_equipment_health||'—'))}${window.cpInfoCard('Make',window.cpEsc(eq.custom_make||'—'))}${window.cpInfoCard('Model',window.cpEsc(eq.custom_model||'—'))}
+            ${window.cpInfoCard('Serial Number',window.cpEsc(eq.custom_asset_id||'—'))}${window.cpInfoCard('Client Asset Code',window.cpEsc(eq.custom_client_asset_code||'—'))}${window.cpInfoCard('Ownership',window.cpEsc(eq.custom_ownership||'—'))}
+            ${window.cpInfoCard('Installed Date',window.cpFmtDate(eq.custom_installed_date))}${window.cpInfoCard('Commissioned Date',window.cpFmtDate(eq.custom_commissioned_date))}${window.cpInfoCard('Last Service',window.cpFmtDate(eq.custom_last_service_date))}
+            ${window.cpInfoCard('Next Maintenance',window.cpFmtDate(eq.custom_next_maintenance_date))}${window.cpInfoCard('Maintenance Frequency',window.cpEsc(eq.custom_maint_frequency||'—'))}${window.cpInfoCard('Coverage',window.cpEsc(eq.custom_coverage_type||'—'))}
+        </div>`;
+        if(tab==='components') return window.buildEquipmentComponents(data);
+        if(tab==='service') return window.buildEquipmentLogTable(logs.service||[],'service');
+        if(tab==='lifecycle') return window.buildEquipmentLogTable(logs.lifecycle||[],'lifecycle');
+        if(tab==='config') return window.buildEquipmentLogTable(logs.config||[],'config');
+        if(tab==='tickets') return window.buildEquipmentTickets(data.tickets||[]);
+        return '';
+    };
+
+    window.setComponentGroupFilter = function(value) {
+        window.PortalApp.componentGroupFilter = value || '';
+        const data=window.PortalApp.equipmentWorkspaceCache[window.PortalApp.currentEquipmentWorkspace];
+        if(data) window.renderEquipmentWorkspace(data);
+    };
+
+    window.buildEquipmentComponents = function(data) {
+        const comps=(data.logs&&data.logs.components)||[];
+        if(!comps.length) return window.cpEmpty('No components are currently registered on this equipment.');
+
+        const groups=[...new Set(comps.map(c => c.custom_component_group||c.custom_item_group||'Unclassified'))]
+            .filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b)));
+        const selected=window.PortalApp.componentGroupFilter||'';
+        const filtered=selected ? comps.filter(c => (c.custom_component_group||c.custom_item_group||'Unclassified')===selected) : comps;
+
+        const filterHtml=`<div class="cp-filter-bar cp-component-filter-bar">
+            <label class="cp-filter-field"><span>Component Group</span>
+                <select id="component-group-filter" onchange="window.setComponentGroupFilter(this.value)">
+                    <option value="">All Component Groups (${comps.length})</option>
+                    ${groups.map(g=>{
+                        const count=comps.filter(c => (c.custom_component_group||c.custom_item_group||'Unclassified')===g).length;
+                        return `<option value="${window.cpEsc(g)}" ${selected===g?'selected':''}>${window.cpEsc(g)} (${count})</option>`;
+                    }).join('')}
+                </select>
+            </label>
+            <div class="cp-component-filter-summary">Showing <strong>${filtered.length}</strong> of ${comps.length} components</div>
+        </div>`;
+
+        const rows=filtered.map(c=>{
+            const id=c.custom_equipment_component||c.equipment_component||c.component_id||c.custom_component_id||c.custom_component||c.name||'';
+            const title=c.custom_display_name||c.custom_equipment_type||c.custom_component_item||id||'Component';
+            return `<tr>
+                <td><a class="cp-component-main-link" href="#" onclick="window.openComponentWorkspace('${window.cpEsc(id)}');return false;">${window.cpEsc(title)}</a><div class="cp-component-code">${window.cpEsc(id)}</div></td>
+                <td>${window.cpEsc(c.custom_component_group||c.custom_item_group||'—')}</td>
+                <td>${window.cpEsc(c.custom_serial_number||'—')}</td>
+                <td>${window.cpEsc(c.custom_brand||c.custom_make||'—')}</td>
+                <td>${window.cpEsc(c.custom_model||'—')}</td>
+                <td><span class="badge badge-success">${window.cpEsc(c.custom_status||'Installed')}</span></td>
+                <td class="cp-table-action"><button class="cp-small-action" onclick="window.cpOpenTicketForEquipment('${window.cpEsc(data.equipment.name)}','${window.cpEsc(id)}')">Ticket</button></td>
+            </tr>`;
+        }).join('');
+
+        const table=filtered.length ? `<div class="cp-log-table cp-component-table"><table><thead><tr>
+            <th>Component</th><th>Group</th><th>Serial</th><th>Brand</th><th>Model</th><th>Status</th><th></th>
+        </tr></thead><tbody>${rows}</tbody></table></div>` : window.cpEmpty('No components match this component group.');
+
+        return `<div class="cp-panel-title">Installed Components</div>${filterHtml}${table}`;
+    };
+
+    window.buildEquipmentLogTable = function(rows,type) {
+        if(!rows.length) return window.cpEmpty(`No ${type === 'config' ? 'configuration changes' : type + ' history'} found.`);
+        let head='', body='';
+        if(type==='service') {
+            head='<th>Date</th><th>Type</th><th>Technician</th><th>Outcome</th><th>Notes</th><th>Service Log</th><th>Report</th>';
+            body=rows.map(x=>`<tr><td>${window.cpFmtDateTime(x.custom_end_time||x.creation)}</td><td>${window.cpEsc(x.custom_intervention_type||'Service')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpEsc(x.custom_work_outcome||'—')}</td><td>${window.cpEsc(x.custom_notes||'—')}</td><td>${window.cpPortalLogReportLink('service',x.name)}</td><td>${window.cpPortalDocLink('mi',x.custom_intervention_ref)}</td></tr>`).join('');
+        } else if(type==='lifecycle') {
+            head='<th>Date</th><th>Event</th><th>Technician</th><th>Action / Notes</th><th>Lifecycle Log</th>';
+            body=rows.map(x=>`<tr><td>${window.cpFmtDate(x.custom_date||x.creation)}</td><td>${window.cpEsc(x.custom_event||'Lifecycle')}</td><td>${window.cpEsc(x.custom_technician||'—')}</td><td>${window.cpEsc(x.custom_action_taken||'—')}</td><td>${window.cpPortalLogReportLink('lifecycle',x.name)}</td></tr>`).join('');
+        } else {
+            head='<th>Date</th><th>Parameter</th><th>Previous</th><th>New</th><th>Technician</th><th>Config Log</th>';
+            body=rows.map(x=>`<tr><td>${window.cpFmtDateTime(x.custom_config_datetime||x.custom_datetime||x.creation)}</td><td>${window.cpEsc(x.custom_parameter||'—')}</td><td>${window.cpEsc(x.custom_current_value||'—')}</td><td>${window.cpEsc(x.custom_new_value||'—')}</td><td>${window.cpEsc(x.technician_display||x.custom_technician||'—')}</td><td>${window.cpPortalConfigLogLink(x.name)}</td></tr>`).join('');
+        }
+        return `<div class="cp-log-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    };
+
+    window.PortalApp.equipmentTicketFilters = window.PortalApp.equipmentTicketFilters || {from:'',to:'',type:'',status:''};
+
+    window.updateEquipmentTicketFilter = function(field, value) {
+        window.PortalApp.equipmentTicketFilters[field]=value||'';
+        const data=window.PortalApp.equipmentWorkspaceCache[window.PortalApp.currentEquipmentWorkspace];
+        if(data) window.renderEquipmentWorkspace(data);
+    };
+
+    window.clearEquipmentTicketFilters = function() {
+        window.PortalApp.equipmentTicketFilters={from:'',to:'',type:'',status:''};
+        const data=window.PortalApp.equipmentWorkspaceCache[window.PortalApp.currentEquipmentWorkspace];
+        if(data) window.renderEquipmentWorkspace(data);
+    };
+
+    window.buildEquipmentTickets = function(rows) {
+        if(!rows.length) return window.cpEmpty('No Service Tickets are linked to this equipment.');
+
+        const f=window.PortalApp.equipmentTicketFilters||{from:'',to:'',type:'',status:''};
+        const types=[...new Set(rows.map(x=>x.custom_ticket_type||x.custom_request_type).filter(Boolean))].sort();
+        const statuses=[...new Set(rows.map(x=>x.custom_ticket_status).filter(Boolean))].sort();
+
+        const filtered=rows.filter(x=>{
+            const d=String(x.custom_opening_date||x.creation||'').slice(0,10);
+            if(f.from && d && d<f.from) return false;
+            if(f.to && d && d>f.to) return false;
+            if(f.type && (x.custom_ticket_type||x.custom_request_type||'')!==f.type) return false;
+            if(f.status && (x.custom_ticket_status||'')!==f.status) return false;
+            return true;
+        });
+
+        const filterBar=`<div class="cp-ticket-filter-row">
+            <label><span>From</span><input type="date" value="${window.cpEsc(f.from)}" onchange="window.updateEquipmentTicketFilter('from',this.value)"></label>
+            <label><span>To</span><input type="date" value="${window.cpEsc(f.to)}" onchange="window.updateEquipmentTicketFilter('to',this.value)"></label>
+            <label><span>Ticket Type</span><select onchange="window.updateEquipmentTicketFilter('type',this.value)"><option value="">All Types</option>${types.map(v=>`<option value="${window.cpEsc(v)}" ${v===f.type?'selected':''}>${window.cpEsc(v)}</option>`).join('')}</select></label>
+            <label><span>Status</span><select onchange="window.updateEquipmentTicketFilter('status',this.value)"><option value="">All Statuses</option>${statuses.map(v=>`<option value="${window.cpEsc(v)}" ${v===f.status?'selected':''}>${window.cpEsc(v)}</option>`).join('')}</select></label>
+            <button class="cp-filter-clear" onclick="window.clearEquipmentTicketFilters()">Clear</button>
+        </div>`;
+
+        const data=window.PortalApp.equipmentWorkspaceCache[window.PortalApp.currentEquipmentWorkspace]||{};
+        const eq=data.equipment||{};
+        const eqLabel=eq.custom_display_name||eq.custom_asset_name||eq.name||'Equipment';
+
+        const table=filtered.length ? `<div class="cp-log-table"><table><thead><tr><th>Subject</th><th>Date</th><th>Component / Equipment</th><th>Status</th><th>Ticket Type</th><th></th></tr></thead><tbody>${filtered.map(x=>{
+            const target=x.custom_target_component_name || eqLabel;
+            const typeLabel=x.custom_ticket_type||x.custom_request_type||'—';
+            return `<tr>
+                <td><strong>${window.cpEsc(x.custom_subject||'Service Request')}</strong><div class="cp-ticket-code">${window.cpEsc(x.name)}</div></td>
+                <td>${window.cpFmtDate(x.custom_opening_date||x.creation)}</td>
+                <td>${window.cpEsc(target||'—')}</td>
+                <td><span class="badge ${['Closed','Resolved','Cancelled'].includes(x.custom_ticket_status)?'badge-success':'badge-warning'}">${window.cpEsc(x.custom_ticket_status||'—')}</span></td>
+                <td>${window.cpEsc(typeLabel)}</td>
+                <td class="cp-table-action"><a class="cp-small-action cp-small-link" href="/client-portal/ticket?name=${encodeURIComponent(x.name)}">View</a></td>
+            </tr>`;
+        }).join('')}</tbody></table></div>` : window.cpEmpty('No tickets match these filters.');
+
+        return `${filterBar}${table}`;
+    };
+
+    window.openComponentWorkspace = function(componentName) {
+        if(!componentName) return;
+        window.PortalApp.currentComponentWorkspace=componentName;
+        window.PortalApp.componentWorkspaceTab='overview';
+        const root=document.getElementById('equipment-detail-view');
+        if(root) root.innerHTML='<div class="cp-workspace-loading">Loading component record…</div>';
+        const cached=window.PortalApp.componentWorkspaceCache[componentName];
+        if(cached) { window.renderComponentWorkspace(cached); return; }
+        frappe.call({method:'maintenance_app.api.client_portal_get_component_workspace',args:{component_name:componentName},callback:function(r){if(r.message){window.PortalApp.componentWorkspaceCache[componentName]=r.message;window.renderComponentWorkspace(r.message);}},error:function(){if(root) root.innerHTML=window.cpEmpty('Could not load this component record.');}});
+    };
+
+    window.setComponentWorkspaceTab = function(tab) {
+        window.PortalApp.componentWorkspaceTab=tab;
+        const data=window.PortalApp.componentWorkspaceCache[window.PortalApp.currentComponentWorkspace];
+        if(data) window.renderComponentWorkspace(data);
+    };
+
+    window.renderComponentWorkspace = function(data) {
+        const root=document.getElementById('equipment-detail-view'); if(!root) return;
+        const c=data.component||{}, ctx=data.context||{}, eq=ctx.equipment||{};
+        const tabs=[['overview','Overview'],['service','Service History'],['lifecycle','Lifecycle'],['config','Configuration'],['tickets','Tickets']];
+        let html=`<button class="cp-ws-back" onclick="window.openEquipmentWorkspace('${window.cpEsc(c.custom_parent_equipment||window.PortalApp.currentEquipmentWorkspace)}')">← Back to Equipment</button>
+            <section class="cp-ws-hero"><div><div class="cp-eyebrow">Equipment Component</div><div class="cp-ws-title-row"><div class="cp-ws-title">${window.cpEsc(c.custom_display_name||c.custom_equipment_type||c.name)}</div><span class="badge badge-info">${window.cpEsc(c.custom_status||'—')}</span></div>
+            <div class="cp-ws-context">${window.cpEsc([ctx.customer_display,ctx.branch_display,c.custom_component_group].filter(Boolean).join(' · '))}</div><div class="cp-ws-meta"><span>${window.cpEsc(c.name)}</span>${c.custom_serial_number?`<span>S/N ${window.cpEsc(c.custom_serial_number)}</span>`:''}</div></div>
+            <div class="cp-ws-actions"><button class="btn-primary" onclick="window.cpOpenTicketForEquipment('${window.cpEsc(c.custom_parent_equipment||'')}','${window.cpEsc(c.name||'')}')">+ Raise Ticket</button></div></section>
+            <div class="cp-parent-strip"><div><small>Parent Equipment</small><strong>${window.cpEsc(eq.custom_display_name||eq.custom_asset_name||c.custom_parent_equipment||'—')}</strong></div><a href="#" class="cp-row-link" onclick="window.openEquipmentWorkspace('${window.cpEsc(c.custom_parent_equipment||'')}');return false;">View Equipment →</a></div>`;
+        html+='<div class="cp-tabs">'+tabs.map(t=>`<button class="cp-tab-btn ${window.PortalApp.componentWorkspaceTab===t[0]?'active':''}" onclick="window.setComponentWorkspaceTab('${t[0]}')">${t[1]}</button>`).join('')+'</div>';
+        html+=`<section class="cp-tab-panel">${window.buildComponentWorkspaceTab(data)}</section>`; root.innerHTML=html;
+    };
+
+    window.buildComponentWorkspaceTab = function(data) {
+        const c=data.component||{}, tab=window.PortalApp.componentWorkspaceTab;
+        if(tab==='overview') return `<div class="cp-panel-title">Component Overview</div><div class="cp-info-grid">${window.cpInfoCard('Component ID',window.cpEsc(c.name))}${window.cpInfoCard('Group',window.cpEsc(c.custom_component_group||'—'))}${window.cpInfoCard('Type',window.cpEsc(c.custom_equipment_type||'—'))}${window.cpInfoCard('Make',window.cpEsc(c.custom_make||'—'))}${window.cpInfoCard('Model',window.cpEsc(c.custom_model||'—'))}${window.cpInfoCard('Serial Number',window.cpEsc(c.custom_serial_number||'—'))}${window.cpInfoCard('Part Number',window.cpEsc(c.custom_part_number||'—'))}${window.cpInfoCard('Installation Date',window.cpFmtDate(c.custom_installation_date))}${window.cpInfoCard('Commissioned Date',window.cpFmtDate(c.custom_commissioned_date))}${window.cpInfoCard('Calibration Due',window.cpFmtDate(c.custom_next_calibration_date))}</div>`;
+        if(tab==='service') return window.buildEquipmentLogTable(data.service||[],'service');
+        if(tab==='lifecycle') return window.buildEquipmentLogTable(data.lifecycle||[],'lifecycle');
+        if(tab==='config') return window.buildEquipmentLogTable(data.config||[],'config');
+        if(tab==='tickets') return window.buildEquipmentTickets(data.tickets||[]);
+        return '';
+    };
+
+
+    window.cpTicketAdvancedFiltersV1 = true;
+
+    window.cpPopulateTicketAdvancedFilters = function() {
+        const tickets = window.PortalApp.cachedTickets || [];
+
+        const fill = function(id, values, label) {
+            const el = document.getElementById(id);
+            if(!el) return;
+
+            const current = el.value || '';
+            const unique = Array.from(new Set(values.filter(Boolean))).sort();
+
+            el.innerHTML = '<option value="">' + label + '</option>';
+
+            unique.forEach(function(v) {
+                el.innerHTML +=
+                    '<option value="' + window.cpEsc(v) + '">' +
+                    window.cpEsc(v) +
+                    '</option>';
+            });
+
+            el.value = current;
+        };
+
+        fill(
+            'tk-filter-type',
+            tickets.map(function(t) {
+                return t.custom_ticket_type || t.custom_request_type || '';
+            }),
+            'All Ticket Types'
+        );
+
+        fill(
+            'tk-filter-priority',
+            tickets.map(function(t) {
+                return t.custom_priority || '';
+            }),
+            'All Priorities'
+        );
+
+        fill(
+            'tk-filter-hold',
+            tickets.map(function(t) {
+                return t.custom_hold_reason || '';
+            }),
+            'All Hold Reasons'
+        );
+    };
+
+    window.filterTickets = function() {
+        window.cpPopulateTicketAdvancedFilters();
+
+        const branchEl = document.getElementById('tk-filter-branch');
+        const statusEl = document.getElementById('tk-filter-status');
+        const typeEl = document.getElementById('tk-filter-type');
+        const priorityEl = document.getElementById('tk-filter-priority');
+        const holdEl = document.getElementById('tk-filter-hold');
+        const fromEl = document.getElementById('tk-filter-date-from');
+        const toEl = document.getElementById('tk-filter-date-to');
+
+        const branch = branchEl ? branchEl.value : '';
+        const status = statusEl ? statusEl.value : '';
+        const type = typeEl ? typeEl.value : '';
+        const priority = priorityEl ? priorityEl.value : '';
+        const hold = holdEl ? holdEl.value : '';
+        const dateFrom = fromEl ? fromEl.value : '';
+        const dateTo = toEl ? toEl.value : '';
+
+        const terminal = ['Resolved', 'Closed', 'Cancelled'];
+
+        const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+            const ticketStatus = t.custom_ticket_status || '';
+            const ticketType = t.custom_ticket_type || t.custom_request_type || '';
+            const openedRaw = t.custom_opening_date || t.creation || '';
+            const openedDate = openedRaw ? String(openedRaw).slice(0, 10) : '';
+
+            if(branch && (t.custom_client_branch || '') !== branch) return false;
+
+            if(status === '__active__') {
+                if(terminal.includes(ticketStatus)) return false;
+            } else if(status && ticketStatus !== status) {
+                return false;
+            }
+
+            if(type && ticketType !== type) return false;
+            if(priority && (t.custom_priority || '') !== priority) return false;
+            if(hold && (t.custom_hold_reason || '') !== hold) return false;
+            if(dateFrom && (!openedDate || openedDate < dateFrom)) return false;
+            if(dateTo && (!openedDate || openedDate > dateTo)) return false;
+
+            if(window.PortalApp.deepTargetAssetFilter) {
+                if((t.custom_target_equipment || '') !== window.PortalApp.deepTargetAssetFilter) {
+                    return false;
+                }
+            }
+
+            if(window.PortalApp.deepTargetCompFilter) {
+                const targetComp =
+                    t.custom_target_component_name ||
+                    t.custom_equipment_component ||
+                    t.custom_target_component ||
+                    '';
+
+                if(targetComp !== window.PortalApp.deepTargetCompFilter) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        window.renderTicketsTable(filtered);
+    };
+
+    window.cpActivateTicketsPanel = function() {
+        try {
+            if(typeof window.cpGo === 'function') {
+                window.cpGo('tickets');
+            }
+        } catch(e) {
+            console.warn('cpGo tickets failed:', e);
+        }
+
+        document.querySelectorAll('.view-panel').forEach(function(panel) {
+            panel.classList.remove('active');
+        });
+
+        const ticketsPanel = document.getElementById('panel-tickets');
+        if(ticketsPanel) {
+            ticketsPanel.classList.add('active');
+        }
+
+        document.querySelectorAll('.menu-item').forEach(function(item) {
+            item.classList.remove('active');
+        });
+
+        const ticketsMenu = document.getElementById('menu-tickets');
+        if(ticketsMenu) {
+            ticketsMenu.classList.add('active');
+        }
+
+        if(ticketsPanel) {
+            ticketsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    window.cpOpenTicketFilter = function(kind) {
+        window.cpActivateTicketsPanel();
+        window.cpPopulateTicketAdvancedFilters();
+
+        const statusEl = document.getElementById('tk-filter-status');
+        const typeEl = document.getElementById('tk-filter-type');
+        const priorityEl = document.getElementById('tk-filter-priority');
+        const holdEl = document.getElementById('tk-filter-hold');
+        const fromEl = document.getElementById('tk-filter-date-from');
+        const toEl = document.getElementById('tk-filter-date-to');
+
+        if(statusEl) statusEl.value = '';
+        if(typeEl) typeEl.value = '';
+        if(priorityEl) priorityEl.value = '';
+        if(holdEl) holdEl.value = '';
+        if(fromEl) fromEl.value = '';
+        if(toEl) toEl.value = '';
+
+        window.PortalApp.deepTargetAssetFilter = null;
+        window.PortalApp.deepTargetCompFilter = null;
+
+        if(kind === 'active') {
+            if(statusEl) statusEl.value = '__active__';
+            window.filterTickets();
+            return;
+        }
+
+        if(kind === 'awaiting_client') {
+            if(statusEl) statusEl.value = 'On Hold';
+            if(holdEl) holdEl.value = 'Waiting for Client';
+            window.filterTickets();
+            return;
+        }
+
+        if(kind === 'overdue') {
+            const now = new Date();
+
+            const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+                const status = t.custom_ticket_status || '';
+                if(['Resolved', 'Closed', 'Cancelled'].includes(status)) return false;
+                if(!t.custom_resolution_due) return false;
+                return new Date(t.custom_resolution_due) < now;
+            });
+
+            window.renderTicketsTable(filtered);
+            return;
+        }
+
+        window.filterTickets();
+    };
+
+
+    window.cpApplyTicketFilterFromUrlV2 = true;
+
+    window.cpApplyTicketFilterFromUrl = function() {
+        const params = new URLSearchParams(window.location.search);
+        const kind = params.get('ticket_filter');
+        if(!kind) return true;
+
+        if(!window.PortalApp || !Array.isArray(window.PortalApp.cachedTickets)) {
+            return false;
+        }
+
+        if(typeof window.cpGo === 'function') window.cpGo('tickets');
+        if(typeof window.cpPopulateTicketAdvancedFilters === 'function') {
+            window.cpPopulateTicketAdvancedFilters();
+        }
+
+        const statusEl = document.getElementById('tk-filter-status');
+        const holdEl = document.getElementById('tk-filter-hold');
+        const typeEl = document.getElementById('tk-filter-type');
+        const priorityEl = document.getElementById('tk-filter-priority');
+        const fromEl = document.getElementById('tk-filter-date-from');
+        const toEl = document.getElementById('tk-filter-date-to');
+
+        if(statusEl) statusEl.value = '';
+        if(holdEl) holdEl.value = '';
+        if(typeEl) typeEl.value = '';
+        if(priorityEl) priorityEl.value = '';
+        if(fromEl) fromEl.value = '';
+        if(toEl) toEl.value = '';
+
+        window.PortalApp.deepTargetAssetFilter = null;
+        window.PortalApp.deepTargetCompFilter = null;
+
+        if(kind === 'active') {
+            if(statusEl) statusEl.value = '__active__';
+            window.filterTickets();
+            return true;
+        }
+
+        if(kind === 'awaiting_client') {
+            if(statusEl) statusEl.value = 'On Hold';
+            if(holdEl) holdEl.value = 'Waiting for Client';
+            window.filterTickets();
+            return true;
+        }
+
+        if(kind === 'overdue') {
+            const now = new Date();
+            const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+                const status = t.custom_ticket_status || '';
+                if(['Resolved', 'Closed', 'Cancelled'].includes(status)) return false;
+                if(!t.custom_resolution_due) return false;
+                return new Date(t.custom_resolution_due) < now;
+            });
+            window.renderTicketsTable(filtered);
+            return true;
+        }
+
+        window.filterTickets();
+        return true;
+    };
+
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if(!params.get('ticket_filter')) return;
+
+        let attempts = 0;
+        const timer = setInterval(function() {
+            attempts += 1;
+            if(window.cpApplyTicketFilterFromUrl()) {
+                clearInterval(timer);
+                return;
+            }
+            if(attempts >= 50) clearInterval(timer);
+        }, 100);
+    })();
+
+
+    window.cpEquipmentAdvancedFiltersV1 = true;
+
+    window.cpPopulateEquipmentAdvancedFilters = function() {
+        const rows = window.PortalApp.cachedEquipment || [];
+
+        const fill = function(id, values, label, special) {
+            const el = document.getElementById(id);
+            if(!el) return;
+
+            const current = el.value || '';
+            const specials = special
+                ? Array.from(el.options)
+                    .filter(o => String(o.value || '').startsWith('__'))
+                    .map(o => ({value:o.value, text:o.textContent}))
+                : [];
+
+            const unique = Array.from(new Set(values.filter(Boolean))).sort();
+
+            el.innerHTML = '<option value="">' + label + '</option>';
+
+            specials.forEach(o => {
+                el.innerHTML += '<option value="' + window.cpEsc(o.value) + '">' + window.cpEsc(o.text) + '</option>';
+            });
+
+            unique.forEach(v => {
+                el.innerHTML += '<option value="' + window.cpEsc(v) + '">' + window.cpEsc(v) + '</option>';
+            });
+
+            el.value = current;
+        };
+
+        fill('eq-filter-asset-status', rows.map(x => x.custom_asset_status || ''), 'All Asset Statuses');
+        fill('eq-filter-make', rows.map(x => x.custom_make || ''), 'All Brands');
+        fill('eq-filter-model', rows.map(x => x.custom_model || ''), 'All Models');
+    };
+
+    window.clearEquipmentFilters = function() {
+        [
+            'eq-filter-branch',
+            'eq-filter-category',
+            'eq-filter-asset-status',
+            'eq-filter-operational-status',
+            'eq-filter-health',
+            'eq-filter-make',
+            'eq-filter-model',
+            'eq-filter-start-date',
+            'eq-filter-end-date'
+        ].forEach(function(id) {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+
+        const search = document.getElementById('eq-filter-search');
+        if(search) search.value = '';
+
+        window.filterEquipment();
+    };
+
+    window.cpApplyEquipmentFilterFromUrl = function() {
+        const kind = new URLSearchParams(window.location.search).get('equipment_filter');
+        if(!kind) return;
+
+        if(typeof window.cpGo === 'function') {
+            window.cpGo('equipment');
+        }
+
+        if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+            window.cpPopulateEquipmentAdvancedFilters();
+        }
+
+        [
+            'eq-filter-branch',
+            'eq-filter-category',
+            'eq-filter-asset-status',
+            'eq-filter-operational-status',
+            'eq-filter-make',
+            'eq-filter-model',
+            'eq-filter-start-date',
+            'eq-filter-end-date'
+        ].forEach(function(id) {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+
+        const search = document.getElementById('eq-filter-search');
+        if(search) search.value = '';
+
+        const health = document.getElementById('eq-filter-health');
+        if(health) {
+            health.value = kind === 'attention' ? '__attention__' : '';
+        }
+
+        window.filterEquipment();
+    };
+
+    window.cpEquipmentMatchesAdvancedFilters = function(eq) {
+        const get = id => {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        };
+
+        const assetStatus = get('eq-filter-asset-status');
+        const operationalStatus = get('eq-filter-operational-status');
+        const health = get('eq-filter-health');
+        const make = get('eq-filter-make');
+        const model = get('eq-filter-model');
+
+        if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+        if(operationalStatus && (eq.custom_operational_status || '') !== operationalStatus) return false;
+        if(make && (eq.custom_make || '') !== make) return false;
+        if(model && (eq.custom_model || '') !== model) return false;
+
+        if(health === '__attention__') {
+            const h = (eq.custom_equipment_health || '').toLowerCase();
+            const attention =
+                ['warning','critical'].includes(h) ||
+                ['Degraded','Faulty','Out of Service','Awaiting Component','Unknown'].includes(eq.custom_operational_status || '');
+
+            if(!attention) return false;
+        } else if(health && (eq.custom_equipment_health || '') !== health) {
+            return false;
+        }
+
+        return true;
+    };
+
+    
+
+
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if(!params.get('equipment_filter')) return;
+
+        let attempts = 0;
+        const timer = setInterval(function() {
+            attempts += 1;
+
+            if(
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedEquipment) &&
+                document.getElementById('eq-filter-health') &&
+                typeof window.filterEquipment === 'function'
+            ) {
+                clearInterval(timer);
+                window.cpApplyEquipmentFilterFromUrl();
+                return;
+            }
+
+            if(attempts >= 50) clearInterval(timer);
+        }, 100);
+    })();
+
+
+    window.cpEquipmentAttentionHealthOnlyV1 = true;
+
+    window.filterEquipment = function() {
+        const value = function(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        };
+
+        const branch = value('eq-filter-branch');
+        const category = value('eq-filter-category');
+        const assetStatus = value('eq-filter-asset-status');
+        const condition = value('eq-filter-operational-status');
+        const health = value('eq-filter-health');
+        const attention = value('eq-filter-attention');
+        const brand = value('eq-filter-make');
+        const model = value('eq-filter-model');
+        const startVal = value('eq-filter-start-date');
+        const endVal = value('eq-filter-end-date');
+        const searchEl = document.getElementById('eq-filter-search');
+        const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+        const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
+        const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+
+        const filtered = (window.PortalApp.cachedEquipment || []).filter(function(eq) {
+            if(branch && (eq.custom_branch || '') !== branch) return false;
+            if(category && (eq.custom_asset_category || '') !== category) return false;
+            if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+            if(condition && (eq.custom_operational_status || '') !== condition) return false;
+            if(health && (eq.custom_equipment_health || '') !== health) return false;
+            if(brand && (eq.custom_make || '') !== brand) return false;
+            if(model && (eq.custom_model || '') !== model) return false;
+
+            if(attention === 'needs_attention') {
+                if((eq.custom_equipment_health || '') === 'Good') return false;
+            }
+
+            if(q) {
+                const haystack = [
+                    eq.name, eq.equipment_display, eq.custom_asset_name,
+                    eq.custom_display_name, eq.custom_asset_id,
+                    eq.custom_client_asset_code, eq.custom_serial_number,
+                    eq.custom_asset_category, eq.custom_branch,
+                    eq.custom_make, eq.custom_model,
+                    eq.custom_asset_status, eq.custom_operational_status,
+                    eq.custom_equipment_health
+                ].filter(Boolean).join(' ').toLowerCase();
+                if(!haystack.includes(q)) return false;
+            }
+
+            if(startDate || endDate) {
+                if(!eq.custom_next_maintenance_date) return false;
+                const t = new Date(eq.custom_next_maintenance_date).getTime();
+                if(startDate && t < startDate) return false;
+                if(endDate && t > endDate) return false;
+            }
+
+            return true;
+        });
+
+        window.renderEquipmentTable(filtered);
+    };
+
+    window.cpApplyEquipmentFilterFromUrl = function() {
+        const kind = new URLSearchParams(window.location.search).get('equipment_filter');
+        if(!kind) return;
+
+        if(typeof window.cpGo === 'function') window.cpGo('equipment');
+
+        const ids = [
+            'eq-filter-branch','eq-filter-category','eq-filter-asset-status',
+            'eq-filter-operational-status','eq-filter-health','eq-filter-attention',
+            'eq-filter-make','eq-filter-model','eq-filter-start-date','eq-filter-end-date'
+        ];
+        ids.forEach(function(id) {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        const search = document.getElementById('eq-filter-search');
+        if(search) search.value = '';
+
+        if(kind === 'attention') {
+            const attention = document.getElementById('eq-filter-attention');
+            if(attention) attention.value = 'needs_attention';
+        }
+
+        window.filterEquipment();
+    };
+
+
+    window.cpEquipmentNeedsAttentionViewV1 = true;
+
+    window.cpSetEquipmentViewFromUrl = function() {
+        const params = new URLSearchParams(window.location.search);
+        const view = params.get('equipment_view') || '';
+        window.PortalApp.equipmentView = view;
+
+        if(view === 'needs_attention' && typeof window.cpGo === 'function') {
+            window.cpGo('equipment');
+        }
+
+        const banner = document.getElementById('equipment-attention-view-banner');
+        if(banner) {
+            banner.style.display = view === 'needs_attention' ? 'block' : 'none';
+        }
+    };
+
+    window.clearEquipmentNeedsAttentionView = function() {
+        window.PortalApp.equipmentView = '';
+        const banner = document.getElementById('equipment-attention-view-banner');
+        if(banner) banner.style.display = 'none';
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('equipment_view');
+        window.history.replaceState({}, '', url.pathname + url.search);
+
+        if(typeof window.filterEquipment === 'function') {
+            window.filterEquipment();
+        }
+    };
+
+    (function() {
+        const baseFilterEquipment = window.filterEquipment;
+
+        window.filterEquipment = function() {
+            if(typeof baseFilterEquipment === 'function') {
+                baseFilterEquipment();
+            }
+
+            if(window.PortalApp.equipmentView !== 'needs_attention') return;
+
+            const value = function(id) {
+                const el = document.getElementById(id);
+                return el ? el.value : '';
+            };
+
+            const branch = value('eq-filter-branch');
+            const category = value('eq-filter-category');
+            const assetStatus = value('eq-filter-asset-status');
+            const condition = value('eq-filter-operational-status');
+            const health = value('eq-filter-health');
+            const brand = value('eq-filter-make');
+            const model = value('eq-filter-model');
+            const startVal = value('eq-filter-start-date');
+            const endVal = value('eq-filter-end-date');
+
+            const searchEl = document.getElementById('eq-filter-search');
+            const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+            const startDate = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
+            const endDate = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
+
+            const filtered = (window.PortalApp.cachedEquipment || []).filter(function(eq) {
+                if((eq.custom_equipment_health || '') === 'Good') return false;
+                if(branch && (eq.custom_branch || '') !== branch) return false;
+                if(category && (eq.custom_asset_category || '') !== category) return false;
+                if(assetStatus && (eq.custom_asset_status || '') !== assetStatus) return false;
+                if(condition && (eq.custom_operational_status || '') !== condition) return false;
+                if(health && (eq.custom_equipment_health || '') !== health) return false;
+                if(brand && (eq.custom_make || '') !== brand) return false;
+                if(model && (eq.custom_model || '') !== model) return false;
+
+                if(q) {
+                    const haystack = [
+                        eq.name, eq.equipment_display, eq.custom_asset_name,
+                        eq.custom_display_name, eq.custom_asset_id,
+                        eq.custom_client_asset_code, eq.custom_serial_number,
+                        eq.custom_asset_category, eq.custom_branch,
+                        eq.custom_make, eq.custom_model, eq.custom_asset_status,
+                        eq.custom_operational_status, eq.custom_equipment_health
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    if(!haystack.includes(q)) return false;
+                }
+
+                if(startDate || endDate) {
+                    if(!eq.custom_next_maintenance_date) return false;
+                    const t = new Date(eq.custom_next_maintenance_date).getTime();
+                    if(startDate && t < startDate) return false;
+                    if(endDate && t > endDate) return false;
+                }
+
+                return true;
+            });
+
+            window.renderEquipmentTable(filtered);
+        };
+    })();
+
+    frappe.ready(function() {
+        window.cpSetEquipmentViewFromUrl();
+        setTimeout(function() {
+            window.cpSetEquipmentViewFromUrl();
+            if(typeof window.filterEquipment === 'function') {
+                window.filterEquipment();
+            }
+        }, 500);
+    });
+
+
+    window.cpEquipmentDropdownPopulationFixV1 = true;
+
+    (function() {
+        const finalEquipmentFilter = window.filterEquipment;
+
+        window.filterEquipment = function() {
+            if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+                window.cpPopulateEquipmentAdvancedFilters();
+            }
+
+            if(typeof finalEquipmentFilter === 'function') {
+                return finalEquipmentFilter.apply(this, arguments);
+            }
+        };
+    })();
+
+    frappe.ready(function() {
+        setTimeout(function() {
+            if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+                window.cpPopulateEquipmentAdvancedFilters();
+            }
+        }, 500);
+    });
+
+
+    window.cpEquipmentBrandBatchFixV1 = true;
+
+    window.cpLoadEquipmentBrands = function() {
+        frappe.call({
+            method: 'maintenance_app.api.client_portal_get_equipment_brands',
+            callback: function(r) {
+                const rows = Array.isArray(r.message) ? r.message : [];
+                const byName = {};
+
+                rows.forEach(function(row) {
+                    byName[row.name] = row.custom_make || '';
+                });
+
+                (window.PortalApp.cachedEquipment || []).forEach(function(eq) {
+                    if(Object.prototype.hasOwnProperty.call(byName, eq.name)) {
+                        eq.custom_make = byName[eq.name];
+                    }
+                });
+
+                if(typeof window.cpPopulateEquipmentAdvancedFilters === 'function') {
+                    window.cpPopulateEquipmentAdvancedFilters();
+                }
+
+                const brand = document.getElementById('eq-filter-make');
+                if(brand) {
+                    const values = Array.from(new Set(
+                        (window.PortalApp.cachedEquipment || [])
+                            .map(function(eq) { return eq.custom_make || ''; })
+                            .filter(Boolean)
+                    )).sort();
+
+                    const current = brand.value || '';
+                    brand.innerHTML = '<option value="">All Brands</option>';
+
+                    values.forEach(function(value) {
+                        brand.innerHTML += '<option value="' + window.cpEsc(value) + '">' + window.cpEsc(value) + '</option>';
+                    });
+
+                    brand.value = current;
+                }
+            },
+            error: function(err) {
+                console.error('Could not load equipment brands:', err);
+            }
+        });
+    };
+
+    frappe.ready(function() {
+        setTimeout(function() {
+            window.cpLoadEquipmentBrands();
+        }, 300);
+    });
+
+
+    // GMAO_EQUIPMENT_BRANCH_FIRST_V1
+    (function() {
+        const originalRenderEquipmentTable = window.renderEquipmentTable;
+        if (typeof originalRenderEquipmentTable !== "function") {
+            console.error("GMAO: renderEquipmentTable not found");
+            return;
+        }
+
+        window.renderEquipmentTable = function(equipmentList) {
+            originalRenderEquipmentTable(equipmentList);
+            const tbody = document.getElementById("table-equipment-body");
+            if (!tbody) return;
+
+            Array.from(tbody.rows || []).forEach(function(row) {
+                if (!row.cells || row.cells.length < 2) return;
+                if (row.cells.length === 1) return;
+                const equipmentCell = row.cells[0];
+                const branchCell = row.cells[1];
+                row.insertBefore(branchCell, equipmentCell);
+            });
+        };
+    })();
+
+
+// GMAO_CLIENT_TYPE_FILTER_UI_V1
+(function() {
+    function esc(value) {
+        if (window.cpEsc) return window.cpEsc(value == null ? "" : value);
+        const d = document.createElement("div");
+        d.textContent = value == null ? "" : String(value);
+        return d.innerHTML;
+    }
+
+    function getTypes() {
+        const set = new Set();
+        const eq = (window.PortalApp && window.PortalApp.cachedEquipment) || [];
+        const tk = (window.PortalApp && window.PortalApp.cachedTickets) || [];
+
+        eq.forEach(r => { if (r && r.custom_client_type) set.add(r.custom_client_type); });
+        tk.forEach(r => { if (r && r.custom_client_type) set.add(r.custom_client_type); });
+
+        return Array.from(set).sort((a,b) => String(a).localeCompare(String(b)));
+    }
+
+    function fillSelect(select) {
+        if (!select) return;
+        const current = select.value || "";
+        const types = getTypes();
+
+        select.innerHTML =
+            '<option value="">All Client Types</option>' +
+            types.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join("");
+
+        if (types.includes(current)) select.value = current;
+    }
+
+    function ensureEquipmentFilter() {
+        if (document.getElementById("eq-filter-client-type")) {
+            fillSelect(document.getElementById("eq-filter-client-type"));
+            return;
+        }
+
+        const branch = document.getElementById("eq-filter-branch");
+        if (!branch || !branch.parentElement) return;
+
+        const label = document.createElement("label");
+        label.className = "cp-filter-field";
+        label.innerHTML =
+            '<span>Client Type</span>' +
+            '<select id="eq-filter-client-type"><option value="">All Client Types</option></select>';
+
+        branch.parentElement.insertAdjacentElement("afterend", label);
+
+        const select = label.querySelector("select");
+        fillSelect(select);
+        select.addEventListener("change", function() {
+            if (typeof window.filterEquipment === "function") window.filterEquipment();
+        });
+    }
+
+    function ensureDashboardFilter() {
+        if (document.getElementById("cp-dashboard-client-type")) {
+            fillSelect(document.getElementById("cp-dashboard-client-type"));
+            return;
+        }
+
+        const period = document.querySelector(".cp-dash-period");
+        if (!period) return;
+
+        const label = document.createElement("label");
+        label.innerHTML =
+            '<span>Client Type</span>' +
+            '<select id="cp-dashboard-client-type"><option value="">All Client Types</option></select>';
+
+        period.appendChild(label);
+
+        const select = label.querySelector("select");
+        fillSelect(select);
+        select.addEventListener("change", refreshDashboardForClientType);
+    }
+
+    function selectedEqType() {
+        const el = document.getElementById("eq-filter-client-type");
+        return el ? el.value : "";
+    }
+
+    function selectedDashType() {
+        const el = document.getElementById("cp-dashboard-client-type");
+        return el ? el.value : "";
+    }
+
+    function refreshDashboardForClientType() {
+        if (!window.PortalApp) return;
+
+        if (!window.PortalApp._gmaoAllEquipment) {
+            window.PortalApp._gmaoAllEquipment =
+                (window.PortalApp.cachedEquipment || []).slice();
+        }
+
+        if (!window.PortalApp._gmaoAllTickets) {
+            window.PortalApp._gmaoAllTickets =
+                (window.PortalApp.cachedTickets || []).slice();
+        }
+
+        const type = selectedDashType();
+        const allEq = window.PortalApp._gmaoAllEquipment;
+        const allTk = window.PortalApp._gmaoAllTickets;
+
+        const filteredEq = type
+            ? allEq.filter(r => (r.custom_client_type || "") === type)
+            : allEq;
+
+        const filteredTk = type
+            ? allTk.filter(r => (r.custom_client_type || "") === type)
+            : allTk;
+
+        const savedEq = window.PortalApp.cachedEquipment;
+        const savedTk = window.PortalApp.cachedTickets;
+
+        window.PortalApp.cachedEquipment = filteredEq;
+        window.PortalApp.cachedTickets = filteredTk;
+
+        const periodSelect =
+            document.querySelector(".cp-dash-period select:not(#cp-dashboard-client-type)");
+
+        if (periodSelect) {
+            periodSelect.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+
+        setTimeout(function() {
+            window.PortalApp.cachedEquipment = savedEq;
+            window.PortalApp.cachedTickets = savedTk;
+        }, 0);
+    }
+
+    if (typeof window.renderEquipmentTable === "function") {
+        const originalRenderEquipmentTable = window.renderEquipmentTable;
+
+        window.renderEquipmentTable = function(rows) {
+            const type = selectedEqType();
+            const source = Array.isArray(rows) ? rows : [];
+
+            const filtered = type
+                ? source.filter(r => (r.custom_client_type || "") === type)
+                : source;
+
+            return originalRenderEquipmentTable(filtered);
+        };
+    }
+
+    function init() {
+        if (window.PortalApp) {
+            if (Array.isArray(window.PortalApp.cachedEquipment)) {
+                window.PortalApp._gmaoAllEquipment =
+                    window.PortalApp.cachedEquipment.slice();
+            }
+            if (Array.isArray(window.PortalApp.cachedTickets)) {
+                window.PortalApp._gmaoAllTickets =
+                    window.PortalApp.cachedTickets.slice();
+            }
+        }
+
+        ensureEquipmentFilter();
+        ensureDashboardFilter();
+    }
+
+    let tries = 0;
+    const timer = setInterval(function() {
+        tries += 1;
+        ensureEquipmentFilter();
+        ensureDashboardFilter();
+        if (tries >= 60) clearInterval(timer);
+    }, 250);
+
+    document.addEventListener("DOMContentLoaded", init);
+    setTimeout(init, 800);
+})();
+
+// GMAO_CLIENT_TYPE_FILTER_ACTIVE_V2
+    (function() {
+        function fillClientTypeSelect(selectId) {
+            const el = document.getElementById(selectId);
+            if(!el || !window.PortalApp) return;
+
+            const current = el.value || '';
+            const values = new Set();
+
+            (window.PortalApp.cachedEquipment || []).forEach(function(eq) {
+                if(eq && eq.custom_client_type) values.add(eq.custom_client_type);
+            });
+
+            (window.PortalApp.cachedTickets || []).forEach(function(t) {
+                if(t && t.custom_client_type) values.add(t.custom_client_type);
+            });
+
+            const sorted = Array.from(values).sort(function(a,b) {
+                return String(a).localeCompare(String(b));
+            });
+
+            el.innerHTML =
+                '<option value="">All ' +
+                (selectId === 'eq-filter-client-type' ? 'Client Types' : 'client types') +
+                '</option>';
+
+            sorted.forEach(function(value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                el.appendChild(option);
+            });
+
+            if(sorted.includes(current)) el.value = current;
+        }
+
+        window.cpPopulateClientTypeFilters = function() {
+            fillClientTypeSelect('eq-filter-client-type');
+            fillClientTypeSelect('cp-dashboard-client-type');
+        };
+
+        const oldMatches = window.cpEquipmentMatchesAdvancedFilters;
+        window.cpEquipmentMatchesAdvancedFilters = function(eq) {
+            if(typeof oldMatches === 'function' && !oldMatches(eq)) return false;
+
+            const el = document.getElementById('eq-filter-client-type');
+            const selected = el ? el.value : '';
+
+            if(selected && (eq.custom_client_type || '') !== selected) {
+                return false;
+            }
+
+            return true;
+        };
+
+        const oldClear = window.clearEquipmentFilters;
+        window.clearEquipmentFilters = function() {
+            if(typeof oldClear === 'function') oldClear();
+
+            const clientType = document.getElementById('eq-filter-client-type');
+            if(clientType) clientType.value = '';
+
+            if(typeof window.filterEquipment === 'function') {
+                window.filterEquipment();
+            }
+        };
+
+        const oldDashboard = window.cpLoadDashboardKpis;
+        window.cpLoadDashboardKpis = function() {
+            if(typeof oldDashboard !== 'function') return;
+
+            const selectedEl = document.getElementById('cp-dashboard-client-type');
+            const selected = selectedEl ? selectedEl.value : '';
+
+            if(!window.PortalApp || !selected) {
+                oldDashboard();
+                return;
+            }
+
+            const originalEquipment = window.PortalApp.cachedEquipment || [];
+            const originalTickets = window.PortalApp.cachedTickets || [];
+
+            window.PortalApp.cachedEquipment = originalEquipment.filter(function(eq) {
+                return (eq.custom_client_type || '') === selected;
+            });
+
+            window.PortalApp.cachedTickets = originalTickets.filter(function(t) {
+                return (t.custom_client_type || '') === selected;
+            });
+
+            try {
+                oldDashboard();
+            } finally {
+                window.PortalApp.cachedEquipment = originalEquipment;
+                window.PortalApp.cachedTickets = originalTickets;
+            }
+        };
+
+        let tries = 0;
+        const timer = setInterval(function() {
+            tries += 1;
+            window.cpPopulateClientTypeFilters();
+
+            if(
+                document.getElementById('eq-filter-client-type') &&
+                document.getElementById('cp-dashboard-client-type') &&
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedEquipment) &&
+                window.PortalApp.cachedEquipment.length
+            ) {
+                clearInterval(timer);
+            }
+
+            if(tries >= 60) clearInterval(timer);
+        }, 250);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.cpPopulateClientTypeFilters();
+        });
+
+        setTimeout(function() {
+            window.cpPopulateClientTypeFilters();
+        }, 800);
+    })();
+
+// GMAO_TICKET_CLIENT_TYPE_FILTER_V1
+    (function() {
+        function populateTicketClientTypes() {
+            const el = document.getElementById('tk-filter-client-type');
+            if(!el || !window.PortalApp) return;
+
+            const current = el.value || '';
+            const values = [...new Set(
+                (window.PortalApp.cachedTickets || [])
+                    .map(t => t.custom_client_type)
+                    .filter(Boolean)
+            )].sort();
+
+            el.innerHTML = '<option value="">All Client Types</option>';
+
+            values.forEach(function(value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                el.appendChild(option);
+            });
+
+            if(values.includes(current)) el.value = current;
+        }
+
+        const oldFilterTickets = window.filterTickets;
+
+        window.filterTickets = function() {
+            if(typeof oldFilterTickets !== 'function') return;
+
+            const selectedEl = document.getElementById('tk-filter-client-type');
+            const selected = selectedEl ? selectedEl.value : '';
+
+            if(!selected) {
+                oldFilterTickets();
+                populateTicketClientTypes();
+                return;
+            }
+
+            const originalTickets = window.PortalApp.cachedTickets || [];
+            window.PortalApp.cachedTickets = originalTickets.filter(function(t) {
+                return (t.custom_client_type || '') === selected;
+            });
+
+            try {
+                oldFilterTickets();
+            } finally {
+                window.PortalApp.cachedTickets = originalTickets;
+                populateTicketClientTypes();
+            }
+        };
+
+        const oldReset = window.resetTicketFilters;
+        window.resetTicketFilters = function() {
+            const el = document.getElementById('tk-filter-client-type');
+            if(el) el.value = '';
+            if(typeof oldReset === 'function') oldReset();
+        };
+
+        let tries = 0;
+        const timer = setInterval(function() {
+            tries += 1;
+            populateTicketClientTypes();
+
+            if(
+                document.getElementById('tk-filter-client-type') &&
+                window.PortalApp &&
+                Array.isArray(window.PortalApp.cachedTickets)
+            ) {
+                clearInterval(timer);
+            }
+
+            if(tries >= 60) clearInterval(timer);
+        }, 250);
+    })();
+
+// GMAO_TICKET_COLUMNS_CUSTOMER_REF_V1
+    window.renderTicketsTable = function(ticketsList) {
+        const tbody = document.getElementById('table-tickets-body');
+        if(!tbody) return;
+
+        const rows = Array.isArray(ticketsList) ? ticketsList : [];
+        tbody.innerHTML = '';
+
+        if(rows.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">' +
+                'No service tickets match these filter configurations.' +
+                '</td></tr>';
+            return;
+        }
+
+        const esc = function(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : String(value);
+            return div.innerHTML;
+        };
+
+        rows.forEach(function(t) {
+            const isClosed = ['Closed', 'Cancelled', 'Resolved'].includes(t.custom_ticket_status);
+            const statusClass = isClosed ? 'badge-success' : 'badge-warning';
+
+            const openDate =
+                t.custom_opening_date ||
+                (t.creation ? String(t.creation).split(' ')[0] : '-');
+
+            const closeDate = isClosed
+                ? (t.custom_closed_date ||
+                   t.custom_resolution_date ||
+                   (t.modified ? String(t.modified).split(' ')[0] : '-'))
+                : '-- Active --';
+
+            const targetAsset =
+                t.target_equipment_display ||
+                t.custom_target_equipment ||
+                t.custom_parent_equipment ||
+                '-';
+
+            const targetComp = t.custom_target_component_name
+                ? '<br><small style="color:#64748b;font-weight:600;">🧩 Component: ' +
+                  esc(t.custom_target_component_name) +
+                  '</small>'
+                : '';
+
+            const resolutionBlock = t.custom_resolution_details
+                ? '<br><div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 10px;border-radius:4px;font-size:12px;color:#166534;">' +
+                  '<strong>Resolution Details:</strong> ' +
+                  esc(t.custom_resolution_details) +
+                  '</div>'
+                : '';
+
+            tbody.innerHTML +=
+                '<tr>' +
+                    '<td><a href="/client-portal/ticket?name=' + encodeURIComponent(t.name) + '" ' +
+                        'style="color:#3b82f6;font-weight:700;text-decoration:none;">' +
+                        esc(t.name) +
+                    '</a></td>' +
+                    '<td><strong style="color:#1e293b;">' +
+                        esc(t.custom_ticket_title || '-') +
+                    '</strong></td>' +
+                    '<td><strong>' +
+                        esc(t.custom_client_branch || '-') +
+                    '</strong></td>' +
+                    '<td><span style="font-weight:600;color:#1e293b;">' +
+                        esc(t.custom_subject || '') +
+                    '</span>' +
+                    resolutionBlock +
+                    '</td>' +
+                    '<td><strong style="color:#475569;">' +
+                        esc(targetAsset) +
+                    '</strong>' +
+                    targetComp +
+                    '</td>' +
+                    '<td><span class="badge ' + statusClass + '">' +
+                        esc(t.custom_ticket_status || '-') +
+                    '</span></td>' +
+                    '<td style="color:#64748b;font-family:monospace;">' +
+                        esc(openDate) +
+                    '</td>' +
+                    '<td style="color:#64748b;font-family:monospace;font-weight:600;">' +
+                        esc(closeDate) +
+                    '</td>' +
+                '</tr>';
+        });
+    };
+
+// GMAO_TICKET_ID_REF_SEARCH_V2
+    (function() {
+        const priorFilterTickets = window.filterTickets;
+
+        window.filterTickets = function() {
+            if(typeof priorFilterTickets !== 'function') return;
+
+            const searchEl = document.getElementById('tk-filter-search');
+            const needle = searchEl
+                ? String(searchEl.value || '').trim().toLowerCase()
+                : '';
+
+            if(!needle || !window.PortalApp) {
+                priorFilterTickets();
+                return;
+            }
+
+            const originalTickets = window.PortalApp.cachedTickets || [];
+
+            window.PortalApp.cachedTickets = originalTickets.filter(function(t) {
+                const ticketId = String(t.name || '').toLowerCase();
+                const customerRef = String(t.custom_ticket_title || '').toLowerCase();
+
+                return (
+                    ticketId.includes(needle) ||
+                    customerRef.includes(needle)
+                );
+            });
+
+            try {
+                priorFilterTickets();
+            } finally {
+                window.PortalApp.cachedTickets = originalTickets;
+            }
+        };
+
+        const priorReset = window.resetTicketFilters;
+
+        window.resetTicketFilters = function() {
+            const searchEl = document.getElementById('tk-filter-search');
+            if(searchEl) searchEl.value = '';
+
+            if(typeof priorReset === 'function') {
+                priorReset();
+            } else if(typeof window.filterTickets === 'function') {
+                window.filterTickets();
+            }
+        };
+    })();
+
+// GMAO_EQUIPMENT_LOG_PRIMARY_LINKS_V1
+    window.cpPortalLogLink = function(kind, name) {
+        if(!name) return '—';
+
+        let href = '';
+        let label = name;
+
+        if(kind === 'service') {
+            href = '/client-portal/service-logs?name=' + encodeURIComponent(name);
+        } else if(kind === 'lifecycle') {
+            href = '/client-portal/lifecycle-logs?name=' + encodeURIComponent(name);
+        } else {
+            return window.cpEsc ? window.cpEsc(name) : String(name);
+        }
+
+        const safeLabel = window.cpEsc ? window.cpEsc(label) : String(label);
+        return '<a class="cp-log-link" href="' + href + '">' + safeLabel + '</a>';
+    };
+
+// GMAO_EQUIPMENT_LOG_IFRAME_MODAL_V1
+    window.cpPortalLogPopupLink = function(kind, name) {
+        if(!name) return '—';
+
+        const safeLabel = window.cpEsc ? window.cpEsc(name) : String(name);
+        const encodedKind = encodeURIComponent(String(kind));
+        const encodedName = encodeURIComponent(String(name));
+
+        return '<a class="cp-log-link" href="#"'
+            + ' data-log-kind="' + encodedKind + '"'
+            + ' data-log-name="' + encodedName + '"'
+            + ' onclick="window.cpOpenLogPopupFromElement(this); return false;">'
+            + safeLabel
+            + '</a>';
+    };
+
+    window.cpOpenLogPopupFromElement = function(el) {
+        if(!el) return;
+
+        const kind = decodeURIComponent(el.getAttribute('data-log-kind') || '');
+        const name = decodeURIComponent(el.getAttribute('data-log-name') || '');
+
+        window.cpOpenLogPopup(kind, name);
+    };
+
+    window.cpOpenLogPopup = function(kind, name) {
+        if(!name) return;
+
+        let base = '';
+        if(kind === 'service') {
+            base = '/client-portal/service-logs';
+        } else if(kind === 'lifecycle') {
+            base = '/client-portal/lifecycle-logs';
+        } else {
+            return;
+        }
+
+        let overlay = document.getElementById('cp-log-popup-overlay');
+
+        if(!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'cp-log-popup-overlay';
+            overlay.style.cssText =
+                'display:none;position:fixed;inset:0;z-index:99999;'
+                + 'background:rgba(15,23,42,.58);padding:24px;';
+
+            const shell = document.createElement('div');
+            shell.style.cssText =
+                'position:relative;width:min(1100px,96vw);height:90vh;'
+                + 'margin:2vh auto;background:white;border-radius:12px;'
+                + 'overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.35);';
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = '×';
+            close.setAttribute('aria-label', 'Close');
+            close.style.cssText =
+                'position:absolute;right:12px;top:8px;z-index:3;'
+                + 'width:38px;height:38px;border:0;border-radius:50%;'
+                + 'background:white;font-size:28px;line-height:34px;'
+                + 'cursor:pointer;color:#334155;box-shadow:0 2px 8px rgba(15,23,42,.18);';
+            close.onclick = window.cpCloseLogPopup;
+
+            const frame = document.createElement('iframe');
+            frame.id = 'cp-log-popup-frame';
+            frame.style.cssText =
+                'width:100%;height:100%;border:0;background:white;';
+            frame.setAttribute('title', 'Log detail');
+
+            shell.appendChild(close);
+            shell.appendChild(frame);
+            overlay.appendChild(shell);
+
+            overlay.addEventListener('click', function(e) {
+                if(e.target === overlay) window.cpCloseLogPopup();
+            });
+
+            document.body.appendChild(overlay);
+        }
+
+        const frame = document.getElementById('cp-log-popup-frame');
+        frame.src = base + '?name=' + encodeURIComponent(name);
+        overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.cpCloseLogPopup = function() {
+        const overlay = document.getElementById('cp-log-popup-overlay');
+        const frame = document.getElementById('cp-log-popup-frame');
+
+        if(frame) frame.src = 'about:blank';
+        if(overlay) overlay.style.display = 'none';
+
+        document.body.style.overflow = '';
+    };
+
+// GMAO_LOG_REPORT_LINK_V1
+    window.cpPortalLogReportLink = function(kind, name) {
+        if(!name) return '—';
+
+        let href = '';
+        if(kind === 'service') {
+            href = '/client-portal/service-log-report?name=' + encodeURIComponent(name);
+        } else if(kind === 'lifecycle') {
+            href = '/client-portal/lifecycle-log-report?name=' + encodeURIComponent(name);
+        } else {
+            return window.cpEsc ? window.cpEsc(name) : String(name);
+        }
+
+        const label = window.cpEsc ? window.cpEsc(name) : String(name);
+        return '<a class="cp-log-link" href="' + href + '">' + label + '</a>';
+    };
+
+// GMAO_CONFIG_LOG_REPORT_LINK_V2
+    window.cpPortalConfigLogLink = function(name) {
+        if(!name) return '—';
+        const label = window.cpEsc ? window.cpEsc(name) : String(name);
+        const href = '/client-portal/config-log-report?name=' + encodeURIComponent(name);
+        return '<a class="cp-log-link" href="' + href + '">' + label + '</a>';
+    };
+</script>
+
+// GMAO_CLIENT_PORTAL_CLIENT_REFINEMENTS_V1
+(function () {
+    const esc = (value) => {
+        if (window.cpEsc) return window.cpEsc(value == null ? "" : value);
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    };
+
+    const fmt = (value) => {
+        if (!value) return "—";
+        if (window.cpFmtDate) return window.cpFmtDate(value);
+        return String(value);
+    };
+
+    function ensureEquipmentFilter() {
+        if (document.getElementById("tk-filter-equipment")) return;
+
+        const branch = document.getElementById("tk-filter-branch");
+        if (!branch || !branch.parentElement || !branch.parentElement.parentElement) return;
+
+        const field = document.createElement("div");
+        field.style.cssText = "display:flex;flex-direction:column;gap:4px;";
+        field.innerHTML =
+            '<label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;">EQUIPMENT</label>' +
+            '<select id="tk-filter-equipment" onchange="window.filterTickets()" ' +
+            'style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;min-width:200px;background:white;outline:none;font-size:14px;color:#1e293b;height:38px;">' +
+            '<option value="">All Equipment</option></select>';
+
+        branch.parentElement.insertAdjacentElement("afterend", field);
+    }
+
+    function populateEquipmentFilter() {
+        const select = document.getElementById("tk-filter-equipment");
+        if (!select || !window.PortalApp || !Array.isArray(window.PortalApp.cachedTickets)) return;
+
+        const current = select.value;
+        const seen = new Map();
+
+        window.PortalApp.cachedTickets.forEach((t) => {
+            const key = t.custom_target_equipment || "";
+            if (!key) return;
+            const label = t.target_equipment_display || key;
+            if (!seen.has(key)) seen.set(key, label);
+        });
+
+        const rows = Array.from(seen.entries()).sort((a, b) =>
+            String(a[1]).localeCompare(String(b[1]))
+        );
+
+        select.innerHTML =
+            '<option value="">All Equipment</option>' +
+            rows.map(([value, label]) =>
+                `<option value="${esc(value)}">${esc(label)}</option>`
+            ).join("");
+
+        if (rows.some(([value]) => value === current)) select.value = current;
+    }
+
+    function normaliseTicketHeader() {
+        const body = document.getElementById("table-tickets-body");
+        const table = body && body.closest("table");
+        const row = table && table.querySelector("thead tr");
+        if (!row) return;
+
+        row.innerHTML =
+            "<th>Branch</th>" +
+            "<th>Client Ref</th>" +
+            "<th>Ticket ID</th>" +
+            "<th>Subject Details</th>" +
+            "<th>Equipment / Component</th>" +
+            "<th>Status</th>" +
+            "<th>Opened</th>" +
+            "<th>Resolved / Closed</th>";
+    }
+
+    window.renderTicketsTable = function(data) {
+        normaliseTicketHeader();
+
+        const tbody = document.getElementById("table-tickets-body");
+        if (!tbody) return;
+
+        const rows = Array.isArray(data) ? data : [];
+        if (!rows.length) {
+            tbody.innerHTML =
+                '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">No service tickets found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map((t) => {
+            const status = t.custom_ticket_status || "Open";
+            const statusClass =
+                ["Closed", "Resolved"].includes(status) ? "badge-success" :
+                status === "On Hold" ? "badge-warning" :
+                "badge-info";
+
+            const openDate = t.custom_opening_date || t.creation || "";
+            const closeDate = t.custom_closed_date || t.custom_resolution_date || "";
+            const clientRef = t.custom_ticket_title || "—";
+            const equipment = t.target_equipment_display || t.custom_target_equipment || "—";
+            const component = t.custom_target_component_name || "";
+            const resolutionBlock = t.custom_resolution_details
+                ? `<div style="margin-top:7px;padding:7px 10px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:5px;font-size:12px;"><strong>Resolution Details:</strong> ${esc(t.custom_resolution_details)}</div>`
+                : "";
+
+            return `
+                <tr>
+                    <td><strong>${esc(t.custom_client_branch || "—")}</strong></td>
+                    <td><strong style="color:#334155;">${esc(clientRef)}</strong></td>
+                    <td><a href="/client-portal/ticket?name=${encodeURIComponent(t.name)}" style="color:#2563eb;font-weight:700;text-decoration:none;">${esc(t.name)}</a></td>
+                    <td><span style="font-weight:600;color:#1e293b;">${esc(t.custom_subject || "")}</span>${resolutionBlock}</td>
+                    <td><strong style="color:#475569;">${esc(equipment)}</strong>${component ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">🧩 Component: ${esc(component)}</div>` : ""}</td>
+                    <td><span class="badge ${statusClass}">${esc(status)}</span></td>
+                    <td style="color:#64748b;font-family:monospace;">${fmt(openDate)}</td>
+                    <td style="color:#64748b;font-family:monospace;font-weight:600;">${fmt(closeDate)}</td>
+                </tr>
+            `;
+        }).join("");
+    };
+
+    window.filterTickets = function() {
+        if (!window.PortalApp || !Array.isArray(window.PortalApp.cachedTickets)) return;
+
+        const value = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : "";
+        };
+
+        const branch = value("tk-filter-branch");
+        const equipment = value("tk-filter-equipment");
+        const status = value("tk-filter-status");
+        const type = value("tk-filter-type");
+        const priority = value("tk-filter-priority");
+        const hold = value("tk-filter-hold");
+        const dateFrom = value("tk-filter-date-from");
+        const dateTo = value("tk-filter-date-to");
+
+        const fromTime = dateFrom ? new Date(dateFrom + "T00:00:00").getTime() : null;
+        const toTime = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
+
+        const filtered = window.PortalApp.cachedTickets.filter((t) => {
+            if (window.PortalApp.deepTargetAssetFilter &&
+                t.custom_target_equipment !== window.PortalApp.deepTargetAssetFilter) {
+                return false;
+            }
+
+            if (window.PortalApp.deepTargetCompFilter) {
+                const q = String(window.PortalApp.deepTargetCompFilter).toLowerCase();
+                const subject = String(t.custom_subject || "").toLowerCase();
+                const component = String(t.custom_target_component_name || "").toLowerCase();
+                if (!subject.includes(q) && !component.includes(q)) return false;
+            }
+
+            if (branch && (t.custom_client_branch || "") !== branch) return false;
+            if (equipment && (t.custom_target_equipment || "") !== equipment) return false;
+            if (type && (t.custom_ticket_type || "") !== type) return false;
+            if (priority && (t.custom_priority || "") !== priority) return false;
+            if (hold && (t.custom_hold_reason || "") !== hold) return false;
+
+            if (status === "__active__") {
+                if (["Closed", "Resolved", "Cancelled"].includes(t.custom_ticket_status || "")) return false;
+            } else if (status === "Open") {
+                if (["Closed", "Resolved", "Cancelled"].includes(t.custom_ticket_status || "")) return false;
+            } else if (status === "Closed") {
+                if (!["Closed", "Resolved"].includes(t.custom_ticket_status || "")) return false;
+            } else if (status && (t.custom_ticket_status || "") !== status) {
+                return false;
+            }
+
+            const rawDate = t.custom_opening_date || t.creation || "";
+            const time = rawDate ? new Date(rawDate).getTime() : NaN;
+
+            if (fromTime && (isNaN(time) || time < fromTime)) return false;
+            if (toTime && (isNaN(time) || time > toTime)) return false;
+
+            return true;
+        });
+
+        window.renderTicketsTable(filtered);
+    };
+
+    function normaliseEquipmentTableOrder() {
+        const body =
+            document.getElementById("table-equipment-body") ||
+            document.querySelector("#panel-equipment tbody");
+
+        if (!body) return;
+
+        const table = body.closest("table");
+        const headRow = table && table.querySelector("thead tr");
+
+        if (headRow) {
+            const headers = Array.from(headRow.children);
+            if (
+                headers.length >= 2 &&
+                headers[0].textContent.trim().toLowerCase() === "equipment" &&
+                headers[1].textContent.trim().toLowerCase() === "branch"
+            ) {
+                headRow.insertBefore(headers[1], headers[0]);
+            }
+        }
+
+        Array.from(body.rows || []).forEach((row) => {
+            if (row.cells && row.cells.length >= 2 && !row.dataset.gmaoBranchFirst) {
+                row.insertBefore(row.cells[1], row.cells[0]);
+                row.dataset.gmaoBranchFirst = "1";
+            }
+        });
+    }
+
+    function refreshRefinements() {
+        ensureEquipmentFilter();
+        populateEquipmentFilter();
+        normaliseTicketHeader();
+        normaliseEquipmentTableOrder();
+    }
+
+    const observer = new MutationObserver(refreshRefinements);
+    observer.observe(document.documentElement, {childList:true, subtree:true});
+
+    document.addEventListener("DOMContentLoaded", refreshRefinements);
+    setTimeout(refreshRefinements, 800);
+})();

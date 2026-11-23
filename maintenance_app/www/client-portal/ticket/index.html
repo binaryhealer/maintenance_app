@@ -81,11 +81,86 @@ function render(data){const t=data.ticket||{}, mis=data.interventions||[], invs=
  document.getElementById('sla-grid').innerHTML=sla.map(([l,v,ok])=>`<div class="sla ${ok===true?'ok':ok===false?'bad':''}"><div class="k">${esc(l)}</div><div class="big">${v}</div>${ok===true?'<div class="small">Within target</div>':ok===false?'<div class="small" style="color:#b91c1c">Target exceeded</div>':''}</div>`).join('');
  const reworks=mis.filter(x=>/rework/i.test(x.custom_intervention_type||'')||x.custom_is_rework||x.custom_rework_of);if(!reworks.length){document.getElementById('rework-content').innerHTML='<div class="empty">No rework intervention recorded.</div>'}else{document.getElementById('rework-content').innerHTML=reworks.map(x=>`<div class="notice"><strong>${esc(x.name)}</strong> — ${esc(x.custom_intervention_type||'Rework')}<br>${esc(x.custom_additional_mi_reason||x.custom_work_outcome||'Return intervention')}</div>`).join('<div style="height:8px"></div>')}
  document.getElementById('timeline').innerHTML=(timeline.length?timeline:buildTimeline(t,mis,invs)).map(x=>`<div class="tl"><div class="tl-time">${fmt(x.datetime||x.date)}</div><div class="tl-title">${esc(x.title||'Activity')}</div><div class="tl-detail">${esc(x.detail||'')}${x.intervention?` · <a class="link" href="/client-portal/intervention?name=${encodeURIComponent(x.intervention)}">View report</a>`:''}${x.invoice&&x.view_url?` · <a class="link" href="${esc(x.view_url)}" target="_blank">View invoice</a>`:''}</div></div>`).join('')||'<div class="empty">No activity yet.</div>';
- document.getElementById('interventions').innerHTML=mis.length?mis.map(x=>`<div class="mi-card"><div><div class="mi-name"><a class="link" href="/client-portal/intervention?name=${encodeURIComponent(x.name)}">${esc(x.name)}</a></div><div class="small">${fmt(x.custom_start_time)}</div></div><div><div class="k">Type</div>${esc(x.custom_intervention_type||'—')}</div><div><div class="k">Technician</div>${esc(x.technician_display||x.custom_technician||'—')}</div><div><div class="k">Outcome</div>${esc(x.custom_work_outcome||'—')}</div><div><a class="mini-btn primary" href="/client-portal/intervention?name=${encodeURIComponent(x.name)}">View Report</a></div></div>`).join(''):'<div class="empty">No intervention recorded yet.</div>';
+ document.getElementById('interventions').innerHTML=mis.length?mis.map(x=>`<div class="mi-card"><div><div class="mi-name"><a class="link" href="/client-portal/intervention?name=${encodeURIComponent(x.name)}">${esc(x.name)}</a></div><div class="small">${fmt(x.custom_start_time)}</div></div><div><div class="k">Type</div>${esc(x.custom_intervention_type||'—')}</div><div><div class="k">Technician</div>${esc(x.technician_display||x.custom_technician||'—')}</div><div><div class="k">Outcome</div>${esc(x.custom_work_outcome||'—')}</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><a class="mini-btn primary" href="/client-portal/intervention?name=${encodeURIComponent(x.name)}">View Intervention Report</a>${x.custom_calibration_record ? `<a class="mini-btn" href="/client-portal/calibration?intervention=${encodeURIComponent(x.name)}">View Calibration Report</a>` : ""}</div></div>`).join(''):'<div class="empty">No intervention recorded yet.</div>';
  const commercial=[['Coverage',t.custom_service_type||'—'],['Commercial Status',t.custom_commercial_status||'—'],['Maintenance Contract',t.custom_maintenance_contract||'—']];document.getElementById('commercial').innerHTML=commercial.map(x=>kv(x[0],x[1])).join('');
  document.getElementById('invoices').innerHTML=invs.length?invs.map(i=>`<div class="invoice-card"><div><div class="inv-name">${esc(i.name)}</div><div class="small">${fmt(i.posting_date)}</div></div><div><div class="k">Total</div>${esc(i.currency||'')} ${esc(i.grand_total_formatted||i.grand_total||'—')}</div><div><div class="k">Outstanding</div>${esc(i.currency||'')} ${esc(i.outstanding_amount_formatted||i.outstanding_amount||'—')}</div><div><div class="k">Status</div>${esc(i.status||'—')}</div><div class="invoice-actions">${i.portal_url?`<a class="mini-btn" href="${esc(i.portal_url)}" target="_blank">View Invoice</a>`:''}${i.print_url?`<a class="mini-btn primary" href="${esc(i.print_url)}" target="_blank">Print / PDF</a>`:''}</div></div>`).join(''):'<div class="empty">No Sales Invoice linked to this ticket yet.</div>';
  document.getElementById('resolution').textContent=t.custom_resolution_details||'No resolution notes recorded.';
 }
 function buildTimeline(t,mis,invs){let a=[];if(t.custom_opening_date||t.creation)a.push({datetime:t.custom_opening_date||t.creation,title:'Ticket reported',detail:t.custom_subject||''});mis.forEach(x=>{if(x.custom_start_time)a.push({datetime:x.custom_start_time,title:`${x.name} started`,detail:x.custom_intervention_type||'',intervention:x.name});if(x.custom_end_time)a.push({datetime:x.custom_end_time,title:`${x.name} completed`,detail:x.custom_work_outcome||'',intervention:x.name})});if(t.custom_resolution_date)a.push({datetime:t.custom_resolution_date,title:'Ticket resolved',detail:t.custom_resolution_details||''});invs.forEach(i=>a.push({datetime:i.posting_date,title:'Invoice issued',detail:i.name,invoice:i.name,view_url:i.portal_url}));if(t.custom_closed_date)a.push({datetime:t.custom_closed_date,title:'Ticket closed',detail:''});return a.sort((x,y)=>new Date(x.datetime||0)-new Date(y.datetime||0))}
+</script>
+<!-- GMAO_CLIENT_PORTAL_SINGLE_FINAL_CALIBRATION_V1 -->
+<script>
+(function () {
+    function ticketName() {
+        return new URLSearchParams(window.location.search).get("name") || "";
+    }
+
+    function hideOldButtons() {
+        document.querySelectorAll("a,button").forEach((el) => {
+            const label = (el.textContent || "").trim().toLowerCase();
+            if ((label === "view calibration report" || label === "view final calibration report")
+                && !el.classList.contains("gmao-final-calibration-btn")) {
+                el.style.display = "none";
+            }
+        });
+    }
+
+    async function installFinalButton() {
+        hideOldButtons();
+
+        const name = ticketName();
+        if (!name) return;
+
+        const interventions = document.getElementById("interventions");
+        if (!interventions) return;
+
+        let box = document.getElementById("gmao-final-calibration-wrap");
+        if (!box) {
+            box = document.createElement("div");
+            box.id = "gmao-final-calibration-wrap";
+            box.style.marginTop = "14px";
+            interventions.insertAdjacentElement("afterend", box);
+        }
+
+        const fd = new FormData();
+        fd.append("ticket_name", name);
+
+        try {
+            const r = await fetch(
+                "/api/method/maintenance_app.api.client_portal_get_final_calibration_report",
+                {method:"POST", body:fd}
+            );
+            const j = await r.json();
+            if (j.exc) throw new Error("Unable to resolve final calibration report.");
+
+            const d = j.message || {};
+            if (!d.has_report || !d.origin_mi) {
+                box.innerHTML = "";
+                box.style.display = "none";
+                return;
+            }
+
+            box.innerHTML =
+                '<a class="mini-btn primary gmao-final-calibration-btn" href="/client-portal/calibration?intervention=' +
+                encodeURIComponent(d.origin_mi) +
+                '">View Final Calibration Report</a>';
+            box.style.display = "block";
+        } catch (e) {
+            console.error(e);
+            box.innerHTML = "";
+            box.style.display = "none";
+        }
+    }
+
+    let timer = null;
+    function schedule() {
+        clearTimeout(timer);
+        timer = setTimeout(installFinalButton, 150);
+    }
+
+    document.addEventListener("DOMContentLoaded", schedule);
+    new MutationObserver(schedule).observe(document.documentElement, {childList:true, subtree:true});
+    schedule();
+})();
 </script>
 </body></html>

@@ -1,0 +1,31 @@
+{% extends "templates/web.html" %}
+{% block title %}Configuration Log Report{% endblock %}
+{% block page_content %}
+<div class="cp-report"><div class="tools"><a id="back-to-equipment" href="/client-portal">Back</a><button onclick="window.print()">Print / Save PDF</button></div><div id="error" class="error" style="display:none;"></div>
+<section class="hero"><div><div class="eyebrow">CONFIGURATION LOG</div><h1 id="name">-</h1><div id="parameter" class="subtitle">-</div></div><span id="date" class="badge">-</span></section>
+<section class="section"><div class="title">EQUIPMENT & CHANGE</div><div class="grid"><div><label>Equipment</label><div id="equipment" class="value">-</div></div><div><label>Branch / Site</label><div id="branch" class="value">-</div></div><div><label>Parameter</label><div id="parameter2" class="value">-</div></div><div><label>Technician</label><div id="technician" class="value">-</div></div><div><label>Previous Value</label><div id="previous" class="value">-</div></div><div><label>New Value</label><div id="new-value" class="value">-</div></div></div></section>
+<section class="section"><div class="title">NOTES</div><div id="notes" class="value notes">-</div></section>
+<section class="section"><div class="title">REFERENCES</div><div class="grid"><div><label>Service Ticket</label><div id="ticket" class="value">-</div></div><div><label>Intervention</label><div id="intervention" class="value">-</div></div></div></section></div>
+{% endblock %}
+{% block style %}<style>
+.cp-report{max-width:1100px;margin:0 auto;padding:22px}.tools{display:flex;justify-content:space-between;margin-bottom:16px}.tools a,.tools button{padding:10px 15px;border:1px solid #cbd5e1;border-radius:7px;background:white;text-decoration:none;font-weight:700;cursor:pointer}.tools button{background:#3b82f6;color:white;border-color:#3b82f6}.hero,.section{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:18px}.hero{display:flex;justify-content:space-between;gap:20px}.eyebrow,.title,label{font-size:12px;text-transform:uppercase;font-weight:800;color:#64748b;letter-spacing:.5px}.hero h1{margin:7px 0 3px}.subtitle{font-size:18px}.badge{padding:8px 13px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:800;height:max-content}.title{font-size:15px;color:#1e293b;margin-bottom:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.value{margin-top:6px;padding:12px 14px;background:#f8fafc;border-left:3px solid #3b82f6;border-radius:6px;min-height:44px;font-weight:600}.notes{white-space:pre-wrap;min-height:90px}.value a{color:#2563eb;text-decoration:none;font-weight:800}.error{padding:12px;background:#fee2e2;color:#991b1b;border-radius:7px;margin-bottom:15px}@media(max-width:700px){.grid{grid-template-columns:1fr}.hero{flex-direction:column}}@media print{.tools{display:none}.cp-report{max-width:none;padding:0}.hero,.section{break-inside:avoid}}
+</style>{% endblock %}
+{% block script %}<script>
+// GMAO_REPORT_BACK_TO_EQUIPMENT_V1
+function setBackToEquipment(equipmentName, equipmentDisplay) {
+    const back = document.getElementById('back-to-equipment');
+    if(!back || !equipmentName) return;
+    back.href = '/client-portal?equipment='
+        + encodeURIComponent(equipmentName)
+        + '&tab=config';
+    back.textContent = '← Back to Equipment: '
+        + (equipmentDisplay || equipmentName);
+}
+
+const name=new URLSearchParams(location.search).get('name');const set=(id,v)=>document.getElementById(id).textContent=v||'-';const link=(id,url,label)=>document.getElementById(id).innerHTML=url?`<a href="${url}">${label}</a>`:'-';const fmt=v=>{if(!v)return'-';const d=new Date(v);return isNaN(d.getTime())?v:d.toLocaleString()};function err(m){const e=document.getElementById('error');e.textContent=m;e.style.display='block'}
+async function load(){if(!name){err('No configuration log specified.');return;}const fd=new FormData();fd.append('log_name',name);try{const r=await fetch('/api/method/maintenance_app.api.client_portal_get_config_log_detail',{method:'POST',body:fd});const j=await r.json();if(j.exc||!j.message)throw new Error('Configuration log unavailable.');const d=j.message,l=d.log||{};
+    setBackToEquipment(
+      l.custom_related_asset,
+      d.equipment_display || l.custom_related_asset
+    );set('name',l.name);set('parameter',l.custom_parameter);set('date',fmt(d.log_datetime));set('equipment',d.equipment_display||l.custom_related_asset);set('branch',l.custom_branch);set('parameter2',l.custom_parameter);set('technician',d.technician_display||l.custom_technician);set('previous',l.custom_current_value);set('new-value',l.custom_new_value);set('notes',l.custom_notes);link('ticket',l.custom_service_ticket?'/client-portal/ticket?name='+encodeURIComponent(l.custom_service_ticket):'',l.custom_service_ticket);link('intervention',l.custom_intervention?'/client-portal/intervention?name='+encodeURIComponent(l.custom_intervention):'',l.custom_intervention);}catch(e){console.error(e);err(e.message||'Unable to load configuration log.')}}load();
+</script>{% endblock %}

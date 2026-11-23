@@ -362,6 +362,17 @@ padding:8px;
 <option value="">All Components</option>
 </select>
 
+<select id="filter-status" onchange="applyFilters()">
+<option value="">All Statuses</option>
+<option value="Scheduled">Scheduled</option>
+<option value="Ongoing">Ongoing</option>
+<option value="On Hold">On Hold</option>
+</select>
+
+<select id="filter-hold" onchange="applyFilters()">
+<option value="">All Hold Reasons</option>
+</select>
+
 <input type="date" id="filter-from" onchange="applyFilters()" placeholder="From Date">
 <input type="date" id="filter-to" onchange="applyFilters()" placeholder="To Date">
 </div>
@@ -457,6 +468,8 @@ let allInterventions = [];
 let masterInterventions = [];
 
 document.addEventListener('DOMContentLoaded', function(){
+
+window.plannedStatusFromQuery = new URLSearchParams(window.location.search).get('status');
 loadPlannedInterventions();
 });
 
@@ -495,7 +508,17 @@ allInterventions = r.message || [];
 masterInterventions = [...allInterventions];
 updateStats();
 populateFilters();
+if(window.plannedStatusFromQuery){
+const statusEl = document.getElementById('filter-status');
+if(statusEl) statusEl.value = window.plannedStatusFromQuery;
+}
+
+if(window.plannedStatusFromQuery){
+const initialFiltered = allInterventions.filter(m => (m.custom_mission_status || '') === window.plannedStatusFromQuery);
+renderTable(initialFiltered);
+}else{
 renderTable(allInterventions);
+}
 })
 .catch(err => {
 console.error('Error loading interventions:', err);
@@ -537,13 +560,16 @@ document.getElementById('stat-overdue').textContent = overdue;
 function populateFilters(){
 const branchSelect = document.getElementById('filter-branch');
 const componentSelect = document.getElementById('filter-component');
+const holdSelect = document.getElementById('filter-hold');
 
 const branches = new Set();
 const components = new Set();
+const holdReasons = new Set();
 
 masterInterventions.forEach(m => {
 if(m.custom_branch) branches.add(m.custom_branch);
 if(m.custom_target_component_name) components.add(m.custom_target_component_name);
+if(m.custom_hold_reason) holdReasons.add(m.custom_hold_reason);
 });
 
 branchSelect.innerHTML = '<option value="">All Branches</option>';
@@ -561,12 +587,24 @@ o.value = c;
 o.textContent = c;
 componentSelect.appendChild(o);
 });
+
+if(holdSelect){
+holdSelect.innerHTML = '<option value="">All Hold Reasons</option>';
+Array.from(holdReasons).sort().forEach(v => {
+const o = document.createElement('option');
+o.value = v;
+o.textContent = v;
+holdSelect.appendChild(o);
+});
+}
 }
 
 function applyFilters(){
 const branch = document.getElementById('filter-branch').value;
 const type = document.getElementById('filter-type').value;
 const component = document.getElementById('filter-component').value;
+const status = document.getElementById('filter-status') ? document.getElementById('filter-status').value : '';
+const hold = document.getElementById('filter-hold') ? document.getElementById('filter-hold').value : '';
 const fromDate = document.getElementById('filter-from').value;
 const toDate = document.getElementById('filter-to').value;
 
@@ -594,9 +632,14 @@ return data;
 })
 .then(r => {
 allInterventions = r.message || [];
-const filtered = component
-? allInterventions.filter(m => m.custom_target_component_name === component)
-: allInterventions;
+
+const filtered = allInterventions.filter(m => {
+if(component && m.custom_target_component_name !== component) return false;
+if(status && (m.custom_mission_status || '') !== status) return false;
+if(hold && (m.custom_hold_reason || '') !== hold) return false;
+return true;
+});
+
 renderTable(filtered);
 updateStats();
 })
@@ -680,6 +723,197 @@ document.getElementById('detail-modal').classList.add('open');
 function closeModal(){
 document.getElementById('detail-modal').classList.remove('open');
 }
+</script>
+
+
+<!-- CLIENT_PORTAL_REPLAN_V1 -->
+<div id="client-replan-modal" class="modal">
+  <div class="modal-content" style="max-width:520px;">
+    <button class="modal-close" type="button" id="client-replan-close">&times;</button>
+    <div class="modal-title">Request Replan</div>
+    <div style="margin:8px 0 18px;color:var(--gray600);font-size:13px;">
+      Your request will be sent for review. The confirmed schedule will not change until approved.
+    </div>
+    <input type="hidden" id="replan-mission-name">
+    <div style="display:grid;gap:14px;">
+      <div><div class="modal-label">Current Schedule</div><div id="replan-current-schedule" style="font-weight:600;"></div></div>
+      <div><div class="modal-label">Preferred Start</div><input id="replan-preferred-start" type="datetime-local" style="width:100%;padding:10px;border:1px solid var(--gray200);border-radius:6px;"></div>
+      <div><div class="modal-label">Preferred End</div><input id="replan-preferred-end" type="datetime-local" style="width:100%;padding:10px;border:1px solid var(--gray200);border-radius:6px;"></div>
+      <div><div class="modal-label">Reason / Note</div><textarea id="replan-note" maxlength="500" rows="4" style="width:100%;padding:10px;border:1px solid var(--gray200);border-radius:6px;resize:vertical;"></textarea></div>
+    </div>
+    <div id="replan-error" style="display:none;margin-top:12px;color:#b91c1c;font-size:12px;font-weight:600;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+      <button type="button" id="client-replan-cancel" style="padding:9px 14px;border:1px solid var(--gray200);background:white;border-radius:6px;cursor:pointer;">Cancel</button>
+      <button id="replan-submit-btn" type="button" style="padding:9px 14px;border:0;background:var(--primary);color:white;border-radius:6px;cursor:pointer;font-weight:700;">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// CLIENT_PORTAL_REPLAN_V1
+(function() {
+  const originalShowDetail = window.showDetail || (typeof showDetail === 'function' ? showDetail : null);
+
+  function listMissions() {
+    if (Array.isArray(window.allInterventions)) return window.allInterventions;
+    if (typeof allInterventions !== 'undefined' && Array.isArray(allInterventions)) return allInterventions;
+    return [];
+  }
+
+  function toLocalInput(value) {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  window.openClientReplanModal = function(missionName) {
+    const mission = listMissions().find(m => m.name === missionName);
+    if (!mission) { alert('Could not find this planned mission.'); return; }
+    if (!['Scheduled','On Hold'].includes(mission.custom_mission_status || '')) {
+      alert('A replan can only be requested for a Scheduled or On Hold mission.');
+      return;
+    }
+    document.getElementById('replan-mission-name').value = mission.name;
+    document.getElementById('replan-current-schedule').textContent =
+      formatDateTime(mission.custom_planned_starttime) + ' to ' + formatDateTime(mission.custom_planned_endtime);
+    document.getElementById('replan-preferred-start').value = toLocalInput(mission.custom_planned_starttime);
+    document.getElementById('replan-preferred-end').value = toLocalInput(mission.custom_planned_endtime);
+    document.getElementById('replan-note').value = '';
+    document.getElementById('replan-error').style.display = 'none';
+    document.getElementById('client-replan-modal').classList.add('open');
+  };
+
+  window.closeClientReplanModal = function() {
+    document.getElementById('client-replan-modal').classList.remove('open');
+  };
+
+  function submitRequest() {
+    const missionName = document.getElementById('replan-mission-name').value;
+    const preferredStart = document.getElementById('replan-preferred-start').value;
+    const preferredEnd = document.getElementById('replan-preferred-end').value;
+    const note = document.getElementById('replan-note').value.trim();
+    const errorEl = document.getElementById('replan-error');
+    const btn = document.getElementById('replan-submit-btn');
+
+    errorEl.style.display = 'none';
+    if (!preferredStart || !preferredEnd) {
+      errorEl.textContent = 'Preferred Start and Preferred End are required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (new Date(preferredEnd) <= new Date(preferredStart)) {
+      errorEl.textContent = 'Preferred End must be after Preferred Start.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    const body = new FormData();
+    body.append('mission_name', missionName);
+    body.append('preferred_start', preferredStart);
+    body.append('preferred_end', preferredEnd);
+    body.append('note', note);
+
+    fetch('/api/method/maintenance_app.api.client_portal_request_replan', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: body
+    })
+    .then(async function(response) {
+      const data = await response.json();
+
+      if (!response.ok || data.exc) {
+        let message = 'Could not submit replan request. Please try again.';
+
+        if (data._server_messages) {
+          try {
+            const messages = JSON.parse(data._server_messages);
+            if (messages && messages.length) {
+              const parsed = JSON.parse(messages[0]);
+              message = parsed.message || message;
+            }
+          } catch (e) {
+            console.warn('Could not parse server message', e);
+          }
+        }
+
+        throw new Error(message);
+      }
+
+      return data.message || {};
+    })
+    .then(function(result) {
+      window.closeClientReplanModal();
+      alert(result.message || 'Replan request submitted for review.');
+
+      // Keep cached row state aligned immediately.
+      const mission = listMissions().find(m => m.name === missionName);
+      if (mission) {
+        mission.custom_client_replan_requested = 1;
+        mission.custom_client_replan_status = 'Pending';
+        mission.custom_client_preferred_start = preferredStart;
+        mission.custom_client_preferred_end = preferredEnd;
+        mission.custom_client_replan_note = note;
+      }
+    })
+    .catch(function(err) {
+      console.error('Replan request error:', err);
+      errorEl.textContent = err.message || 'Could not submit replan request. Please try again.';
+      errorEl.style.display = 'block';
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Submit Request';
+    });
+  }
+
+  document.getElementById('client-replan-close').addEventListener('click', window.closeClientReplanModal);
+  document.getElementById('client-replan-cancel').addEventListener('click', window.closeClientReplanModal);
+  document.getElementById('replan-submit-btn').addEventListener('click', submitRequest);
+
+  if (originalShowDetail) {
+    window.showDetail = function(missionName) {
+      originalShowDetail(missionName);
+      const mission = listMissions().find(m => m.name === missionName);
+      const startEl = document.getElementById('modal-start');
+      const modalContent = startEl ? startEl.closest('.modal-content') : null;
+      if (!modalContent) return;
+
+      let holder = document.getElementById('client-replan-action');
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.id = 'client-replan-action';
+        holder.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid var(--gray200);';
+        modalContent.appendChild(holder);
+      }
+      holder.innerHTML = '';
+
+      if (mission && ['Scheduled','On Hold'].includes(mission.custom_mission_status || '')) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Request Replan';
+        button.style.cssText = 'padding:9px 14px;border:0;background:var(--primary);color:white;border-radius:6px;cursor:pointer;font-weight:700;';
+        button.addEventListener('click', function() { window.openClientReplanModal(mission.name); });
+
+        const note = document.createElement('div');
+        note.textContent = 'This sends a request for review; it does not change the confirmed schedule immediately.';
+        note.style.cssText = 'font-size:11px;color:var(--gray600);margin-top:6px;';
+
+        holder.appendChild(button);
+        holder.appendChild(note);
+      } else {
+        holder.textContent = 'Replan requests are available for Scheduled or On Hold missions.';
+        holder.style.fontSize = '12px';
+        holder.style.color = 'var(--gray600)';
+      }
+    };
+  }
+})();
 </script>
 
 </body>
