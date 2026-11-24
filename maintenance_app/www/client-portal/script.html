@@ -1675,7 +1675,15 @@ window.toggleReportsSubmenu = function(event) {
         if(kind === 'awaiting_client') {
             if(statusEl) statusEl.value = 'On Hold';
             if(holdEl) holdEl.value = 'Waiting for Client';
-            window.filterTickets();
+
+            const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+                return (
+                    (t.custom_ticket_status || '') === 'On Hold' &&
+                    (t.custom_hold_reason || '') === 'Waiting for Client'
+                );
+            });
+
+            window.renderTicketsTable(filtered);
             return;
         }
 
@@ -1739,7 +1747,15 @@ window.toggleReportsSubmenu = function(event) {
         if(kind === 'awaiting_client') {
             if(statusEl) statusEl.value = 'On Hold';
             if(holdEl) holdEl.value = 'Waiting for Client';
-            window.filterTickets();
+
+            const filtered = (window.PortalApp.cachedTickets || []).filter(function(t) {
+                return (
+                    (t.custom_ticket_status || '') === 'On Hold' &&
+                    (t.custom_hold_reason || '') === 'Waiting for Client'
+                );
+            });
+
+            window.renderTicketsTable(filtered);
             return true;
         }
 
@@ -2927,6 +2943,8 @@ window.toggleReportsSubmenu = function(event) {
     });
 
     // GMAO_HIDE_TICKET_RESOLUTION_PREVIEW_SAFE_V4
+
+    // GMAO_AWAITING_CLIENT_DIRECT_FILTER_V1
 </script>
 
 // GMAO_CLIENT_PORTAL_CLIENT_REFINEMENTS_V1

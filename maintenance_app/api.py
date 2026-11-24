@@ -5719,8 +5719,7 @@ def client_portal_get_ticket_detail(ticket_name):
             timeline.append({
                 "datetime": mi.get("custom_start_time"),
                 "title": f"{mi.name} started",
-                "detail": mi.get("custom_intervention_type") or "Intervention",
-                "intervention": mi.name
+                "detail": mi.get("custom_intervention_type") or "Intervention"
             })
         if mi.get("custom_end_time"):
             timeline.append({
@@ -6069,8 +6068,7 @@ def client_portal_get_ticket_detail(ticket_name):
                 "detail": (
                     mi.get("custom_intervention_type")
                     or "Intervention"
-                ),
-                "intervention": mi.name
+                )
             })
 
         if mi.get("custom_end_time"):
@@ -6511,6 +6509,35 @@ def client_portal_get_preventive_maintenance(branch=None):
 
     return rows
 
+def _cp_planned_mission_technician_display(mission_name, assigned_text=None):
+    """Client-safe technician display for a Tech Mission."""
+    if assigned_text:
+        return assigned_text
+
+    rows = frappe.get_all(
+        "Planned Technicians",
+        filters={
+            "parent": mission_name,
+            "parenttype": "Tech Mission",
+            "parentfield": "custom_planned_team",
+        },
+        fields=["custom_technician"],
+        order_by="idx asc",
+    )
+
+    names = []
+    for row in rows:
+        user_id = row.get("custom_technician")
+        if not user_id:
+            continue
+
+        full_name = frappe.db.get_value("User", user_id, "full_name") or user_id
+        if full_name not in names:
+            names.append(full_name)
+
+    return ", ".join(names) if names else "-"
+
+
 @frappe.whitelist()
 def client_portal_get_planned_interventions(branch=None, mission_type=None, date_from=None, date_to=None):
     """Get planned and overdue interventions from Tech Mission for the logged-in customer.
@@ -6567,6 +6594,7 @@ def client_portal_get_planned_interventions(branch=None, mission_type=None, date
             "custom_hold_reason",
             "custom_service_ticket",
             "custom_subject",
+            "custom_assigned_technicians",
             "custom_target_component_name",
             "custom_parent_equipment",
             "custom_component_item",
@@ -6610,6 +6638,14 @@ def client_portal_get_planned_interventions(branch=None, mission_type=None, date
                 row["technician_display"] = "-"
         else:
             row["technician_display"] = "-"
+
+    # Client-safe technician label for Planned Interventions.
+    # Prefer the Tech Mission display field; fall back to its Planned Team child rows.
+    for mission in missions:
+        mission["technician_display"] = _cp_planned_mission_technician_display(
+            mission.get("name"),
+            mission.get("custom_assigned_technicians"),
+        )
 
     return missions
 
@@ -13506,3 +13542,9 @@ def client_portal_get_config_log_detail(log_name):
         "technician_display": technician_display,
         "log_datetime": log.get("custom_config_datetime") or log.get("custom_datetime") or log.get("creation"),
     }
+
+# GMAO_TIMELINE_REPORT_ONLY_ON_MI_COMPLETED_V1
+
+# GMAO_CLIENT_PORTAL_PLANNED_TECHNICIAN_DISPLAY_V1
+
+# GMAO_CLIENT_PORTAL_PLANNED_TECHNICIAN_FALLBACK_V2
